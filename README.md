@@ -1,5 +1,9 @@
 # ViralMind Desktop
 
+<p align="center" width="100%">
+    <img width="50%" src="https://github.com/user-attachments/assets/304e2bd6-9584-4d4b-afdb-71d759d91846">
+</p>
+
 A desktop application for contributing to the world's largest dataset for multimodal computer-use agents. Earn $VIRAL tokens in two ways: record your desktop interactions to train better computer-use AI, or provide secure virtual desktop infrastructure for deploying these agents. 
 
 Built from the ground up with privacy and security as core principles. See our [Privacy Policy](PRIVACY.md) for details.
