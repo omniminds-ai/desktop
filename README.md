@@ -1,15 +1,39 @@
-# Tauri + SvelteKit + TypeScript
+# ViralMind Desktop
 
-This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
+A desktop application for contributing to the world's largest dataset of computer-use agents. Earn $VIRAL tokens in two ways: record your desktop interactions to train better computer-use AI, or provide secure virtual desktop infrastructure for deploying these agents. 
+
+Built from the ground up with privacy and security as core principles.
 
 ## Recommended IDE Setup
 
 [VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
 
-## Pre-requisites
+## Requirements
 
-Debian Linux / Ubuntu WSL
+### Windows
+
+1. Install bun
 ```bash
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+2. Install Microsoft C++ Build Tools
+3. Install Rust
+```bash
+winget install --id Rustlang.Rustup
+```
+
+--- 
+
+
+### Debian Linux / Ubuntu WSL
+
+1. Install bun
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+2. Install Tauri pre-requisites
+```
 sudo apt update
 sudo apt install libwebkit2gtk-4.1-dev \
   build-essential \
