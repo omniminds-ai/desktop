@@ -1,6 +1,6 @@
 # ViralMind Desktop
 
-A desktop application for contributing to the world's largest dataset of computer-use agents. Earn $VIRAL tokens in two ways: record your desktop interactions to train better computer-use AI, or provide secure virtual desktop infrastructure for deploying these agents. 
+A desktop application for contributing to the world's largest dataset for multimodal computer-use agents. Earn $VIRAL tokens in two ways: record your desktop interactions to train better computer-use AI, or provide secure virtual desktop infrastructure for deploying these agents. 
 
 Built from the ground up with privacy and security as core principles.
 
