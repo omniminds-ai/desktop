@@ -5,10 +5,10 @@ import { page } from '$app/state';
 import logo from '$lib/assets/Logo_Standard_white.png';
 
 const buttons = [
-  // { path: '/', icon: MessageSquare, label: 'Chat' },
+  { path: '/', icon: MessageSquare, label: 'Chat' },
   { path: '/gym', icon: Dumbbell, label: 'Gym' },
   { path: '/node', icon: Server, label: 'Node' },
-  // { path: '/lab', icon: TestTube2, label: 'Lab' }
+  { path: '/lab', icon: TestTube2, label: 'Lab' }
 ];
 </script>
 

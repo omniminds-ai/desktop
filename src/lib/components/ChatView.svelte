@@ -1,6 +1,6 @@
 <script lang="ts">
 import { invoke } from "@tauri-apps/api/core";
-import { Send } from 'lucide-svelte';
+import { Send, Bot, User } from 'lucide-svelte';
 import Card from './Card.svelte';
 
 let name = $state("");
@@ -13,9 +13,11 @@ async function greet(event: Event) {
 </script>
 
 <div class="h-full flex flex-col">
-  <div class="flex-1 p-6 space-y-4">
+  <div class="flex-1 p-4 space-y-4">
     <div class="flex gap-4">
-      <!-- <div class="w-8 h-8 rounded-full bg-[var(--vm-secondary-300)] flex items-center justify-center text-white">AI</div> -->
+      <!-- <div class="aspect-square w-8 h-8 rounded-full bg-[var(--vm-secondary-300)] flex items-center justify-center">
+        <Bot size={20} />
+      </div> -->
       <Card variant="secondary" className="max-w-2xl">
         Hello! I'm your ViralMind assistant. What desktop task would you like me to perform?
       </Card>
@@ -26,7 +28,9 @@ async function greet(event: Event) {
         <Card variant="primary" className="max-w-2xl">
           {greetMsg}
         </Card>
-        <!-- <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">U</div> -->
+        <!-- <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+          <User size={20} />
+        </div> -->
       </div>
     {/if}
   </div>

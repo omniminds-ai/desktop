@@ -27,10 +27,10 @@ const logs = [
 <div class="h-full space-y-6 p-4">
   <div class="flex justify-between items-center">
     <h2 class="text-2xl">Viral Node</h2>
-    <div class="flex items-center gap-2">
-      <span class="text-green-500 font-medium">Earned: 1,245 $VIRAL</span>
-      <button class="px-4 py-2 bg-green-500 text-white rounded-lg">Claim</button>
-    </div>
+    <!-- <div class="flex items-center gap-2">
+      <span class="text-green-600 font-medium">Earned: 1,245 $VIRAL</span>
+      <button class="px-6 py-1 bg-green-600 text-white rounded-full">Withdraw</button>
+    </div> -->
   </div>
   
   <Card padding="lg">
@@ -39,7 +39,7 @@ const logs = [
         <div class="w-3 h-3 rounded-full bg-green-500"></div>
         <span class="font-medium">virald is running</span>
       </div>
-      <button class="px-4 py-2 bg-red-500 text-white rounded-lg">Stop Daemon</button>
+      <button class="px-6 py-2 bg-red-700 text-white rounded-full">Stop Daemon</button>
     </div>
 
     <h3 class="text-lg mb-4">System Requirements</h3>
