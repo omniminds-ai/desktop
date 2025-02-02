@@ -1,6 +1,9 @@
 use tauri::Manager;
 use window_vibrancy::*;
 
+mod input;
+use input::start_input_listener;
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -23,6 +26,7 @@ pub fn run() {
             apply_mica(&window, Some(true))
                 .expect("Unsupported platform! 'apply_mica' is only supported on Windows");
 
+            start_input_listener(app.handle().clone());
             Ok(())
         })
         .run(tauri::generate_context!())
