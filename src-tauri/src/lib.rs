@@ -68,6 +68,8 @@ pub fn run() {
                 .decorations(false)
                 .focused(false)
                 .shadow(false)
+                .skip_taskbar(true)
+                .visible_on_all_workspaces(true)
                 .position(primary.x as f64, primary.y as f64)
                 .inner_size(primary.width as f64, primary.height as f64)
                 .build()?;
