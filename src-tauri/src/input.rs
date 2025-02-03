@@ -1,34 +1,29 @@
 use serde::Serialize;
 use std::thread;
-use tauri::{Manager, Runtime, Emitter};
-use std::fmt;
+use tauri::{Runtime, Emitter};
 use rdev::{listen, Event as RdevEvent, EventType as RdevEventType};
+use crate::record;
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "type", content = "data")]
-pub enum InputEvent {
-    KeyPress { key: String },
-    KeyRelease { key: String },
-    MouseMove { x: f64, y: f64 },
-    MouseDelta { x: i32, y: i32 },
-    MouseClick { button: String, state: String },
-    MouseWheel { delta: f32 },
-    JoystickButton { id: usize, button: usize, state: String },
-    JoystickAxis { id: usize, axis: String, value: f64 },
+pub struct InputEvent {
+    pub event: String,
+    pub data: serde_json::Value,
 }
 
-impl fmt::Display for InputEvent {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            InputEvent::KeyPress { key } => write!(f, "Key press: {}", key),
-            InputEvent::KeyRelease { key } => write!(f, "Key release: {}", key),
-            InputEvent::MouseMove { x, y } => write!(f, "Mouse position: ({:.1}, {:.1})", x, y),
-            InputEvent::MouseDelta { x, y } => write!(f, "Mouse delta: ({}, {})", x, y),
-            InputEvent::MouseClick { button, state } => write!(f, "Mouse {}: {}", state, button),
-            InputEvent::MouseWheel { delta } => write!(f, "Mouse wheel: {}", delta),
-            InputEvent::JoystickButton { id, button, state } => write!(f, "Joystick {} button {}: {}", id, button, state),
-            InputEvent::JoystickAxis { id, axis, value } => write!(f, "Joystick {} axis {}: {}", id, axis, value),
+impl InputEvent {
+    pub fn new(event: &str, data: serde_json::Value) -> Self {
+        Self {
+            event: event.to_string(),
+            data,
         }
+    }
+
+    pub fn to_log_entry(&self) -> serde_json::Value {
+        serde_json::json!({
+            "event": self.event,
+            "data": self.data,
+            "time": chrono::Local::now().timestamp_millis()
+        })
     }
 }
 
@@ -38,10 +33,15 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) {
     thread::spawn(move || {
         let callback = move |event: RdevEvent| {
             if let RdevEventType::MouseMove { x, y } = event.event_type {
-                let input_event = InputEvent::MouseMove { x, y };
-                if let Err(e) = position_app_handle.emit("input-event", input_event) {
+                let input_event = InputEvent::new("mousemove", serde_json::json!({
+                    "x": x,
+                    "y": y
+                }));
+                if let Err(e) = position_app_handle.emit("input-event", &input_event) {
                     eprintln!("Failed to emit mouse position event: {}", e);
                 }
+                // Log the mouse move event
+                let _ = record::log_input(input_event.to_log_entry());
             }
         };
 
@@ -67,36 +67,53 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) {
                 if let Some(event) = manager.get_event() {
                     let input_event = match event {
                         RawEvent::KeyboardEvent(_device_id, key, state) => match state {
-                            State::Pressed => Some(InputEvent::KeyPress {
-                                key: format!("{:?}", key),
-                            }),
-                            State::Released => Some(InputEvent::KeyRelease {
-                                key: format!("{:?}", key),
-                            }),
+                            State::Pressed => Some(InputEvent::new("keydown", serde_json::json!({
+                                "key": format!("{:?}", key)
+                            }))),
+                            State::Released => Some(InputEvent::new("keyup", serde_json::json!({
+                                "key": format!("{:?}", key)
+                            }))),
                         },
-                        RawEvent::MouseMoveEvent(_device_id, x, y) => Some(InputEvent::MouseDelta { x, y }),
-                        RawEvent::MouseButtonEvent(_device_id, button, state) => Some(InputEvent::MouseClick {
-                            button: format!("{:?}", button),
-                            state: format!("{:?}", state),
-                        }),
-                        RawEvent::MouseWheelEvent(_device_id, delta) => Some(InputEvent::MouseWheel { delta }),
-                        RawEvent::JoystickButtonEvent(device_id, button, state) => Some(InputEvent::JoystickButton {
-                            id: device_id,
-                            button,
-                            state: format!("{:?}", state),
-                        }),
-                        RawEvent::JoystickAxisEvent(device_id, axis, value) => Some(InputEvent::JoystickAxis {
-                            id: device_id,
-                            axis: format!("{:?}", axis),
-                            value,
-                        }),
+                        RawEvent::MouseMoveEvent(_device_id, x, y) => Some(InputEvent::new("mousedelta", serde_json::json!({
+                            "x": x,
+                            "y": y
+                        }))),
+                        RawEvent::MouseButtonEvent(_device_id, button, state) => Some(InputEvent::new(
+                            match state {
+                                State::Pressed => "mousedown",
+                                State::Released => "mouseup",
+                            },
+                            serde_json::json!({
+                                "button": format!("{:?}", button)
+                            })
+                        )),
+                        RawEvent::MouseWheelEvent(_device_id, delta) => Some(InputEvent::new("mousewheel", serde_json::json!({
+                            "delta": delta
+                        }))),
+                        RawEvent::JoystickButtonEvent(device_id, button, state) => Some(InputEvent::new(
+                            match state {
+                                State::Pressed => "joystickdown",
+                                State::Released => "joystickup",
+                            },
+                            serde_json::json!({
+                                "id": device_id,
+                                "button": button
+                            })
+                        )),
+                        RawEvent::JoystickAxisEvent(device_id, axis, value) => Some(InputEvent::new("joystickaxis", serde_json::json!({
+                            "id": device_id,
+                            "axis": format!("{:?}", axis),
+                            "value": value
+                        }))),
                         _ => None,
                     };
 
                     if let Some(event) = input_event {
-                        if let Err(e) = windows_app_handle.emit("input-event", event) {
+                        if let Err(e) = windows_app_handle.emit("input-event", &event) {
                             eprintln!("Failed to emit input event: {}", e);
                         }
+                        // Log the input event
+                        let _ = record::log_input(event.to_log_entry());
                     }
                 }
             }
@@ -110,30 +127,30 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) {
         thread::spawn(move || {
             let callback = move |event: RdevEvent| {
                 let input_event = match event.event_type {
-                    RdevEventType::KeyPress(key) => Some(InputEvent::KeyPress {
-                        key: format!("{:?}", key),
-                    }),
-                    RdevEventType::KeyRelease(key) => Some(InputEvent::KeyRelease {
-                        key: format!("{:?}", key),
-                    }),
-                    RdevEventType::ButtonPress(button) => Some(InputEvent::MouseClick {
-                        button: format!("{:?}", button),
-                        state: "pressed".to_string(),
-                    }),
-                    RdevEventType::ButtonRelease(button) => Some(InputEvent::MouseClick {
-                        button: format!("{:?}", button),
-                        state: "released".to_string(),
-                    }),
-                    RdevEventType::Wheel { delta_x, delta_y } => Some(InputEvent::MouseWheel {
-                        delta: delta_y as f32,
-                    }),
+                    RdevEventType::KeyPress(key) => Some(InputEvent::new("keydown", serde_json::json!({
+                        "key": format!("{:?}", key)
+                    }))),
+                    RdevEventType::KeyRelease(key) => Some(InputEvent::new("keyup", serde_json::json!({
+                        "key": format!("{:?}", key)
+                    }))),
+                    RdevEventType::ButtonPress(button) => Some(InputEvent::new("mousedown", serde_json::json!({
+                        "button": format!("{:?}", button)
+                    }))),
+                    RdevEventType::ButtonRelease(button) => Some(InputEvent::new("mouseup", serde_json::json!({
+                        "button": format!("{:?}", button)
+                    }))),
+                    RdevEventType::Wheel { delta_x: _, delta_y } => Some(InputEvent::new("mousewheel", serde_json::json!({
+                        "delta": delta_y as f32
+                    }))),
                     RdevEventType::MouseMove { .. } => None, // Handled by the cross-platform listener
                 };
 
                 if let Some(event) = input_event {
-                    if let Err(e) = other_app_handle.emit("input-event", event) {
+                    if let Err(e) = other_app_handle.emit("input-event", &event) {
                         eprintln!("Failed to emit input event: {}", e);
                     }
+                    // Log the input event
+                    let _ = record::log_input(event.to_log_entry());
                 }
             };
 

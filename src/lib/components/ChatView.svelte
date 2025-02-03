@@ -1,13 +1,30 @@
 <script lang="ts">
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
-import { Send, Bot, User, Keyboard, Mouse, Gamepad } from 'lucide-svelte';
+import { Send, Bot, User, Keyboard, Mouse, Gamepad, Monitor, Video, Square } from 'lucide-svelte';
+import { onMount, onDestroy } from 'svelte';
 import Card from './Card.svelte';
 
 let name = $state("");
 let greetMsg = $state("");
 let inputEvents = $state<any[]>([]);
+let isRecording = $state(false);
 const MAX_EVENTS = 10;
+
+async function toggleRecording() {
+  try {
+    if (!isRecording) {
+      await invoke('start_recording');
+      isRecording = true;
+    } else {
+      await invoke('stop_recording');
+      isRecording = false;
+    }
+  } catch (error) {
+    console.error('Recording error:', error);
+    isRecording = false;
+  }
+}
 
 async function greet(event: Event) {
   event.preventDefault();
@@ -54,7 +71,7 @@ function formatEvent(event: any): string {
         Hello! I'm your ViralMind assistant. What desktop task would you like me to perform?
       </Card>
     </div>
-    
+
     {#if inputEvents.length > 0}
       <div class="flex gap-4">
         <div class="shrink-0 w-8 h-8 rounded-full bg-[var(--vm-secondary-300)] text-white flex items-center justify-center shadow-sm">
@@ -87,21 +104,34 @@ function formatEvent(event: any): string {
       </div>
     {/if}
   </div>
-
-  <div class="p-4 bg-white border-t border-gray-200">
-    <form class="flex gap-3 items-center max-w-4xl mx-auto" onsubmit={greet}>
-      <input 
-        type="text" 
-        placeholder="Type your message..."
-        bind:value={name}
-        class="flex-1 px-6 py-3 rounded-full border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[var(--vm-secondary-300)] focus:bg-white transition-colors"
-      />
-      <button 
-        type="submit" 
-        class="p-3 rounded-full bg-[var(--vm-secondary-300)] text-white hover:bg-[var(--vm-secondary-400)] transition-colors shadow-sm hover:shadow-md"
-      >
-        <Send size={20} />
-      </button>
-    </form>
+  <div>
+    <div class="p-4 bg-white border-t border-gray-200">
+      <div class="flex gap-3 items-center max-w-4xl mx-auto">
+        <button 
+          onclick={toggleRecording}
+          class="p-3 rounded-full {isRecording ? 'bg-red-500' : 'bg-[var(--vm-secondary-300)]'} text-white hover:opacity-90 transition-colors shadow-sm hover:shadow-md"
+        >
+          {#if isRecording}
+            <Square size={20} />
+          {:else}
+            <Video size={20} />
+          {/if}
+        </button>
+        <form class="flex-1 flex gap-3 items-center" onsubmit={greet}>
+          <input 
+            type="text" 
+            placeholder="Type your message..."
+            bind:value={name}
+            class="flex-1 px-6 py-3 rounded-full border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[var(--vm-secondary-300)] focus:bg-white transition-colors"
+          />
+          <button 
+            type="submit" 
+            class="p-3 rounded-full bg-[var(--vm-secondary-300)] text-white hover:bg-[var(--vm-secondary-400)] transition-colors shadow-sm hover:shadow-md"
+          >
+            <Send size={20} />
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>

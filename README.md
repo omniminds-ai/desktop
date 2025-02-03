@@ -26,9 +26,6 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 winget install --id Rustlang.Rustup
 ```
 
---- 
-
-
 ### Debian Linux / Ubuntu WSL
 
 1. Install bun
@@ -37,7 +34,7 @@ curl -fsSL https://bun.sh/install | bash
 ```
 
 2. Install Tauri pre-requisites
-```
+```bash
 sudo apt update
 sudo apt install libwebkit2gtk-4.1-dev \
   build-essential \
