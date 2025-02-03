@@ -1,10 +1,11 @@
-use std::sync::{Arc, Mutex};
-use chrono::Local;
-use std::path::PathBuf;
+use crate::axtree;
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::logger::Logger;
-use crate::axtree;
+use chrono::Local;
 use display_info::DisplayInfo;
+use permissions::PermissionStatus;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
 
 #[derive(Default)]
@@ -19,19 +20,44 @@ lazy_static::lazy_static! {
 }
 
 fn get_session_path(app: &tauri::AppHandle) -> Result<(PathBuf, String), String> {
-    let recordings_dir = app.path().app_local_data_dir()
+    let recordings_dir = app
+        .path()
+        .app_local_data_dir()
         .map_err(|e| format!("Failed to get app data directory: {}", e))?
         .join("recordings");
-    
+
     std::fs::create_dir_all(&recordings_dir)
         .map_err(|e| format!("Failed to create recordings directory: {}", e))?;
-    
+
     let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
     Ok((recordings_dir, timestamp))
 }
 
 #[tauri::command]
-pub async fn start_recording(app: tauri::AppHandle, quest_state: State<'_, QuestState>) -> Result<(), String> {
+pub async fn start_recording(
+    app: tauri::AppHandle,
+    quest_state: State<'_, QuestState>,
+) -> Result<(), String> {
+    // Check screen recording permission first
+    match ScreenPermissions::check() {
+        PermissionStatus::Denied => {
+            return Err(
+                "Screen recording permission denied. Please grant permission in system settings."
+                    .to_string(),
+            );
+        }
+        PermissionStatus::Unknown => {
+            return Err("Unable to determine screen recording permissions.".to_string());
+        }
+        PermissionStatus::SystemDialogNeeded => {
+            // For Windows, we'll need to handle elevation
+            match ScreenPermissions::request() {
+                PermissionStatus::Granted => (),
+                _ => return Err("Failed to obtain screen recording permission.".to_string()),
+            }
+        }
+        PermissionStatus::Granted => (),
+    }
     // Start screen recording
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
     if rec_state.is_some() {
@@ -44,14 +70,17 @@ pub async fn start_recording(app: tauri::AppHandle, quest_state: State<'_, Quest
     // Get paths for both video and log files
     let (recordings_dir, timestamp) = get_session_path(&app)?;
     let video_path = recordings_dir.join(format!("recording_{}.mp4", timestamp));
-    
+
+    println!("{}", video_path.display());
+
     // Get primary display info
     let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
-    let primary = displays.iter()
+    let primary = displays
+        .iter()
         .find(|d| d.is_primary)
         .or_else(|| displays.first())
         .ok_or_else(|| "No display found".to_string())?;
-    
+
     // Create FFmpeg recorder with screen capture settings
     let input_format = if cfg!(target_os = "windows") {
         "gdigrab"
@@ -75,16 +104,20 @@ pub async fn start_recording(app: tauri::AppHandle, quest_state: State<'_, Quest
             "desktop".to_string()
         } else {
             ":0.0".to_string() // X11 display
-        }
+        },
     );
     recorder.start()?;
     *rec_state = Some(recorder);
 
     // Reset quest state and emit recording started event
     *quest_state.objectives_completed.lock().unwrap() = 0;
-    app.emit("recording-status", serde_json::json!({
-        "state": "recording"
-    })).unwrap();
+    app.emit(
+        "recording-status",
+        serde_json::json!({
+            "state": "recording"
+        }),
+    )
+    .unwrap();
 
     // Start input logging
     let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
@@ -99,11 +132,18 @@ pub async fn start_recording(app: tauri::AppHandle, quest_state: State<'_, Quest
 }
 
 #[tauri::command]
-pub async fn stop_recording(app: tauri::AppHandle, quest_state: State<'_, QuestState>) -> Result<(), String> {
+pub async fn stop_recording(
+    app: tauri::AppHandle,
+    quest_state: State<'_, QuestState>,
+) -> Result<(), String> {
     // Emit recording stopping event
-    app.emit("recording-status", serde_json::json!({
-        "state": "stopping"
-    })).unwrap();
+    app.emit(
+        "recording-status",
+        serde_json::json!({
+            "state": "stopping"
+        }),
+    )
+    .unwrap();
 
     // Stop screen recording
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
@@ -119,9 +159,13 @@ pub async fn stop_recording(app: tauri::AppHandle, quest_state: State<'_, QuestS
     axtree::stop_dump_tree_polling()?;
 
     // Emit recording stopped event after FFmpeg finishes
-    app.emit("recording-status", serde_json::json!({
-        "state": "stopped"
-    })).unwrap();
+    app.emit(
+        "recording-status",
+        serde_json::json!({
+            "state": "stopped"
+        }),
+    )
+    .unwrap();
 
     Ok(())
 }

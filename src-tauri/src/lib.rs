@@ -1,12 +1,13 @@
+use display_info::DisplayInfo;
+use serde_json;
 use tauri::{Emitter, Manager};
 use window_vibrancy::*;
-use serde_json;
-use display_info::DisplayInfo;
-mod input;
-mod record;
-mod ffmpeg;
-mod logger;
 mod axtree;
+mod ffmpeg;
+mod input;
+mod logger;
+mod permissions;
+mod record;
 
 use input::start_input_listener;
 use record::{start_recording, stop_recording, QuestState};
@@ -51,35 +52,39 @@ pub fn run() {
 
             // TODO: multimonitor support
             // Get primary display info
-            let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
-            let primary = displays.iter()
+            let displays =
+                DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
+            let primary = displays
+                .iter()
                 .find(|d| d.is_primary)
                 .or_else(|| displays.first())
                 .ok_or_else(|| "No display found".to_string())?;
 
             // Create transparent overlay window
             let overlay_window = tauri::WebviewWindowBuilder::new(
-                    app,
-                    "overlay",
-                    tauri::WebviewUrl::App("overlay".into())
-                )
-                .transparent(true)
-                .always_on_top(true)
-                .decorations(false)
-                .focused(false)
-                .shadow(false)
-                .skip_taskbar(true)
-                .visible_on_all_workspaces(true)
-                .position(primary.x as f64, primary.y as f64)
-                .inner_size(primary.width as f64, primary.height as f64)
-                .build()?;
+                app,
+                "overlay",
+                tauri::WebviewUrl::App("overlay".into()),
+            )
+            .transparent(true)
+            .always_on_top(true)
+            .decorations(false)
+            .focused(false)
+            .shadow(false)
+            .position(primary.x as f64, primary.y as f64)
+            .inner_size(primary.width as f64, primary.height as f64)
+            .build()?;
 
             overlay_window.set_ignore_cursor_events(true)?;
 
             // Emit initial recording status
-            app.emit("recording-status", serde_json::json!({
-                "state": "stopped"
-            })).unwrap();
+            app.emit(
+                "recording-status",
+                serde_json::json!({
+                    "state": "stopped"
+                }),
+            )
+            .unwrap();
 
             start_input_listener(app.handle().clone());
             Ok(())
