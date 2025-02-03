@@ -4,7 +4,12 @@ use std::path::PathBuf;
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::logger::Logger;
 use display_info::DisplayInfo;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, State};
+
+#[derive(Default)]
+pub struct QuestState {
+    pub objectives_completed: Mutex<i32>,
+}
 
 // Global state for recording and logging
 lazy_static::lazy_static! {
@@ -25,7 +30,7 @@ fn get_session_path(app: &tauri::AppHandle) -> Result<(PathBuf, String), String>
 }
 
 #[tauri::command]
-pub async fn start_recording(app: tauri::AppHandle) -> Result<(), String> {
+pub async fn start_recording(app: tauri::AppHandle, quest_state: State<'_, QuestState>) -> Result<(), String> {
     // Start screen recording
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
     if rec_state.is_some() {
@@ -74,7 +79,8 @@ pub async fn start_recording(app: tauri::AppHandle) -> Result<(), String> {
     recorder.start()?;
     *rec_state = Some(recorder);
 
-    // Emit recording started event
+    // Reset quest state and emit recording started event
+    *quest_state.objectives_completed.lock().unwrap() = 0;
     app.emit("recording-status", serde_json::json!({
         "state": "recording"
     })).unwrap();
@@ -89,7 +95,7 @@ pub async fn start_recording(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn stop_recording(app: tauri::AppHandle) -> Result<(), String> {
+pub async fn stop_recording(app: tauri::AppHandle, quest_state: State<'_, QuestState>) -> Result<(), String> {
     // Emit recording stopping event
     app.emit("recording-status", serde_json::json!({
         "state": "stopping"

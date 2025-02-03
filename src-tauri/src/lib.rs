@@ -8,7 +8,7 @@ mod ffmpeg;
 mod logger;
 
 use input::start_input_listener;
-use record::{start_recording, stop_recording};
+use record::{start_recording, stop_recording, QuestState};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -24,7 +24,8 @@ pub fn run() {
         std::process::exit(1);
     }
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
+        .manage(QuestState::default())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
