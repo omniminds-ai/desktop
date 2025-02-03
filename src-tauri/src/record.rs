@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::logger::Logger;
 use display_info::DisplayInfo;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 // Global state for recording and logging
 lazy_static::lazy_static! {
@@ -74,6 +74,11 @@ pub async fn start_recording(app: tauri::AppHandle) -> Result<(), String> {
     recorder.start()?;
     *rec_state = Some(recorder);
 
+    // Emit recording started event
+    app.emit("recording-status", serde_json::json!({
+        "state": "recording"
+    })).unwrap();
+
     // Start input logging
     let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
     if log_state.is_none() {
@@ -84,7 +89,12 @@ pub async fn start_recording(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn stop_recording() -> Result<(), String> {
+pub async fn stop_recording(app: tauri::AppHandle) -> Result<(), String> {
+    // Emit recording stopping event
+    app.emit("recording-status", serde_json::json!({
+        "state": "stopping"
+    })).unwrap();
+
     // Stop screen recording
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
     if let Some(mut recorder) = rec_state.take() {
@@ -94,6 +104,11 @@ pub async fn stop_recording() -> Result<(), String> {
     // Stop input logging
     let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
     *log_state = None;
+
+    // Emit recording stopped event after FFmpeg finishes
+    app.emit("recording-status", serde_json::json!({
+        "state": "stopped"
+    })).unwrap();
 
     Ok(())
 }

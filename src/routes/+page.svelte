@@ -1,5 +1,8 @@
 <script lang="ts">
-import ChatView from '$lib/components/ChatView.svelte';
-</script>
+  import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
 
-<ChatView />
+  onMount(() => {
+    goto('/window');
+  });
+</script>
