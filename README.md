@@ -10,6 +10,48 @@ A desktop application for contributing to the world's largest dataset for multim
 
 Built from the ground up with privacy and security as core principles. See our [Privacy Policy](PRIVACY.md) for details.
 
+## Recording System
+
+Our recording system is designed specifically for training powerful computer-use AI agents through data-driven approaches. Key features include:
+
+### Quest System
+
+<p align="center" width="100%">
+    <img src="https://github.com/user-attachments/assets/8f516e95-1a5d-49a0-9c27-aa932b7cd6d5">
+</p>
+
+- AI-generated quests, generated from random UI elements from thousands available on your screen
+
+- Ensures diverse, instruction-following demonstration trajectories
+
+- Structured with subobjectives to help AI models break down long trajectories into step-by-step plans
+
+- Example quest shown above: creating a spreadsheet with specific requirements and subobjectives
+
+### Recording Format
+
+Recordings are stored in %LOCALAPPDATA%\ai.viralmind.desktop\recordings\ on Windows and consist of two files:
+
+- .mp4 video capture
+
+- .jsonl event log capturing detailed interaction data
+
+Sample event log format:
+
+```json
+{"event":"quest_started","data":{"id":"spreadsheet_creation_01","title":"Create a New Spreadsheet","description":"Open Excel or Google Sheets and create a new spreadsheet with at least 3 columns and 5 rows of data","reward":10},"time":1738564880000}
+{"data":{"output":"ffmpeg version 7.1-essentials_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"},"event":"ffmpeg_stderr","time":1738564880824}
+{"data":{"x":1303.0,"y":1347.0},"event":"mousemove","time":1738564880935}
+{"data":{"x":1303.0,"y":1347.0},"event":"mousemove","time":1738564880935}
+{"data":{"button":"Left"},"event":"mousedown","time":1738564883325}
+{"event":"subobjective_completed","data":{"quest_id":"spreadsheet_creation_01","objective":"Open spreadsheet application","index":1},"time":1738564883525}
+{"data":{"key":"H"},"event":"keydown","time":1738564891760}
+{"event":"subobjective_completed","data":{"quest_id":"spreadsheet_creation_01","objective":"Create new document","index":2},"time":1738564892000}
+{"event":"quest_completed","data":{"id":"spreadsheet_creation_01","reward_earned":10,"time_taken":12000},"time":1738564892500}
+```
+
+# Development
+
 ## Recommended IDE Setup
 
 [VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
