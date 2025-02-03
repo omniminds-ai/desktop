@@ -1,9 +1,12 @@
 use crate::axtree;
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::logger::Logger;
+use crate::permissions::{
+    check_screen_capture_permission, request_screen_capture_permission, PermissionStatus,
+};
 use chrono::Local;
 use display_info::DisplayInfo;
-use permissions::PermissionStatus;
+
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
@@ -38,26 +41,22 @@ pub async fn start_recording(
     app: tauri::AppHandle,
     quest_state: State<'_, QuestState>,
 ) -> Result<(), String> {
-    // Check screen recording permission first
-    match ScreenPermissions::check() {
-        PermissionStatus::Denied => {
-            return Err(
-                "Screen recording permission denied. Please grant permission in system settings."
-                    .to_string(),
-            );
-        }
-        PermissionStatus::Unknown => {
-            return Err("Unable to determine screen recording permissions.".to_string());
+    // Check permission before starting
+    match check_screen_capture_permission() {
+        PermissionStatus::Granted => {
+            // proceed with recording
         }
         PermissionStatus::SystemDialogNeeded => {
-            // For Windows, we'll need to handle elevation
-            match ScreenPermissions::request() {
-                PermissionStatus::Granted => (),
+            match request_screen_capture_permission() {
+                PermissionStatus::Granted => {
+                    // proceed with recording
+                }
                 _ => return Err("Failed to obtain screen recording permission.".to_string()),
             }
         }
-        PermissionStatus::Granted => (),
+        _ => return Err("Screen recording permission denied.".to_string()),
     }
+
     // Start screen recording
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
     if rec_state.is_some() {

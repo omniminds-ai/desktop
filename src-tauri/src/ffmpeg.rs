@@ -6,7 +6,7 @@ use std::sync::OnceLock;
 use std::thread;
 use std::time::Duration;
 
-static FFMPEG_PATH: OnceLock<PathBuf> = OnceLock::new();
+pub static FFMPEG_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 const FFMPEG_URLS: &[(&str, &str)] = &[
     ("windows", "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"),

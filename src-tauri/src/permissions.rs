@@ -1,9 +1,7 @@
 use std::process::Command;
 use tauri::Runtime;
 
-#[cfg(target_os = "macos")]
-use core_graphics::display::CGDisplay;
-
+#[derive(Debug, Clone, Copy)]
 pub enum PermissionStatus {
     Granted,
     Denied,
@@ -11,117 +9,83 @@ pub enum PermissionStatus {
     SystemDialogNeeded,
 }
 
-pub struct ScreenPermissions;
-
-impl ScreenPermissions {
-    #[cfg(target_os = "macos")]
-    pub fn check() -> PermissionStatus {
-        // On macOS, attempting to access screen recording will trigger system permission dialog
-        match CGDisplay::main() {
-            Ok(_) => PermissionStatus::Granted,
-            Err(_) => PermissionStatus::Denied,
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    pub fn check() -> PermissionStatus {
-        // Windows doesn't require explicit screen recording permission
-        // but we can test if we can actually capture
-        let test = Command::new("ffmpeg")
-            .args([
-                "-f",
-                "gdigrab",
-                "-i",
-                "desktop",
-                "-frames:v",
-                "1",
-                "-f",
-                "null",
-                "-",
-            ])
-            .output();
-
-        match test {
-            Ok(output) if output.status.success() => PermissionStatus::Granted,
-            Ok(_) => PermissionStatus::SystemDialogNeeded, // Might need elevation
-            Err(_) => PermissionStatus::Unknown,
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    pub fn check() -> PermissionStatus {
-        // For X11, check if we can access the display
-        if let Ok(display) = std::env::var("DISPLAY") {
-            let test = Command::new("ffmpeg")
-                .args([
-                    "-f",
-                    "x11grab",
-                    "-i",
-                    &format!("{}+0,0", display),
-                    "-frames:v",
-                    "1",
-                    "-f",
-                    "null",
-                    "-",
-                ])
-                .output();
-
-            match test {
-                Ok(output) if output.status.success() => PermissionStatus::Granted,
-                _ => PermissionStatus::Denied,
-            }
-        } else {
-            PermissionStatus::Unknown
-        }
-    }
-
-    pub fn request() -> PermissionStatus {
-        #[cfg(target_os = "macos")]
-        {
-            // Attempting to capture will trigger macOS permission dialog
-            Self::check()
-        }
-
-        #[cfg(target_os = "windows")]
-        {
-            // On Windows, we might need to request elevation
-            if let PermissionStatus::SystemDialogNeeded = Self::check() {
-                // Try running an elevated test capture
-                let status = Command::new("powershell")
-                    .args([
-                        "Start-Process",
-                        "ffmpeg",
-                        "-ArgumentList",
-                        "\"-f gdigrab -i desktop -frames:v 1 -f null -\"",
-                        "-Verb",
-                        "RunAs",
-                        "-Wait",
-                    ])
-                    .status();
-
-                match status {
-                    Ok(exit) if exit.success() => PermissionStatus::Granted,
-                    _ => PermissionStatus::Denied,
-                }
-            } else {
-                Self::check()
-            }
-        }
-
-        #[cfg(target_os = "linux")]
-        {
-            // On Linux/X11, permissions are typically handled by the window manager
-            Self::check()
-        }
+fn get_ffmpeg_test_args() -> (String, String, String) {
+    if cfg!(target_os = "windows") {
+        ("gdigrab".into(), "desktop".into(), String::new())
+    } else if cfg!(target_os = "macos") {
+        ("avfoundation".into(), "1:none".into(), String::new())
+    } else {
+        let display = std::env::var("DISPLAY").unwrap_or_else(|_| String::from(":0.0"));
+        ("x11grab".into(), format!("{}+0,0", display), String::new())
     }
 }
 
-// Tauri command to check permissions
+pub fn check_screen_capture_permission() -> PermissionStatus {
+    let (format, input, _extra_args) = get_ffmpeg_test_args();
+
+    // Use the path from your FFmpeg initialization if possible
+    let ffmpeg_path = match crate::ffmpeg::FFMPEG_PATH.get() {
+        Some(path) => path,
+        None => return PermissionStatus::Unknown,
+    };
+
+    let test = Command::new(&ffmpeg_path)
+        .args([
+            "-f",
+            &format,
+            "-i",
+            &input,
+            "-frames:v",
+            "1",
+            "-f",
+            "null",
+            "-",
+        ])
+        .output();
+
+    match test {
+        Ok(output) if output.status.success() => PermissionStatus::Granted,
+        Ok(_) => {
+            if cfg!(target_os = "windows") {
+                PermissionStatus::SystemDialogNeeded
+            } else {
+                PermissionStatus::Denied
+            }
+        }
+        Err(_) => PermissionStatus::Unknown,
+    }
+}
+
+pub fn request_screen_capture_permission() -> PermissionStatus {
+    match check_screen_capture_permission() {
+        PermissionStatus::SystemDialogNeeded if cfg!(target_os = "windows") => {
+            // On Windows, try with elevation
+            let status = Command::new("powershell")
+                .args([
+                    "Start-Process",
+                    "ffmpeg",
+                    "-ArgumentList",
+                    "\"-f gdigrab -i desktop -frames:v 1 -f null -\"",
+                    "-Verb",
+                    "RunAs",
+                    "-Wait",
+                ])
+                .status();
+
+            match status {
+                Ok(exit) if exit.success() => PermissionStatus::Granted,
+                _ => PermissionStatus::Denied,
+            }
+        }
+        other => other,
+    }
+}
+
 #[tauri::command]
 pub async fn check_screen_permission<R: Runtime>(
     _app: tauri::AppHandle<R>,
 ) -> Result<String, String> {
-    match ScreenPermissions::check() {
+    match check_screen_capture_permission() {
         PermissionStatus::Granted => Ok("granted".to_string()),
         PermissionStatus::Denied => Ok("denied".to_string()),
         PermissionStatus::Unknown => Ok("unknown".to_string()),
@@ -129,12 +93,11 @@ pub async fn check_screen_permission<R: Runtime>(
     }
 }
 
-// Tauri command to request permissions
 #[tauri::command]
 pub async fn request_screen_permission<R: Runtime>(
     _app: tauri::AppHandle<R>,
 ) -> Result<String, String> {
-    match ScreenPermissions::request() {
+    match request_screen_capture_permission() {
         PermissionStatus::Granted => Ok("granted".to_string()),
         PermissionStatus::Denied => Ok("denied".to_string()),
         PermissionStatus::Unknown => Ok("unknown".to_string()),

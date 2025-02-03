@@ -1,16 +1,20 @@
+use serde_json::{json, Value};
+use std::fs;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::fs;
 use std::sync::{Arc, Mutex, OnceLock};
-use std::io::{BufRead, BufReader};
 use std::thread;
 use std::time::Duration;
-use serde_json::{Value, json};
 
 static DUMP_TREE_PATH: OnceLock<PathBuf> = OnceLock::new();
 static POLLING_ACTIVE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 
+#[cfg(target_os = "windows")]
 const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/raw/refs/heads/main/target/windows-x64/dump-tree.exe";
+
+#[cfg(target_os = "macos")]
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/raw/refs/heads/main/target/macos-arm64/dump-tree";
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
@@ -19,28 +23,31 @@ fn get_temp_dir() -> PathBuf {
 }
 
 fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    println!("[AxTree] Downloading file from {} to {}", url, path.display());
+    println!(
+        "[AxTree] Downloading file from {} to {}",
+        url,
+        path.display()
+    );
     let client = reqwest::blocking::Client::new();
-    let resp = client.get(url)
-        .send()
-        .map_err(|e| {
-            println!("[AxTree] Error: Failed to download dump-tree: {}", e);
-            format!("Failed to download dump-tree: {}", e)
-        })?;
-    
-    let bytes = resp.bytes()
-        .map_err(|e| {
-            println!("[AxTree] Error: Failed to get response bytes: {}", e);
-            format!("Failed to get response bytes: {}", e)
-        })?;
+    let resp = client.get(url).send().map_err(|e| {
+        println!("[AxTree] Error: Failed to download dump-tree: {}", e);
+        format!("Failed to download dump-tree: {}", e)
+    })?;
 
-    fs::write(path, bytes)
-        .map_err(|e| {
-            println!("[AxTree] Error: Failed to write file: {}", e);
-            format!("Failed to write file: {}", e)
-        })?;
+    let bytes = resp.bytes().map_err(|e| {
+        println!("[AxTree] Error: Failed to get response bytes: {}", e);
+        format!("Failed to get response bytes: {}", e)
+    })?;
 
-    println!("[AxTree] Successfully downloaded file to {}", path.display());
+    fs::write(path, bytes).map_err(|e| {
+        println!("[AxTree] Error: Failed to write file: {}", e);
+        format!("Failed to write file: {}", e)
+    })?;
+
+    println!(
+        "[AxTree] Successfully downloaded file to {}",
+        path.display()
+    );
     Ok(())
 }
 
@@ -56,14 +63,16 @@ pub fn init_dump_tree() -> Result<(), String> {
     POLLING_ACTIVE.get_or_init(|| Arc::new(Mutex::new(false)));
 
     let temp_dir = get_temp_dir();
-    fs::create_dir_all(&temp_dir)
-        .map_err(|e| {
-            println!("[AxTree] Error: Failed to create temp directory: {}", e);
-            format!("Failed to create temp directory: {}", e)
-        })?;
+    fs::create_dir_all(&temp_dir).map_err(|e| {
+        println!("[AxTree] Error: Failed to create temp directory: {}", e);
+        format!("Failed to create temp directory: {}", e)
+    })?;
 
+    #[cfg(target_os = "windows")]
     let dump_tree_path = temp_dir.join("dump-tree.exe");
-    
+    #[cfg(target_os = "macos")]
+    let dump_tree_path = temp_dir.join("dump-tree");
+
     if !dump_tree_path.exists() {
         // Download dump-tree
         download_file(DUMP_TREE_URL, &dump_tree_path)?;
@@ -75,11 +84,13 @@ pub fn init_dump_tree() -> Result<(), String> {
 }
 
 pub fn start_dump_tree_polling(app_handle: tauri::AppHandle) -> Result<(), String> {
-    let dump_tree = DUMP_TREE_PATH.get()
+    let dump_tree = DUMP_TREE_PATH
+        .get()
         .ok_or_else(|| "dump-tree not initialized".to_string())?
         .clone();
 
-    let polling_active = POLLING_ACTIVE.get()
+    let polling_active = POLLING_ACTIVE
+        .get()
         .ok_or_else(|| "Polling state not initialized".to_string())?;
     *polling_active.lock().unwrap() = true;
 
@@ -92,7 +103,8 @@ pub fn start_dump_tree_polling(app_handle: tauri::AppHandle) -> Result<(), Strin
                 .arg("-e")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
-                .spawn() {
+                .spawn()
+            {
                 Ok(mut child) => {
                     if let Some(stdout) = child.stdout.take() {
                         let reader = BufReader::new(stdout);
@@ -110,7 +122,7 @@ pub fn start_dump_tree_polling(app_handle: tauri::AppHandle) -> Result<(), Strin
                             }
                         }
                     }
-                    
+
                     // Wait for process to finish
                     let _ = child.wait();
                 }

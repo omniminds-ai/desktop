@@ -37,7 +37,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             start_recording,
-            stop_recording
+            stop_recording,
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
