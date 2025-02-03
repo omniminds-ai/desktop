@@ -42,6 +42,7 @@ pub fn run() {
             apply_mica(&window, Some(true))
                 .expect("Unsupported platform! 'apply_mica' is only supported on Windows");
 
+            // TODO: multimonitor support
             // Get primary display info
             let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
             let primary = displays.iter()
