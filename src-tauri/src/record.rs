@@ -3,6 +3,7 @@ use chrono::Local;
 use std::path::PathBuf;
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::logger::Logger;
+use crate::axtree;
 use display_info::DisplayInfo;
 use tauri::{Emitter, Manager, State};
 
@@ -91,6 +92,9 @@ pub async fn start_recording(app: tauri::AppHandle, quest_state: State<'_, Quest
         *log_state = Some(Logger::new(&app)?);
     }
 
+    // Start dump-tree polling
+    axtree::start_dump_tree_polling(app.clone())?;
+
     Ok(())
 }
 
@@ -110,6 +114,9 @@ pub async fn stop_recording(app: tauri::AppHandle, quest_state: State<'_, QuestS
     // Stop input logging
     let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
     *log_state = None;
+
+    // Stop dump-tree polling
+    axtree::stop_dump_tree_polling()?;
 
     // Emit recording stopped event after FFmpeg finishes
     app.emit("recording-status", serde_json::json!({

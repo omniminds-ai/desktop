@@ -6,6 +6,7 @@ mod input;
 mod record;
 mod ffmpeg;
 mod logger;
+mod axtree;
 
 use input::start_input_listener;
 use record::{start_recording, stop_recording, QuestState};
@@ -18,9 +19,14 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize FFmpeg synchronously before starting Tauri
+    // Initialize FFmpeg and dump-tree synchronously before starting Tauri
     if let Err(e) = ffmpeg::init_ffmpeg() {
         eprintln!("Failed to initialize FFmpeg: {}", e);
+        std::process::exit(1);
+    }
+
+    if let Err(e) = axtree::init_dump_tree() {
+        eprintln!("Failed to initialize dump-tree: {}", e);
         std::process::exit(1);
     }
 
