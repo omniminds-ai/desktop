@@ -142,6 +142,16 @@ pub fn run() {
             )
             .unwrap();
 
+            // Set up window close handler after all other operations
+            let window_handle = window.clone();
+            let overlay_handle = overlay_window.clone();
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::Destroyed = event {
+                    let _ = overlay_handle.close();
+                    window_handle.app_handle().exit(0);
+                }
+            });
+
             Ok(())
         })
         .run(tauri::generate_context!())
