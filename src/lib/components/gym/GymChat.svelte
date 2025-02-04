@@ -280,7 +280,9 @@
     });
     await addMessage({
       role: "assistant",
-      parts: [{ type: MessagePartType.loading, content: "" }],
+      parts: [
+        { type: MessagePartType.loading, content: "Generating quest..." },
+      ],
     });
 
     try {
@@ -521,16 +523,16 @@
           >
             {#each msg.parts as part}
               <div>
-                {#if part.type === "embed"}
+                {#if part.type === MessagePartType.embed}
                   <part.content {...part.props}></part.content>
-                {:else if part.type === "loading"}
+                {:else if part.type === MessagePartType.loading}
                   <div class="flex items-center gap-2">
                     <div
                       class="w-4 h-4 rounded-full border-2 border-[var(--vm-secondary-300)] border-t-transparent animate-spin"
                     ></div>
-                    <span class="text-sm">Generating quest...</span>
+                    <span class="text-sm">{part.content}</span>
                   </div>
-                {:else if part.type === "quest" && part.quest}
+                {:else if part.type === MessagePartType.quest && part.quest}
                   <div
                     class="p-4 rounded bg-black/10 space-y-4 hover:bg-black/15 transition-colors duration-200 border border-[var(--vm-secondary-300)]/20"
                   >
