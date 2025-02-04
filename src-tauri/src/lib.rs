@@ -14,6 +14,7 @@ mod macos_screencapture;
 mod record;
 
 use record::{start_recording, stop_recording, QuestState};
+use std::time::Instant;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -45,31 +46,22 @@ fn take_screenshot() -> Result<String, String> {
 }
 
 #[tauri::command]
-fn list_apps(include_icons: Option<bool>) -> Result<Vec<serde_json::Value>, String> {
-    //todo: doesn't work for linux
-    // also hangs for a couple seconds on macos
-    let apps = AppFinder::list();
-
-    Ok(apps
-        .into_iter()
-        // ignore frameworks apps because those are not helpful
-        .filter(|item| !item.path.contains("Frameworks"))
-        .map(|app| {
-            let mut json = serde_json::json!({
-                "name": app.name,
-                "path": app.path,
-            });
-
-            if include_icons.unwrap_or(false) {
-                if let Ok(icon) = app.get_app_icon_base64(64) {
-                    json.as_object_mut()
-                        .unwrap()
-                        .insert("icon".to_string(), serde_json::Value::String(icon));
-                }
-            }
-            json
-        })
-        .collect())
+async fn list_apps() -> Result<Vec<serde_json::Value>, String> {
+    // don't block the main thread
+    // also don't conver to base64 -- we can get images from the filepath
+    tauri::async_runtime::spawn_blocking(move || {
+        Ok(AppFinder::list()
+            .into_iter()
+            .map(|app| {
+                serde_json::json!({
+                    "name": app.name,
+                    "path": app.path,
+                })
+            })
+            .collect())
+    })
+    .await
+    .unwrap()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
