@@ -2,6 +2,31 @@ use crate::axtree;
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::input;
 use crate::logger::Logger;
+use crate::macos_screencapture::MacOSScreenRecorder;
+
+enum Recorder {
+    FFmpeg(FFmpegRecorder),
+    #[cfg(target_os = "macos")]
+    MacOS(MacOSScreenRecorder),
+}
+
+impl Recorder {
+    fn start(&mut self) -> Result<(), String> {
+        match self {
+            Recorder::FFmpeg(recorder) => recorder.start(),
+            #[cfg(target_os = "macos")]
+            Recorder::MacOS(recorder) => recorder.start(),
+        }
+    }
+
+    fn stop(&mut self) -> Result<(), String> {
+        match self {
+            Recorder::FFmpeg(recorder) => recorder.stop(),
+            #[cfg(target_os = "macos")]
+            Recorder::MacOS(recorder) => recorder.stop(),
+        }
+    }
+}
 
 use chrono::Local;
 use display_info::DisplayInfo;
@@ -17,7 +42,7 @@ pub struct QuestState {
 
 // Global state for recording and logging
 lazy_static::lazy_static! {
-    static ref RECORDING_STATE: Arc<Mutex<Option<FFmpegRecorder>>> = Arc::new(Mutex::new(None));
+    static ref RECORDING_STATE: Arc<Mutex<Option<Recorder>>> = Arc::new(Mutex::new(None));
     static ref LOGGER_STATE: Arc<Mutex<Option<Logger>>> = Arc::new(Mutex::new(None));
 }
 
@@ -40,22 +65,6 @@ pub async fn start_recording(
     app: tauri::AppHandle,
     quest_state: State<'_, QuestState>,
 ) -> Result<(), String> {
-    // Check permission before starting
-    // match check_screen_capture_permission() {
-    //     PermissionStatus::Granted => {
-    //         // proceed with recording
-    //     }
-    //     PermissionStatus::SystemDialogNeeded => {
-    //         match request_screen_capture_permission() {
-    //             PermissionStatus::Granted => {
-    //                 // proceed with recording
-    //             }
-    //             _ => return Err("Failed to obtain screen recording permission.".to_string()),
-    //         }
-    //     }
-    //     _ => return Err("Screen recording permission denied.".to_string()),
-    // }
-
     // Start screen recording
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
     if rec_state.is_some() {
@@ -92,19 +101,7 @@ pub async fn start_recording(
             width = w;
             height = h;
         };
-        println!("{}x{}", width, height);
     }
-
-    // Create FFmpeg recorder with screen capture settings
-    let input_format = if cfg!(target_os = "windows") {
-        "gdigrab"
-    } else if cfg!(target_os = "macos") {
-        "avfoundation"
-    } else if cfg!(target_os = "linux") {
-        "x11grab"
-    } else {
-        return Err("Unsupported platform".to_string());
-    };
 
     // Reset quest state and emit recording started event
     *quest_state.objectives_completed.lock().unwrap() = 0;
@@ -116,20 +113,33 @@ pub async fn start_recording(
     )
     .unwrap();
 
-    let mut recorder = FFmpegRecorder::new_with_input(
-        width,
-        height,
-        30,
-        video_path,
-        input_format.to_string(),
-        if cfg!(target_os = "macos") {
-            "1:none".to_string() // Screen:audio on macOS
-        } else if cfg!(target_os = "windows") {
+    let mut recorder = if cfg!(target_os = "macos") {
+        Recorder::MacOS(MacOSScreenRecorder::new(video_path))
+    } else {
+        let input_format = if cfg!(target_os = "windows") {
+            "gdigrab"
+        } else if cfg!(target_os = "linux") {
+            "x11grab"
+        } else {
+            return Err("Unsupported platform".to_string());
+        };
+
+        let input_device = if cfg!(target_os = "windows") {
             "desktop".to_string()
         } else {
             ":0.0".to_string() // X11 display
-        },
-    );
+        };
+
+        Recorder::FFmpeg(FFmpegRecorder::new_with_input(
+            width,
+            height,
+            30,
+            video_path,
+            input_format.to_string(),
+            input_device,
+        ))
+    };
+
     recorder.start()?;
     *rec_state = Some(recorder);
 

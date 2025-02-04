@@ -8,7 +8,7 @@ use std::{
     },
     thread::{self, JoinHandle},
 };
-use tauri::Runtime;
+use tauri::{Emitter, Runtime};
 
 pub struct InputListener {
     running: Arc<AtomicBool>,

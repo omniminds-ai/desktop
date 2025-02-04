@@ -11,6 +11,7 @@ mod axtree;
 mod ffmpeg;
 mod input;
 mod logger;
+mod macos_screencapture;
 mod record;
 
 use record::{start_recording, stop_recording, QuestState};
