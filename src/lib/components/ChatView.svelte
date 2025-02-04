@@ -1,30 +1,14 @@
 <script lang="ts">
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
-import { Send, Bot, User, Keyboard, Mouse, Gamepad, Monitor, Video, Square } from 'lucide-svelte';
+import { Send, Bot, User, Keyboard, Mouse, Gamepad, Monitor } from 'lucide-svelte';
 import { onMount, onDestroy } from 'svelte';
 import Card from './Card.svelte';
 
 let name = $state("");
 let greetMsg = $state("");
 let inputEvents = $state<any[]>([]);
-let isRecording = $state(false);
 const MAX_EVENTS = 10;
-
-async function toggleRecording() {
-  try {
-    if (!isRecording) {
-      await invoke('start_recording');
-      isRecording = true;
-    } else {
-      await invoke('stop_recording');
-      isRecording = false;
-    }
-  } catch (error) {
-    console.error('Recording error:', error);
-    isRecording = false;
-  }
-}
 
 async function greet(event: Event) {
   event.preventDefault();
@@ -75,7 +59,7 @@ function formatEvent(event: any): string {
     {#if inputEvents.length > 0}
       <div class="flex gap-4">
         <div class="shrink-0 w-8 h-8 rounded-full bg-[var(--vm-secondary-300)] text-white flex items-center justify-center shadow-sm">
-          {#if inputEvents[0].type.startsWith('Key')}
+          {#if inputEvents.length > 0 && inputEvents[0].type.startsWith('Key')}
             <Keyboard size={18} />
           {:else if inputEvents[0].type.startsWith('Joystick')}
             <Gamepad size={18} />
@@ -107,16 +91,6 @@ function formatEvent(event: any): string {
   <div>
     <div class="p-4 bg-white border-t border-gray-200">
       <div class="flex gap-3 items-center max-w-4xl mx-auto">
-        <button 
-          onclick={toggleRecording}
-          class="p-3 rounded-full {isRecording ? 'bg-red-500' : 'bg-[var(--vm-secondary-300)]'} text-white hover:opacity-90 transition-colors shadow-sm hover:shadow-md"
-        >
-          {#if isRecording}
-            <Square size={20} />
-          {:else}
-            <Video size={20} />
-          {/if}
-        </button>
         <form class="flex-1 flex gap-3 items-center" onsubmit={greet}>
           <input 
             type="text" 

@@ -1,20 +1,45 @@
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use display_info::DisplayInfo;
 use serde_json;
+use std::io::Cursor;
 use tauri::{Emitter, Manager};
 use window_vibrancy::*;
+use xcap::{image::ImageFormat, Monitor};
 mod axtree;
 mod ffmpeg;
 mod input;
 mod logger;
 mod record;
 
-use input::start_input_listener;
 use record::{start_recording, stop_recording, QuestState};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+#[tauri::command]
+fn take_screenshot() -> Result<String, String> {
+    // Get primary monitor
+    let monitors = Monitor::all().map_err(|e| e.to_string())?;
+    let primary = monitors
+        .into_iter()
+        .next()
+        .ok_or_else(|| "No monitor found".to_string())?;
+
+    // Capture image
+    let xcap_image = primary.capture_image().map_err(|e| e.to_string())?;
+
+    // Convert to PNG bytes
+    let mut buffer = Vec::new();
+    let mut cursor = Cursor::new(&mut buffer);
+    xcap_image
+        .write_to(&mut cursor, ImageFormat::Png)
+        .map_err(|e| e.to_string())?;
+
+    // Convert to base64
+    Ok(format!("data:image/png;base64,{}", BASE64.encode(&buffer)))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -31,12 +56,15 @@ pub fn run() {
     }
 
     let _app = tauri::Builder::default()
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_shell::init())
         .manage(QuestState::default())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             start_recording,
             stop_recording,
+            take_screenshot,
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
@@ -72,6 +100,8 @@ pub fn run() {
             .shadow(false)
             .position(primary.x as f64, primary.y as f64)
             .inner_size(primary.width as f64, primary.height as f64)
+            .skip_taskbar(true)
+            .visible_on_all_workspaces(true)
             .build()?;
 
             overlay_window.set_ignore_cursor_events(true)?;
@@ -85,7 +115,6 @@ pub fn run() {
             )
             .unwrap();
 
-            start_input_listener(app.handle().clone());
             Ok(())
         })
         .run(tauri::generate_context!())

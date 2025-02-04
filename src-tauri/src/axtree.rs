@@ -83,7 +83,7 @@ pub fn init_dump_tree() -> Result<(), String> {
     Ok(())
 }
 
-pub fn start_dump_tree_polling(_app_handle: tauri::AppHandle) -> Result<(), String> {
+pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
     let dump_tree = DUMP_TREE_PATH
         .get()
         .ok_or_else(|| "dump-tree not initialized".to_string())?
@@ -99,14 +99,18 @@ pub fn start_dump_tree_polling(_app_handle: tauri::AppHandle) -> Result<(), Stri
     thread::spawn(move || {
         while *POLLING_ACTIVE.get().unwrap().lock().unwrap() {
             // Run dump-tree and capture output
-            match Command::new(&dump_tree)
+            let process = Command::new(&dump_tree)
                 .arg("-e")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
-                .spawn()
-            {
+                .spawn();
+
+            match process {
                 Ok(mut child) => {
-                    if let Some(stdout) = child.stdout.take() {
+                    let stdout = child.stdout.take();
+                    let mut child_owned = child;
+
+                    if let Some(stdout) = stdout {
                         let reader = BufReader::new(stdout);
                         for line in reader.lines() {
                             if let Ok(line) = line {
@@ -124,7 +128,7 @@ pub fn start_dump_tree_polling(_app_handle: tauri::AppHandle) -> Result<(), Stri
                     }
 
                     // Wait for process to finish
-                    let _ = child.wait();
+                    let _ = child_owned.wait();
                 }
                 Err(e) => {
                     println!("[AxTree] Error running dump-tree: {}", e);
@@ -142,6 +146,7 @@ pub fn start_dump_tree_polling(_app_handle: tauri::AppHandle) -> Result<(), Stri
 
 pub fn stop_dump_tree_polling() -> Result<(), String> {
     println!("[AxTree] Stopping dump-tree polling");
+
     if let Some(polling_active) = POLLING_ACTIVE.get() {
         *polling_active.lock().unwrap() = false;
     }

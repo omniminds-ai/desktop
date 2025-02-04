@@ -1,6 +1,8 @@
 use crate::axtree;
 use crate::ffmpeg::{self, FFmpegRecorder};
+use crate::input;
 use crate::logger::Logger;
+
 use chrono::Local;
 use display_info::DisplayInfo;
 use std::path::PathBuf;
@@ -104,6 +106,16 @@ pub async fn start_recording(
         return Err("Unsupported platform".to_string());
     };
 
+    // Reset quest state and emit recording started event
+    *quest_state.objectives_completed.lock().unwrap() = 0;
+    app.emit(
+        "recording-status",
+        serde_json::json!({
+            "state": "recording"
+        }),
+    )
+    .unwrap();
+
     let mut recorder = FFmpegRecorder::new_with_input(
         width,
         height,
@@ -121,21 +133,14 @@ pub async fn start_recording(
     recorder.start()?;
     *rec_state = Some(recorder);
 
-    // Reset quest state and emit recording started event
-    *quest_state.objectives_completed.lock().unwrap() = 0;
-    app.emit(
-        "recording-status",
-        serde_json::json!({
-            "state": "recording"
-        }),
-    )
-    .unwrap();
-
-    // Start input logging
+    // Start input logging and listening
     let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
     if log_state.is_none() {
         *log_state = Some(Logger::new(&app)?);
     }
+
+    // Start input listener
+    input::start_input_listener(app.clone())?;
 
     // Start dump-tree polling
     axtree::start_dump_tree_polling(app.clone())?;
@@ -157,20 +162,23 @@ pub async fn stop_recording(
     )
     .unwrap();
 
-    // Stop screen recording
+    // Stop input logging and listening first
+    let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
+    *log_state = None;
+
+    // Stop input listener
+    input::stop_input_listener()?;
+
+    // Stop dump-tree polling
+    axtree::stop_dump_tree_polling()?;
+
+    // Stop screen recording last since it might hang
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
     if let Some(mut recorder) = rec_state.take() {
         recorder.stop()?;
     }
 
-    // Stop input logging
-    let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
-    *log_state = None;
-
-    // Stop dump-tree polling
-    axtree::stop_dump_tree_polling()?;
-
-    // Emit recording stopped event after FFmpeg finishes
+    // Emit recording stopped event
     app.emit(
         "recording-status",
         serde_json::json!({
