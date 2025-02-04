@@ -71,7 +71,9 @@ pub async fn start_recording(
     }
 
     // Initialize FFmpeg if not already done
-    ffmpeg::init_ffmpeg()?;
+    if !cfg!(target_os="macos") {
+        ffmpeg::init_ffmpeg()?;
+    }
 
     // Get paths for both video and log files
     let (recordings_dir, timestamp) = get_session_path(&app)?;
