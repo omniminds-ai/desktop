@@ -48,7 +48,7 @@ import { Brain, DollarSign, Palette, FileSpreadsheet } from 'lucide-svelte';
                 <Brain class="w-5 h-5 sm:w-6 sm:h-6 text-[var(--vm-secondary-300)]" />
               </div>
               <h3 class="text-lg sm:text-xl font-title mb-2">Random Challenge</h3>
-              <p class="text-gray-600 mb-6">Our AI guides you through random Linux tasks</p>
+              <p class="text-gray-600 mb-6">Our AI guides you through random desktop tasks</p>
               <button class="mt-auto px-4 py-2 bg-[var(--vm-secondary-300)] text-white rounded-lg hover:bg-[var(--vm-secondary-400)] transition-colors">
                 Join Race
               </button>
@@ -63,7 +63,7 @@ import { Brain, DollarSign, Palette, FileSpreadsheet } from 'lucide-svelte';
                 <Palette class="w-5 h-5 sm:w-6 sm:h-6 text-[var(--vm-secondary-300)]" />
               </div>
               <h3 class="text-lg sm:text-xl font-title mb-2">Paint Buddy</h3>
-              <p class="text-gray-600 mb-6">Let our AI guide your browser-based artistic adventures</p>
+              <p class="text-gray-600 mb-6">Let our AI guide you through artistic adventures</p>
               <button class="mt-auto px-4 py-2 bg-[var(--vm-secondary-300)] text-white rounded-lg hover:bg-[var(--vm-secondary-400)] transition-colors">
                 Join Race
               </button>
