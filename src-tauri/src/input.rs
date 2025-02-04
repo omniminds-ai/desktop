@@ -8,7 +8,7 @@ use std::{
     },
     thread::{self, JoinHandle},
 };
-use tauri::Runtime;
+use tauri::{Emitter, Runtime};
 
 pub struct InputListener {
     running: Arc<AtomicBool>,
@@ -66,6 +66,11 @@ impl InputEvent {
 
 pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Result<(), String> {
     // Check if already listening
+
+    // disable on macos for the time being becuase it breaks the application on keypress during recording
+    #[cfg(target_os = "macos")]
+    return Ok(());
+
     let mut state = INPUT_LISTENER_STATE.lock().map_err(|e| e.to_string())?;
     if state.is_some() {
         return Ok(()); // Already listening

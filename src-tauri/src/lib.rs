@@ -3,7 +3,6 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use display_info::DisplayInfo;
 use serde_json;
 use std::io::Cursor;
-use std::path::PathBuf;
 use tauri::{Emitter, Manager};
 use window_vibrancy::*;
 use xcap::{image::ImageFormat, Monitor};
@@ -11,6 +10,7 @@ mod axtree;
 mod ffmpeg;
 mod input;
 mod logger;
+mod macos_screencapture;
 mod record;
 
 use record::{start_recording, stop_recording, QuestState};
@@ -45,9 +45,16 @@ fn take_screenshot() -> Result<String, String> {
 }
 
 #[tauri::command]
-fn list_apps(include_icons: Option<bool>) -> Vec<serde_json::Value> {
+fn list_apps(include_icons: Option<bool>) -> Result<Vec<serde_json::Value>, String> {
     let apps = AppFinder::list();
-    apps.into_iter()
+
+    let filtered: Vec<_> = apps
+        .into_iter()
+        .filter(|item| !item.path.contains("Frameworks"))
+        .collect();
+
+    let result = filtered
+        .into_iter()
         .map(|app| {
             let mut json = serde_json::json!({
                 "name": app.name,
@@ -56,24 +63,25 @@ fn list_apps(include_icons: Option<bool>) -> Vec<serde_json::Value> {
 
             if include_icons.unwrap_or(false) {
                 if let Ok(icon) = app.get_app_icon_base64(64) {
-                    json.as_object_mut().unwrap().insert(
-                        "icon".to_string(),
-                        serde_json::Value::String(icon),
-                    );
+                    json.as_object_mut()
+                        .unwrap()
+                        .insert("icon".to_string(), serde_json::Value::String(icon));
                 }
             }
-
             json
         })
-        .collect()
-}
+        .collect();
 
+    Ok(result)
+}
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize FFmpeg and dump-tree synchronously before starting Tauri
-    if let Err(e) = ffmpeg::init_ffmpeg() {
-        eprintln!("Failed to initialize FFmpeg: {}", e);
-        std::process::exit(1);
+    // Initialize FFmpeg and dump-tree synchronously before starting Tauri on windows and linux
+    if !cfg!(target_os = "macos") {
+        if let Err(e) = ffmpeg::init_ffmpeg() {
+            eprintln!("Failed to initialize FFmpeg: {}", e);
+            std::process::exit(1);
+        }
     }
 
     if let Err(e) = axtree::init_dump_tree() {

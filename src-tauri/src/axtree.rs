@@ -52,6 +52,7 @@ fn download_file(url: &str, path: &Path) -> Result<(), String> {
 }
 
 pub fn init_dump_tree() -> Result<(), String> {
+    // todo: should somehow version the scripts in case theres a new release for the ax parsing
     if DUMP_TREE_PATH.get().is_some() {
         println!("[AxTree] Already initialized");
         return Ok(());
