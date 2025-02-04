@@ -2,6 +2,7 @@ use crate::axtree;
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::input;
 use crate::logger::Logger;
+#[cfg(target_os = "macos")]
 use crate::macos_screencapture::MacOSScreenRecorder;
 
 enum Recorder {
@@ -24,6 +25,40 @@ impl Recorder {
             Recorder::FFmpeg(recorder) => recorder.stop(),
             #[cfg(target_os = "macos")]
             Recorder::MacOS(recorder) => recorder.stop(),
+        }
+    }
+
+    fn new(video_path: &PathBuf, primary: &DisplayInfo) -> Result<Self, String> {
+        #[cfg(target_os = "macos")]
+        {
+            return Ok(Recorder::MacOS(MacOSScreenRecorder::new(video_path)));
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            let (input_format, input_device) = {
+                #[cfg(target_os = "windows")]
+                {
+                    ("gdigrab", "desktop".to_string())
+                }
+                #[cfg(target_os = "linux")]
+                {
+                    ("x11grab", ":0.0".to_string())
+                }
+                #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+                {
+                    return Err("Unsupported platform".to_string());
+                }
+            };
+
+            Ok(Recorder::FFmpeg(FFmpegRecorder::new_with_input(
+                primary.width,
+                primary.height,
+                30,
+                video_path.to_path_buf(),
+                input_format.to_string(),
+                input_device,
+            )))
         }
     }
 }
@@ -99,32 +134,7 @@ pub async fn start_recording(
     )
     .unwrap();
 
-    let mut recorder = if cfg!(target_os = "macos") {
-        Recorder::MacOS(MacOSScreenRecorder::new(video_path))
-    } else {
-        let input_format = if cfg!(target_os = "windows") {
-            "gdigrab"
-        } else if cfg!(target_os = "linux") {
-            "x11grab"
-        } else {
-            return Err("Unsupported platform".to_string());
-        };
-
-        let input_device = if cfg!(target_os = "windows") {
-            "desktop".to_string()
-        } else {
-            ":0.0".to_string() // X11 display
-        };
-
-        Recorder::FFmpeg(FFmpegRecorder::new_with_input(
-            primary.width,
-            primary.height,
-            30,
-            video_path,
-            input_format.to_string(),
-            input_device,
-        ))
-    };
+    let mut recorder = Recorder::new(&video_path, &primary)?;
 
     recorder.start()?;
     *rec_state = Some(recorder);
