@@ -481,7 +481,7 @@ impl FFmpegRecorder {
 
             // Wait for process to finish and capture output
             match process.wait_with_output() {
-                Ok(output) => {
+                Ok(_output) => {
                     // Output is already handled by the reader threads
                 }
                 Err(e) => {
