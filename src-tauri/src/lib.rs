@@ -14,7 +14,6 @@ mod macos_screencapture;
 mod record;
 
 use record::{start_recording, stop_recording, QuestState};
-use std::time::Instant;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -46,24 +45,35 @@ fn take_screenshot() -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn list_apps() -> Result<Vec<serde_json::Value>, String> {
-    // don't block the main thread
-    // also don't conver to base64 -- we can get images from the filepath
-    tauri::async_runtime::spawn_blocking(move || {
-        Ok(AppFinder::list()
-            .into_iter()
-            .map(|app| {
-                serde_json::json!({
-                    "name": app.name,
-                    "path": app.path,
-                })
-            })
-            .collect())
-    })
-    .await
-    .unwrap()
-}
+fn list_apps(include_icons: Option<bool>) -> Result<Vec<serde_json::Value>, String> {
+    let apps = AppFinder::list();
 
+    let filtered: Vec<_> = apps
+        .into_iter()
+        .filter(|item| !item.path.contains("Frameworks"))
+        .collect();
+
+    let result = filtered
+        .into_iter()
+        .map(|app| {
+            let mut json = serde_json::json!({
+                "name": app.name,
+                "path": app.path,
+            });
+
+            if include_icons.unwrap_or(false) {
+                if let Ok(icon) = app.get_app_icon_base64(64) {
+                    json.as_object_mut()
+                        .unwrap()
+                        .insert("icon".to_string(), serde_json::Value::String(icon));
+                }
+            }
+            json
+        })
+        .collect();
+
+    Ok(result)
+}
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize FFmpeg and dump-tree synchronously before starting Tauri on windows and linux
