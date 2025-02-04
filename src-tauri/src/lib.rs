@@ -1,7 +1,9 @@
+use app_finder::{AppCommon, AppFinder};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use display_info::DisplayInfo;
 use serde_json;
 use std::io::Cursor;
+use std::path::PathBuf;
 use tauri::{Emitter, Manager};
 use window_vibrancy::*;
 use xcap::{image::ImageFormat, Monitor};
@@ -42,6 +44,30 @@ fn take_screenshot() -> Result<String, String> {
     Ok(format!("data:image/png;base64,{}", BASE64.encode(&buffer)))
 }
 
+#[tauri::command]
+fn list_apps(include_icons: Option<bool>) -> Vec<serde_json::Value> {
+    let apps = AppFinder::list();
+    apps.into_iter()
+        .map(|app| {
+            let mut json = serde_json::json!({
+                "name": app.name,
+                "path": app.path,
+            });
+
+            if include_icons.unwrap_or(false) {
+                if let Ok(icon) = app.get_app_icon_base64(64) {
+                    json.as_object_mut().unwrap().insert(
+                        "icon".to_string(),
+                        serde_json::Value::String(icon),
+                    );
+                }
+            }
+
+            json
+        })
+        .collect()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize FFmpeg and dump-tree synchronously before starting Tauri
@@ -65,6 +91,7 @@ pub fn run() {
             start_recording,
             stop_recording,
             take_screenshot,
+            list_apps,
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();

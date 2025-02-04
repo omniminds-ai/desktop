@@ -1,10 +1,9 @@
 <script lang="ts">
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from '@tauri-apps/api/event';
-import { Command } from '@tauri-apps/plugin-shell';
-import { platform } from '@tauri-apps/plugin-os';
+import { listen, emit } from '@tauri-apps/api/event';
 import { Send, User, Keyboard, Mouse, Gamepad, Video, Square, ArrowLeft } from 'lucide-svelte';
 import Card from '../Card.svelte';
+import RecordButton from './RecordButton.svelte';
 import * as gym from '../../gym';
 import { onMount, onDestroy } from 'svelte';
 import PrivacyPolicy from "../PrivacyPolicy.svelte";
@@ -16,16 +15,16 @@ import blip from "$lib/assets/blip.wav";
 const { prompt = "" } = $props<{ prompt?: string }>();
 
 type MessageRole = 'assistant' | 'user' | 'system';
-type MessagePartType = 'text' | 'privacy' | 'quest';
+type MessagePartType = 'text' | 'privacy' | 'quest' | 'loading';
 
 interface QuestInfo {
+  task_id: string;
   title: string;
-  description: string;
-  reward: number;
-  objectives: Array<{
-    text: string;
-    completed: boolean;
-  }>;
+  original_instruction: string;
+  concrete_scenario: string;
+  objective: string;
+  relevant_applications: string[];
+  subgoals: string[];
 }
 
 interface MessagePart {
@@ -53,16 +52,16 @@ let chatContent: HTMLElement;
 let toneAudio: HTMLAudioElement;
 let blipAudio: HTMLAudioElement;
 let privacyAccepted = $state(false);
+let currentQuest = $state<QuestInfo | null>(null);
 
 const welcomeMessages = [
-  
-{
+  {
     role: 'assistant' as const,
     parts: [{ type: 'text' as const, content: "welcome to my gym, trainer" }]
   },
   {
     role: 'assistant' as const,
-    parts: [{ type: 'text' as const, content: "i build ai agents, and i need your data" }]
+    parts: [{ type: 'text' as const, content: "i'm building ai agents by learning from humans like you" }]
   },
   {
     role: 'assistant' as const,
@@ -228,29 +227,44 @@ async function handlePrivacyAccept() {
   });
   await addMessage({
     role: 'assistant',
-    parts: [{ type: 'text', content: "your first task:" }]
+    parts: [{ type: 'text', content: "generating your first task..." }]
   });
   await addMessage({
     role: 'assistant',
-    parts: [{
-      type: 'quest',
-      content: '',
-      quest: {
-        title: 'folder renaming',
-        description: 'create a new folder and rename it 3 times',
-        reward: 10,
-        objectives: [
-          { text: "Create a new folder", completed: false },
-          { text: "Rename it once", completed: false },
-          { text: "Rename it twice more", completed: false }
-        ]
-      },
-      actions: {
-        accept: () => handleQuestAccept(),
-        decline: () => handleQuestDecline()
-      }
-    }]
+    parts: [{ type: 'loading', content: '' }]
   });
+
+  try {
+    const quest = await gym.generateQuest(prompt || "Free Race", "test-address");
+    
+    // Remove loading message
+    chatMessages = chatMessages.slice(0, -1);
+    
+    // Store quest for recording start
+    currentQuest = quest;
+    
+    await addMessage({
+      role: 'assistant',
+      parts: [{
+        type: 'quest',
+        content: '',
+        quest,
+        actions: {
+          accept: () => handleQuestAccept(),
+          decline: () => handleQuestDecline()
+        }
+      }]
+    });
+  } catch (error) {
+    console.error('Failed to generate quest:', error);
+    // Remove loading message
+    chatMessages = chatMessages.slice(0, -1);
+    
+    await addMessage({
+      role: 'assistant',
+      parts: [{ type: 'text', content: "sorry, something went wrong generating your quest. try again later." }]
+    });
+  }
 }
 
 function handlePrivacyDecline() {
@@ -265,11 +279,26 @@ function handlePrivacyDecline() {
 }
 
 function handleQuestAccept() {
+  // Quest accepted, button will handle the countdown and recording start
+}
+
+async function handleRecordingStart() {
   addMessage({
     role: 'user',
-    parts: [{ type: 'text', content: "Let's do this!" }]
+    parts: [{ type: 'text', content: "Let's do this! 💪" }]
   });
+  // Emit quest-overlay event when recording actually starts
+  if (currentQuest) {
+    await emit('quest-overlay', { quest: currentQuest });
+  }
   toggleRecording();
+}
+
+function handleRecordingCancel() {
+  addMessage({
+    role: 'user',
+    parts: [{ type: 'text', content: "Recording cancelled" }]
+  });
 }
 
 function handleQuestDecline() {
@@ -282,9 +311,11 @@ function handleQuestDecline() {
 async function toggleRecording() {
   try {
     if (recordingState === 'stopped') {
-      gym.start(prompt || "Free Race", "test-address").catch(console.error);
+      gym.startRecording().catch(console.error);
     } else if (recordingState === 'recording') {
-      gym.stop().catch(console.error);
+      gym.stopRecording().catch(console.error);
+      // Clear quest from overlay
+      await emit('quest-overlay', { quest: null });
     }
   } catch (error) {
     console.error('Recording error:', error);
@@ -303,11 +334,21 @@ async function sendMessage(event: Event) {
   message = "";
   
   try {
-    const response = await invoke("handle_message", { message: currentMessage });
-    await addMessage({
-      role: 'assistant',
-      parts: [{ type: 'text', content: response as string }]
-    });
+    if (currentMessage.toLowerCase() === "list apps") {
+      const apps = await invoke("list_apps", { includeIcons: true });
+      console.log("Installed apps:", apps);
+      console.log(((apps as { name: any; path: any; }[]).map((app: { name: any; path: any; }) => `${app.name}`)).join('\n'))
+      await addMessage({
+        role: 'assistant',
+        parts: [{ type: 'text', content: "I've logged the list of installed apps to the console." }]
+      });
+    } else {
+      const response = await invoke("handle_message", { message: currentMessage });
+      await addMessage({
+        role: 'assistant',
+        parts: [{ type: 'text', content: response as string }]
+      });
+    }
   } catch (error) {
     console.error('Failed to send message:', error);
   }
@@ -387,27 +428,40 @@ listen<any>('input-event', (event: { payload: any; }) => {
                   {:else}
                     <PrivacyPolicy />
                   {/if}
+                {:else if part.type === 'loading'}
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded-full border-2 border-[var(--vm-secondary-300)] border-t-transparent animate-spin"></div>
+                    <span class="text-sm">Generating quest...</span>
+                  </div>
                 {:else if part.type === 'quest' && part.quest}
                   <div class="p-4 rounded bg-black/10 space-y-4 hover:bg-black/15 transition-colors duration-200 border border-[var(--vm-secondary-300)]/20">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-2">
-                        <span class="px-2 py-1 text-xs font-semibold bg-[var(--vm-secondary-300)] text-white rounded-full">New Quest</span>
-                        <h3 class="text-sm tracking-tight uppercase">{part.quest.title}</h3>
-                      </div>
-                      <div class="px-2 py-1 text-xs font-semibold bg-[var(--vm-secondary-300)]/10 rounded-full">
-                        {part.quest.reward} $viral
-                      </div>
-                    </div>
-                    <p class="text-base">{part.quest.description}</p>
-                    <div class="space-y-2">
-                      {#each part.quest.objectives as objective}
-                        <div class="flex items-center gap-2 text-sm opacity-75">
-                          <div class="w-1.5 h-1.5 rounded-full bg-[var(--vm-secondary-300)]"></div>
-                          <span>{objective.text}</span>
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <span class="px-2 py-1 text-xs font-semibold bg-[var(--vm-secondary-300)] text-white rounded-full">New Quest</span>
+                          <h3 class="text-sm tracking-tight uppercase">{part.quest.title}</h3>
                         </div>
-                      {/each}
+                        <div class="px-2 py-1 text-xs font-semibold bg-[var(--vm-secondary-300)]/10 rounded-full">
+                          Task #{part.quest.task_id}
+                        </div>
+                      </div>
+                      <p class="text-base">{part.quest.concrete_scenario}</p>
+                      <div class="text-sm font-medium">Objective: {part.quest.objective}</div>
+                      <div class="space-y-2">
+                        {#each part.quest.subgoals as subgoal}
+                          <div class="flex items-center gap-2 text-sm opacity-75">
+                            <div class="w-1.5 h-1.5 rounded-full bg-[var(--vm-secondary-300)]"></div>
+                            <span>{subgoal}</span>
+                          </div>
+                        {/each}
+                      </div>
+                      {#if part.quest.relevant_applications.length > 0}
+                        <div class="flex flex-wrap gap-2 mt-2">
+                          {#each part.quest.relevant_applications as app}
+                            <span class="px-2 py-1 text-xs bg-[var(--vm-secondary-300)]/5 rounded-full">{app}</span>
+                          {/each}
+                        </div>
+                      {/if}
                     </div>
-                  </div>
                 {:else}
                   <div class="whitespace-pre-wrap">
                     {#if typingMessage && typingMessage.messageIndex === i}
@@ -420,12 +474,19 @@ listen<any>('input-event', (event: { payload: any; }) => {
                 {#if part.actions}
                   <div class="flex gap-2 mt-4">
                     {#if part.actions.accept}
-                      <button 
-                        onclick={part.actions.accept}
-                        class="px-4 py-2 bg-[var(--vm-secondary-300)] text-white rounded hover:bg-[var(--vm-secondary-400)] hover:shadow-md transition-all duration-200 tracking-wide font-medium"
-                      >
-                        {part.type === 'privacy' ? 'Looks good to me!' : "Let's do this!"}
-                      </button>
+                      {#if part.type === 'privacy'}
+                        <button 
+                          onclick={part.actions.accept}
+                          class="px-4 py-2 bg-[var(--vm-secondary-300)] text-white rounded hover:bg-[var(--vm-secondary-400)] hover:shadow-md transition-all duration-200 tracking-wide font-medium"
+                        >
+                          Looks good to me!
+                        </button>
+                      {:else}
+                        <RecordButton 
+                          onStart={handleRecordingStart}
+                          onCancel={handleRecordingCancel}
+                        />
+                      {/if}
                     {/if}
                     {#if part.actions.decline}
                       <button 
