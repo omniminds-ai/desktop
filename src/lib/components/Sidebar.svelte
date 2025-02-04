@@ -5,10 +5,10 @@
   import logo from "$lib/assets/Logo_Standard_white.png";
 
   const buttons = [
-    { path: '/app', icon: MessageSquare, label: 'Chat' },
-    { path: '/app/gym', icon: Dumbbell, label: 'Gym' },
-    { path: '/app/node', icon: Server, label: 'Node' },
-    { path: '/app/lab', icon: TestTube2, label: 'Lab' }
+    { path: "/app", icon: MessageSquare, label: "Chat" },
+    { path: "/app/gym", icon: Dumbbell, label: "Gym" },
+    { path: "/app/node", icon: Server, label: "Node" },
+    { path: "/app/lab", icon: TestTube2, label: "Lab" },
   ];
 </script>
 
@@ -21,13 +21,13 @@
     {@const Icon = button.icon}
     <a
       href={button.path}
-      class="w-full py-2 px-4 flex items-center gap-3 rounded-full transition-colors {
-        (button.path === '/app' 
+      class="w-full py-2 px-4 flex items-center gap-3 rounded-full transition-colors {(
+        button.path === '/app'
           ? page.url.pathname === '/app'
-          : page.url.pathname.startsWith(button.path))
-          ? 'bg-[var(--vm-secondary-300)] text-white' 
-          : 'hover:bg-white/10 text-gray-300'
-      }"
+          : page.url.pathname.startsWith(button.path)
+      )
+        ? 'bg-secondary-300 text-white'
+        : 'hover:bg-white/10 text-gray-300'}"
     >
       <Icon size={20} />
       <span class="font-['Poppins'] font-bold">{button.label}</span>

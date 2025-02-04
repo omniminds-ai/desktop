@@ -477,10 +477,10 @@
   <a
     href="/app/gym"
     class="absolute z-10 top-4 left-4 px-4 py-2 flex items-center gap-2 rounded-full
-      transition-all duration-200 ease-in-out text-[var(--vm-secondary-300)] border
+      transition-all duration-200 ease-in-out text-secondary-300 border
       {isScrolled
-      ? 'bg-white/75 backdrop-blur-sm border-[var(--vm-secondary-300)] hover:bg-white shadow-md'
-      : 'bg-white/0 hover:text-[var(--vm-secondary-400)] border-transparent'}"
+      ? 'bg-white/75 backdrop-blur-sm border-secondary-300 hover:bg-white shadow-md'
+      : 'bg-white/0 hover:text-secondary-400 border-transparent'}"
   >
     <ArrowLeft size={20} />
     Back to Gym
@@ -498,7 +498,7 @@
         {#if msg.role === "user"}
           <Card
             variant="primary"
-            className="max-w-2xl shadow-sm bg-[var(--vm-secondary-300)] text-white"
+            className="max-w-2xl shadow-sm bg-secondary-300 text-white"
           >
             {#each msg.parts as part}
               <div class="whitespace-pre-wrap tracking-wide font-medium">
@@ -507,13 +507,13 @@
             {/each}
           </Card>
           <div
-            class="shrink-0 w-8 h-8 rounded-full bg-[var(--vm-secondary-100)] text-white flex items-center justify-center shadow-md"
+            class="shrink-0 w-8 h-8 rounded-full bg-secondary-100 text-white flex items-center justify-center shadow-md"
           >
             <User size={18} />
           </div>
         {:else}
           <div
-            class="shrink-0 w-8 h-8 rounded bg-[var(--vm-secondary-300)] overflow-hidden shadow-md"
+            class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md"
           >
             <img src={pfp} alt="V" class="w-full h-full object-cover" />
           </div>
@@ -528,18 +528,18 @@
                 {:else if part.type === MessagePartType.loading}
                   <div class="flex items-center gap-2">
                     <div
-                      class="w-4 h-4 rounded-full border-2 border-[var(--vm-secondary-300)] border-t-transparent animate-spin"
+                      class="w-4 h-4 rounded-full border-2 border-secondary-300 border-t-transparent animate-spin"
                     ></div>
                     <span class="text-sm">{part.content}</span>
                   </div>
                 {:else if part.type === MessagePartType.quest && part.quest}
                   <div
-                    class="p-4 rounded bg-black/10 space-y-4 hover:bg-black/15 transition-colors duration-200 border border-[var(--vm-secondary-300)]/20"
+                    class="p-4 rounded bg-black/10 space-y-4 hover:bg-black/15 transition-colors duration-200 border border-secondary-300/20"
                   >
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-2">
                         <span
-                          class="px-2 py-1 text-xs font-semibold bg-[var(--vm-secondary-300)] text-white rounded-full"
+                          class="px-2 py-1 text-xs font-semibold bg-secondary-300 text-white rounded-full"
                           >New Quest</span
                         >
                         <h3 class="text-sm tracking-tight uppercase">
@@ -547,7 +547,7 @@
                         </h3>
                       </div>
                       <div
-                        class="px-2 py-1 text-xs font-semibold bg-[var(--vm-secondary-300)]/10 rounded-full"
+                        class="px-2 py-1 text-xs font-semibold bg-secondary-300/10 rounded-full"
                       >
                         Task #{part.quest.task_id}
                       </div>
@@ -560,7 +560,7 @@
                       {#each part.quest.subgoals as subgoal}
                         <div class="flex items-center gap-2 text-sm opacity-75">
                           <div
-                            class="w-1.5 h-1.5 rounded-full bg-[var(--vm-secondary-300)]"
+                            class="w-1.5 h-1.5 rounded-full bg-secondary-300"
                           ></div>
                           <span>{subgoal}</span>
                         </div>
@@ -570,7 +570,7 @@
                       <div class="flex flex-wrap gap-2 mt-2">
                         {#each part.quest.relevant_applications as app}
                           <span
-                            class="px-2 py-1 text-xs bg-[var(--vm-secondary-300)]/5 rounded-full"
+                            class="px-2 py-1 text-xs bg-secondary-300/5 rounded-full"
                             >{app}</span
                           >
                         {/each}
@@ -593,21 +593,21 @@
                       {#if action.type === "primary"}
                         <button
                           onclick={action.fn}
-                          class="px-4 py-2 bg-[var(--vm-secondary-300)] text-white rounded hover:bg-[var(--vm-secondary-400)] hover:shadow-md transition-all duration-200 tracking-wide font-medium"
+                          class="px-4 py-2 bg-secondary-400 text-white rounded hover:bg-secondary-400 hover:shadow-md transition-all duration-200 tracking-wide font-medium"
                         >
                           {action.text}
                         </button>
                       {:else if action.type === "destroy"}
                         <button
                           onclick={action.fn}
-                          class="px-4 py-2 border border-[var(--vm-secondary-300)] text-[var(--vm-secondary-300)] rounded hover:bg-[var(--vm-secondary-300)] hover:text-white hover:shadow-md transition-all duration-200 tracking-wide font-medium"
+                          class="px-4 py-2 border border-secondary-300 text-secondary-300 rounded hover:bg-secondary-300 hover:text-white hover:shadow-md transition-all duration-200 tracking-wide font-medium"
                         >
                           {action.text}
                         </button>
                       {:else if action.type === "warning"}
                         <button
                           onclick={action.fn}
-                          class="px-4 py-2 border border-[var(--vm-secondary-300)] text-[var(--vm-secondary-300)] rounded hover:bg-[var(--vm-secondary-300)] hover:text-white hover:shadow-md transition-all duration-200 tracking-wide font-medium"
+                          class="px-4 py-2 border border-secondary-300 text-secondary-300 rounded hover:bg-secondary-300 hover:text-white hover:shadow-md transition-all duration-200 tracking-wide font-medium"
                         >
                           {action.text}
                         </button>
@@ -627,7 +627,7 @@
     {#if inputEvents.length > 0}
       <div class="flex gap-4">
         <div
-          class="shrink-0 w-8 h-8 rounded-full bg-[var(--vm-secondary-300)] text-white flex items-center justify-center shadow-sm"
+          class="shrink-0 w-8 h-8 rounded-full bg-secondary-300 text-white flex items-center justify-center shadow-sm"
         >
           {#if inputEvents.length > 0 && inputEvents[0].type.startsWith("Key")}
             <Keyboard size={18} />
@@ -654,7 +654,7 @@
           onclick={toggleRecording}
           class="p-3 rounded-full {recordingState === 'recording'
             ? 'bg-red-500'
-            : 'bg-[var(--vm-secondary-300)]'} text-white hover:opacity-90 transition-colors shadow-sm hover:shadow-md"
+            : 'bg-secondary-300'} text-white hover:opacity-90 transition-colors shadow-sm hover:shadow-md"
         >
           {#if recordingState === "recording"}
             <Square size={20} />
@@ -667,11 +667,11 @@
             type="text"
             placeholder="Type your message..."
             bind:value={message}
-            class="flex-1 px-6 py-3 rounded-full border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[var(--vm-secondary-300)] focus:bg-white transition-colors"
+            class="flex-1 px-6 py-3 rounded-full border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:bg-white transition-colors"
           />
           <button
             type="submit"
-            class="p-3 rounded-full bg-[var(--vm-secondary-300)] text-white hover:bg-[var(--vm-secondary-400)] transition-colors shadow-sm hover:shadow-md"
+            class="p-3 rounded-full bg-secondary-300 text-white hover:bg-secondary-400 transition-colors shadow-sm hover:shadow-md"
           >
             <Send size={20} />
           </button>

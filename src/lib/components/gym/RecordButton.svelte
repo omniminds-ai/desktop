@@ -47,7 +47,7 @@
 
 <button
   onclick={countingDown ? cancelCountdown : startCountdown}
-  class="px-4 py-2 bg-[var(--vm-secondary-300)] text-white rounded hover:bg-[var(--vm-secondary-400)] hover:shadow-md transition-all duration-200 tracking-wide font-medium flex items-center gap-2"
+  class="px-4 py-2 bg-secondary-300 text-white rounded hover:bg-secondary-400 hover:shadow-md transition-all duration-200 tracking-wide font-medium flex items-center gap-2"
   class:bg-red-500={countingDown}
   class:hover:bg-red-700={countingDown}
 >

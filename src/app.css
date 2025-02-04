@@ -14,29 +14,29 @@
 }
 
 /* Viralmind Brand Book Colors */
-:root {
+@theme {
   /* Primary Colors */
-  --vm-primary-100: #131120;
-  --vm-primary-200: #292441;
-  --vm-primary-300: #211d35;
-  --vm-primary-400: #19172a;
-  --vm-primary-500: #12101d;
-  --vm-primary-600: #0b0a13;
+  --color-primary-100: #131120;
+  --color-primary-200: #292441;
+  --color-primary-300: #211d35;
+  --color-primary-400: #19172a;
+  --color-primary-500: #12101d;
+  --color-primary-600: #0b0a13;
 
   /* Secondary Colors */
-  --vm-secondary-100: #d468ff;
-  --vm-secondary-200: #cd4eff;
-  --vm-secondary-300: #bb4eff;
-  --vm-secondary-400: #8c4fff;
-  --vm-secondary-500: #6050ff;
-  --vm-secondary-600: #4e51ff;
-  --vm-secondary-700: #3a3cd1;
+  --color-secondary-100: #d468ff;
+  --color-secondary-200: #cd4eff;
+  --color-secondary-300: #bb4eff;
+  --color-secondary-400: #8c4fff;
+  --color-secondary-500: #6050ff;
+  --color-secondary-600: #4e51ff;
+  --color-secondary-700: #3a3cd1;
 
   /* Accent Colors */
-  --vm-accent-100: #ffffff;
-  --vm-accent-200: #f1f1f1;
-  --vm-accent-300: #e4e4e4;
-  --vm-accent-400: #cdcdcd;
-  --vm-accent-500: #bdbdbd;
-  --vm-accent-600: #9f9f9f;
+  --color-accent-100: #ffffff;
+  --color-accent-200: #f1f1f1;
+  --color-accent-300: #e4e4e4;
+  --color-accent-400: #cdcdcd;
+  --color-accent-500: #bdbdbd;
+  --color-accent-600: #9f9f9f;
 }

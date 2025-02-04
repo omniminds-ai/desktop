@@ -7,7 +7,7 @@
 {#if privacyAccepted()}
   <a
     href="https://github.com/viralmind-ai/gym-desktop/blob/main/PRIVACY.md"
-    class="text-[var(--vm-secondary-300)] hover:underline"
+    class="text-secondary-300 hover:underline"
     target="_blank"
   >
     View Privacy Policy
