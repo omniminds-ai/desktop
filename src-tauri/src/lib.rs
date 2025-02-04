@@ -6,7 +6,6 @@ mod axtree;
 mod ffmpeg;
 mod input;
 mod logger;
-mod permissions;
 mod record;
 
 use input::start_input_listener;
@@ -31,7 +30,7 @@ pub fn run() {
         std::process::exit(1);
     }
 
-    let app = tauri::Builder::default()
+    let _app = tauri::Builder::default()
         .manage(QuestState::default())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![

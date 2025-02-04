@@ -1,9 +1,6 @@
 use crate::axtree;
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::logger::Logger;
-use crate::permissions::{
-    check_screen_capture_permission, request_screen_capture_permission, PermissionStatus,
-};
 use chrono::Local;
 use display_info::DisplayInfo;
 
@@ -42,20 +39,20 @@ pub async fn start_recording(
     quest_state: State<'_, QuestState>,
 ) -> Result<(), String> {
     // Check permission before starting
-    match check_screen_capture_permission() {
-        PermissionStatus::Granted => {
-            // proceed with recording
-        }
-        PermissionStatus::SystemDialogNeeded => {
-            match request_screen_capture_permission() {
-                PermissionStatus::Granted => {
-                    // proceed with recording
-                }
-                _ => return Err("Failed to obtain screen recording permission.".to_string()),
-            }
-        }
-        _ => return Err("Screen recording permission denied.".to_string()),
-    }
+    // match check_screen_capture_permission() {
+    //     PermissionStatus::Granted => {
+    //         // proceed with recording
+    //     }
+    //     PermissionStatus::SystemDialogNeeded => {
+    //         match request_screen_capture_permission() {
+    //             PermissionStatus::Granted => {
+    //                 // proceed with recording
+    //             }
+    //             _ => return Err("Failed to obtain screen recording permission.".to_string()),
+    //         }
+    //     }
+    //     _ => return Err("Screen recording permission denied.".to_string()),
+    // }
 
     // Start screen recording
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
@@ -133,7 +130,7 @@ pub async fn start_recording(
 #[tauri::command]
 pub async fn stop_recording(
     app: tauri::AppHandle,
-    quest_state: State<'_, QuestState>,
+    _quest_state: State<'_, QuestState>,
 ) -> Result<(), String> {
     // Emit recording stopping event
     app.emit(

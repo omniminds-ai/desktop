@@ -83,7 +83,7 @@ pub fn init_dump_tree() -> Result<(), String> {
     Ok(())
 }
 
-pub fn start_dump_tree_polling(app_handle: tauri::AppHandle) -> Result<(), String> {
+pub fn start_dump_tree_polling(_app_handle: tauri::AppHandle) -> Result<(), String> {
     let dump_tree = DUMP_TREE_PATH
         .get()
         .ok_or_else(|| "dump-tree not initialized".to_string())?
