@@ -31,7 +31,6 @@ impl Recorder {
 use chrono::Local;
 use display_info::DisplayInfo;
 use std::path::PathBuf;
-use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
 
@@ -88,21 +87,6 @@ pub async fn start_recording(
         .or_else(|| displays.first())
         .ok_or_else(|| "No display found".to_string())?;
 
-    let mut width: u32 = primary.width;
-    let mut height: u32 = primary.height;
-
-    // Handle retina macos screens
-    if cfg!(target_os = "macos") {
-        let (w, h) = get_screen_resolution();
-        if w == 0 && h == 0 {
-            width = primary.width;
-            height = primary.height;
-        } else {
-            width = w;
-            height = h;
-        };
-    }
-
     // Reset quest state and emit recording started event
     *quest_state.objectives_completed.lock().unwrap() = 0;
     app.emit(
@@ -131,8 +115,8 @@ pub async fn start_recording(
         };
 
         Recorder::FFmpeg(FFmpegRecorder::new_with_input(
-            width,
-            height,
+            primary.width,
+            primary.height,
             30,
             video_path,
             input_format.to_string(),
@@ -216,38 +200,4 @@ pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
         }
     }
     Ok(())
-}
-
-fn get_screen_resolution() -> (u32, u32) {
-    let output = match Command::new("system_profiler")
-        .arg("SPDisplaysDataType")
-        .output()
-    {
-        Ok(output) => output,
-        Err(_) => return (0, 0),
-    };
-
-    let output_str = match String::from_utf8(output.stdout) {
-        Ok(s) => s,
-        Err(_) => return (0, 0),
-    };
-
-    for line in output_str.lines() {
-        if line.contains("Resolution:") && line.contains("Retina") {
-            if let Some(resolution_part) = line.split(':').nth(1) {
-                let parts: Vec<&str> = resolution_part.trim().split(" x ").collect();
-
-                if parts.len() >= 2 {
-                    if let (Ok(w), Ok(h)) = (
-                        parts[0].trim().parse(),
-                        parts[1].split_whitespace().next().unwrap_or("0").parse(),
-                    ) {
-                        return (w, h);
-                    }
-                }
-            }
-        }
-    }
-
-    (0, 0)
 }

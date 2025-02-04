@@ -23,8 +23,21 @@ impl MacOSScreenRecorder {
     pub fn start(&mut self) -> Result<(), String> {
         println!("[MacOS Recorder] Starting recording.");
 
+        // Ensure the path ends with .mov
+        let output_path = if self
+            .output_path
+            .extension()
+            .map_or(true, |ext| ext != "mov")
+        {
+            let mut new_path = self.output_path.with_extension("");
+            new_path.set_extension("mov");
+            new_path
+        } else {
+            self.output_path.clone()
+        };
+
         // Ensure output directory exists
-        if let Some(parent) = self.output_path.parent() {
+        if let Some(parent) = output_path.parent() {
             if !parent.exists() {
                 std::fs::create_dir_all(parent)
                     .map_err(|e| format!("Failed to create output directory: {}", e))?;
@@ -34,24 +47,60 @@ impl MacOSScreenRecorder {
         // Start recording using screencapture
         let process = Command::new("screencapture")
             .args([
-                "-v", // Enable video capture
+                "-v", // Video recording mode
                 "-C", // Capture cursor
                 "-x", // Do not play sounds
-                self.output_path.to_str().unwrap(),
+                output_path.to_str().unwrap(),
             ])
+            .stdin(std::process::Stdio::piped()) // Add this to handle stdin
+            .stdout(std::process::Stdio::piped()) // Add this to capture output
+            .stderr(std::process::Stdio::piped()) // Add this to capture errors
             .spawn()
             .map_err(|e| format!("Failed to start screencapture: {}", e))?;
 
         self.process = Some(process);
+
+        // Give it a moment to initialize
+        thread::sleep(Duration::from_millis(500));
+
         Ok(())
     }
 
     pub fn stop(&mut self) -> Result<(), String> {
         println!("[MacOS Recorder] Stopping recording");
         if let Some(mut process) = self.process.take() {
-            // Send SIGTERM to screencapture
-            if let Err(e) = process.kill() {
-                println!("[MacOS Recorder] Warning: Failed to kill process: {}", e);
+            // Try to write a newline to stdin to stop the recording
+            if let Some(mut stdin) = process.stdin.take() {
+                use std::io::Write;
+                if let Err(e) = stdin.write_all(b"\n") {
+                    println!("[MacOS Recorder] Warning: Failed to write to stdin: {}", e);
+                }
+            }
+
+            // Wait briefly for the process to exit naturally
+            thread::sleep(Duration::from_secs(2));
+
+            // If it hasn't exited, force kill it
+            match process.try_wait() {
+                Ok(None) => {
+                    // Process still running, kill it
+                    if let Err(e) = process.kill() {
+                        println!("[MacOS Recorder] Warning: Failed to kill process: {}", e);
+                    }
+                    // Wait for it to actually terminate
+                    if let Err(e) = process.wait() {
+                        println!("[MacOS Recorder] Warning: Error waiting for process: {}", e);
+                    }
+                }
+                Ok(Some(_)) => {
+                    // Process already exited
+                }
+                Err(e) => {
+                    println!(
+                        "[MacOS Recorder] Warning: Error checking process status: {}",
+                        e
+                    );
+                }
             }
 
             // Give it a moment to finish writing
