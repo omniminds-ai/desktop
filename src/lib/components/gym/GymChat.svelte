@@ -43,6 +43,20 @@
   let blipAudio: HTMLAudioElement;
   let privacyAccepted = $state(false);
   let currentQuest = $state<QuestInfo | null>(null);
+  let appIcons = $state<Record<string, string>>({});
+
+  async function fetchAppIcons(apps: string[]) {
+    const icons: Record<string, string> = {};
+    for (const app of apps) {
+      const response = await invoke("list_apps", { includeIcons: true });
+      const appList = response as { name: string; icon?: string; }[];
+      const matchingApp = appList.find(a => a.name === app);
+      if (matchingApp?.icon) {
+        icons[app] = matchingApp.icon;
+      }
+    }
+    appIcons = icons;
+  }
 
   const welcomeMessages: Message[] = [
     {
@@ -296,6 +310,11 @@
 
       // Store quest for recording start
       currentQuest = quest;
+
+      // Fetch icons for relevant applications
+      if (quest.relevant_applications.length > 0) {
+        await fetchAppIcons(quest.relevant_applications);
+      }
 
       await addMessage({
         role: "assistant",
@@ -569,10 +588,12 @@
                     {#if part.quest.relevant_applications.length > 0}
                       <div class="flex flex-wrap gap-2 mt-2">
                         {#each part.quest.relevant_applications as app}
-                          <span
-                            class="px-2 py-1 text-xs bg-secondary-300/5 rounded-full"
-                            >{app}</span
-                          >
+                          <div class="flex items-center gap-1 px-2 py-1 text-xs bg-secondary-300/5 rounded-full">
+                            {#if appIcons[app]}
+                              <img src={appIcons[app]} alt={app} class="w-4 h-4 object-contain" />
+                            {/if}
+                            <span>{app}</span>
+                          </div>
                         {/each}
                       </div>
                     {/if}

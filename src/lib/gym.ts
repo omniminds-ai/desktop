@@ -15,7 +15,7 @@ export async function generateQuest(prompt: string, address: string): Promise<Qu
   const screenshot = await invoke('take_screenshot');
   
   // Get applications
-  const apps = await invoke("list_apps", { includeIcons: true });
+  const apps = await invoke("list_apps", { includeIcons: false });
   const app_list = 
     ((apps as { name: any; path: any; }[])
       .map((app: { name: any; path: any; }) => 
