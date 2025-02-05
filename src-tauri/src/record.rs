@@ -28,10 +28,12 @@ impl Recorder {
         }
     }
 
-    fn new(video_path: &PathBuf, primary: &DisplayInfo) -> Result<Self, String> {
+    fn new(video_path: &PathBuf, _primary: &DisplayInfo) -> Result<Self, String> {
         #[cfg(target_os = "macos")]
         {
-            return Ok(Recorder::MacOS(MacOSScreenRecorder::new(video_path)));
+            return Ok(Recorder::MacOS(MacOSScreenRecorder::new(
+                video_path.to_path_buf(),
+            )));
         }
 
         #[cfg(not(target_os = "macos"))]
@@ -106,9 +108,8 @@ pub async fn start_recording(
     }
 
     // Initialize FFmpeg if not already done
-    if !cfg!(target_os="macos") {
-        ffmpeg::init_ffmpeg()?;
-    }
+    #[cfg(not(target_os = "macos"))]
+    ffmpeg::init_ffmpeg()?;
 
     // Get paths for both video and log files
     let (recordings_dir, timestamp) = get_session_path(&app)?;
@@ -215,10 +216,14 @@ pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn request_perms(app: tauri::AppHandle, quest_state: State<'_, QuestState>) {
+pub async fn request_record_perms(
+    app: tauri::AppHandle,
+    quest_state: State<'_, QuestState>,
+) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        start_recording(app.clone(), quest_state.clone());
-        stop_recording(app.clone(), quest_state.clone());
+        start_recording(app.clone(), quest_state.clone()).await?;
+        stop_recording(app.clone(), quest_state.clone()).await?;
     }
+    Ok(())
 }

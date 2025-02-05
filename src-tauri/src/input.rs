@@ -275,3 +275,13 @@ pub fn stop_input_listener() -> Result<(), String> {
     println!("[Input] Input listener stopped");
     Ok(())
 }
+
+#[tauri::command]
+pub async fn request_input_perms(app: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = start_input_listener(app.clone());
+        let _ = stop_input_listener();
+    }
+    Ok(())
+}
