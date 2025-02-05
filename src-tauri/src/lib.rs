@@ -74,6 +74,8 @@ fn list_apps(include_icons: Option<bool>) -> Result<Vec<serde_json::Value>, Stri
 
     Ok(result)
 }
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize FFmpeg and dump-tree synchronously before starting Tauri on windows and linux

@@ -213,3 +213,12 @@ pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
     }
     Ok(())
 }
+
+#[tauri::command]
+fn request_perms(app: tauri::AppHandle, quest_state: State<'_, QuestState>) {
+    #[cfg(target_os = "macos")]
+    {
+        start_recording(app.clone(), quest_state.clone());
+        stop_recording(app.clone(), quest_state.clone());
+    }
+}
