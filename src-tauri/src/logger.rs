@@ -40,6 +40,7 @@ impl Logger {
         Ok(())
     }
 
+    #[cfg(not(target_os = "macos"))]
     pub fn log_ffmpeg(&mut self, output: &str, is_stderr: bool) -> Result<(), String> {
         let event = serde_json::json!({
             "event": if is_stderr { "ffmpeg_stderr" } else { "ffmpeg_stdout" },

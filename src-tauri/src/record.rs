@@ -1,11 +1,20 @@
 use crate::axtree;
+#[cfg(not(target_os = "macos"))]
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::input;
 use crate::logger::Logger;
 #[cfg(target_os = "macos")]
 use crate::macos_screencapture::MacOSScreenRecorder;
+use chrono::Local;
+use display_info::DisplayInfo;
+use std::fs;
+use std::path::PathBuf;
+use std::process::Command;
+use std::sync::{Arc, Mutex};
+use tauri::{Emitter, Manager, State};
 
 enum Recorder {
+    #[cfg(not(target_os = "macos"))]
     FFmpeg(FFmpegRecorder),
     #[cfg(target_os = "macos")]
     MacOS(MacOSScreenRecorder),
@@ -14,6 +23,7 @@ enum Recorder {
 impl Recorder {
     fn start(&mut self) -> Result<(), String> {
         match self {
+            #[cfg(not(target_os = "macos"))]
             Recorder::FFmpeg(recorder) => recorder.start(),
             #[cfg(target_os = "macos")]
             Recorder::MacOS(recorder) => recorder.start(),
@@ -22,6 +32,7 @@ impl Recorder {
 
     fn stop(&mut self) -> Result<(), String> {
         match self {
+            #[cfg(not(target_os = "macos"))]
             Recorder::FFmpeg(recorder) => recorder.stop(),
             #[cfg(target_os = "macos")]
             Recorder::MacOS(recorder) => recorder.stop(),
@@ -64,14 +75,6 @@ impl Recorder {
         }
     }
 }
-
-use chrono::Local;
-use display_info::DisplayInfo;
-use std::fs;
-use std::path::PathBuf;
-use std::process::Command;
-use std::sync::{Arc, Mutex};
-use tauri::{Emitter, Manager, State};
 
 #[derive(Default)]
 pub struct QuestState {
@@ -207,7 +210,7 @@ pub fn log_input(event: serde_json::Value) -> Result<(), String> {
     }
     Ok(())
 }
-
+#[cfg(not(target_os = "macos"))]
 pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
     if let Ok(mut state) = LOGGER_STATE.lock() {
         if let Some(logger) = state.as_mut() {
