@@ -67,7 +67,9 @@ impl Recorder {
 
 use chrono::Local;
 use display_info::DisplayInfo;
+use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
 
@@ -216,14 +218,29 @@ pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn request_record_perms(
-    app: tauri::AppHandle,
-    quest_state: State<'_, QuestState>,
-) -> Result<(), String> {
+pub async fn request_record_perms(app: tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        start_recording(app.clone(), quest_state.clone()).await?;
-        stop_recording(app.clone(), quest_state.clone()).await?;
+        //todo: save settings.permissions.screen.requested so we don't overdo this
+        let output_path = app
+            .path()
+            .app_local_data_dir()
+            .map_err(|e| format!("Failed to get app data directory: {}", e))?
+            .join("tmp/perm");
+
+        println!(
+            "[MacOS Recorder] Creating temp file {} for recording permissions.",
+            output_path.to_str().unwrap()
+        );
+        let mut process = Command::new("screencapture");
+        process.args(["-x", output_path.to_str().unwrap()]);
+        let _ = process.spawn();
+        // remove the temp file
+        println!(
+            "[MacoOS Recorder] Removing {}. Permissions dialog triggered.",
+            output_path.to_str().unwrap()
+        );
+        let _ = fs::remove_file(output_path.to_str().unwrap());
     }
     Ok(())
 }

@@ -277,11 +277,15 @@ pub fn stop_input_listener() -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn request_input_perms(app: tauri::AppHandle) -> Result<(), String> {
+pub async fn request_input_perms() -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        let _ = start_input_listener(app.clone());
-        let _ = stop_input_listener();
+        //todo: save settings.permissions.input.requested so we don't overdo this
+        println!("[Input] Listening for single input event for input permissions.",);
+        if let Err(error) = listen(|event| println!("{:#?}", event.time)) {
+            println!("Error Requesting Perms: {:?}", error)
+        }
+        println!("[Input] Input event found. Permissions dialog triggered.",);
     }
     Ok(())
 }
