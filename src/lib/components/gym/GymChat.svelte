@@ -26,7 +26,10 @@
   } from "$lib/types/gym";
   import PrivacyPolicyEmbed from "./PrivacyPolicyEmbed.svelte";
 
+  import { page } from "$app/state";
+
   const { prompt = "" } = $props<{ prompt?: string }>();
+  const previewSkills = page.url.searchParams.get("preview");
 
   let message = $state("");
   let inputEvents = $state<any[]>([]);
@@ -242,8 +245,14 @@
       unlisten = unlistenFn;
     });
 
-    // Start welcome messages
-    addMessagesWithDelay(welcomeMessages);
+    // If in preview mode, skip welcome and go straight to quest generation
+    if (previewSkills) {
+      privacyAccepted = true; // Skip privacy policy in preview mode
+      generateQuestFromSkills(previewSkills);
+    } else {
+      // Start welcome messages for normal mode
+      addMessagesWithDelay(welcomeMessages);
+    }
 
     return () => {
       unlisten?.();
@@ -264,34 +273,7 @@
     }
   });
 
-  async function handlePrivacyAccept() {
-    privacyAccepted = true;
-    await addMessage({
-      role: "user",
-      parts: [{ type: MessagePartType.text, content: "Looks good to me!" }],
-    });
-    await addMessage({
-      role: "assistant",
-      parts: [{ type: MessagePartType.text, content: "welcome aboard." }],
-    });
-    await addMessage({
-      role: "assistant",
-      parts: [
-        {
-          type: MessagePartType.text,
-          content: "let's create some agents that'll change everything.",
-        },
-      ],
-    });
-    await addMessage({
-      role: "assistant",
-      parts: [
-        {
-          type: MessagePartType.text,
-          content: "generating your first task...",
-        },
-      ],
-    });
+  async function generateQuestFromSkills(skills: string) {
     await addMessage({
       role: "assistant",
       parts: [
@@ -300,10 +282,7 @@
     });
 
     try {
-      const quest = await gym.generateQuest(
-        prompt || "Free Race",
-        "test-address"
-      );
+      const quest = await gym.generateQuest(skills, "test-address");
 
       // Remove loading message
       chatMessages = chatMessages.slice(0, -1);
@@ -359,6 +338,37 @@
     }
   }
 
+  async function handlePrivacyAccept() {
+    privacyAccepted = true;
+    await addMessage({
+      role: "user",
+      parts: [{ type: MessagePartType.text, content: "Looks good to me!" }],
+    });
+    await addMessage({
+      role: "assistant",
+      parts: [{ type: MessagePartType.text, content: "welcome aboard." }],
+    });
+    await addMessage({
+      role: "assistant",
+      parts: [
+        {
+          type: MessagePartType.text,
+          content: "let's create some agents that'll change everything.",
+        },
+      ],
+    });
+    await addMessage({
+      role: "assistant",
+      parts: [
+        {
+          type: MessagePartType.text,
+          content: "generating your first task...",
+        },
+      ],
+    });
+    generateQuestFromSkills(prompt || "Free Race");
+  }
+
   function handlePrivacyDecline() {
     addMessage({
       role: "user",
@@ -373,10 +383,6 @@
         },
       ],
     });
-  }
-
-  function handleQuestAccept() {
-    // Quest accepted, button will handle the countdown and recording start
   }
 
   async function handleRecordingStart() {

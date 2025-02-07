@@ -12,7 +12,7 @@ export interface Quest {
 
 export async function generateQuest(prompt: string, address: string): Promise<Quest> {
   // Get screenshot
-  const screenshot = await invoke('take_screenshot');
+  // const screenshot = await invoke('take_screenshot');
   
   // Get applications
   const apps = await invoke("list_apps", { includeIcons: false });
@@ -29,7 +29,7 @@ export async function generateQuest(prompt: string, address: string): Promise<Qu
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      screenshot,
+      // screenshot,
       installed_applications: app_list,
       address,
       prompt,
