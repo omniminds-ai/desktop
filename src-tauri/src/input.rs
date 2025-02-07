@@ -67,10 +67,6 @@ impl InputEvent {
 pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Result<(), String> {
     // Check if already listening
 
-    // disable on macos for the time being becuase it breaks the application on keypress during recording
-    #[cfg(target_os = "macos")]
-    return Ok(());
-
     let mut state = INPUT_LISTENER_STATE.lock().map_err(|e| e.to_string())?;
     if state.is_some() {
         return Ok(()); // Already listening
@@ -277,5 +273,19 @@ pub fn stop_input_listener() -> Result<(), String> {
         listener.stop();
     }
     println!("[Input] Input listener stopped");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn request_input_perms() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        //todo: save settings.permissions.input.requested so we don't overdo this
+        println!("[Input] Listening for single input event for input permissions.",);
+        if let Err(error) = listen(|event| println!("{:#?}", event.time)) {
+            println!("Error Requesting Perms: {:?}", error)
+        }
+        println!("[Input] Input event found. Permissions dialog triggered.",);
+    }
     Ok(())
 }

@@ -13,7 +13,8 @@ mod logger;
 mod macos_screencapture;
 mod record;
 
-use record::{start_recording, stop_recording, QuestState};
+use input::request_input_perms;
+use record::{request_record_perms, start_recording, stop_recording, QuestState};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -74,6 +75,7 @@ fn list_apps(include_icons: Option<bool>) -> Result<Vec<serde_json::Value>, Stri
 
     Ok(result)
 }
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize FFmpeg and dump-tree synchronously before starting Tauri on windows and linux
@@ -100,6 +102,8 @@ pub fn run() {
             stop_recording,
             take_screenshot,
             list_apps,
+            request_record_perms,
+            request_input_perms,
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();

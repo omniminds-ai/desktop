@@ -1,11 +1,20 @@
 use crate::axtree;
+#[cfg(not(target_os = "macos"))]
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::input;
 use crate::logger::Logger;
 #[cfg(target_os = "macos")]
 use crate::macos_screencapture::MacOSScreenRecorder;
+use chrono::Local;
+use display_info::DisplayInfo;
+use std::fs;
+use std::path::PathBuf;
+use std::process::Command;
+use std::sync::{Arc, Mutex};
+use tauri::{Emitter, Manager, State};
 
 enum Recorder {
+    #[cfg(not(target_os = "macos"))]
     FFmpeg(FFmpegRecorder),
     #[cfg(target_os = "macos")]
     MacOS(MacOSScreenRecorder),
@@ -14,6 +23,7 @@ enum Recorder {
 impl Recorder {
     fn start(&mut self) -> Result<(), String> {
         match self {
+            #[cfg(not(target_os = "macos"))]
             Recorder::FFmpeg(recorder) => recorder.start(),
             #[cfg(target_os = "macos")]
             Recorder::MacOS(recorder) => recorder.start(),
@@ -22,16 +32,19 @@ impl Recorder {
 
     fn stop(&mut self) -> Result<(), String> {
         match self {
+            #[cfg(not(target_os = "macos"))]
             Recorder::FFmpeg(recorder) => recorder.stop(),
             #[cfg(target_os = "macos")]
             Recorder::MacOS(recorder) => recorder.stop(),
         }
     }
 
-    fn new(video_path: &PathBuf, primary: &DisplayInfo) -> Result<Self, String> {
+    fn new(video_path: &PathBuf, _primary: &DisplayInfo) -> Result<Self, String> {
         #[cfg(target_os = "macos")]
         {
-            return Ok(Recorder::MacOS(MacOSScreenRecorder::new(video_path)));
+            return Ok(Recorder::MacOS(MacOSScreenRecorder::new(
+                video_path.to_path_buf(),
+            )));
         }
 
         #[cfg(not(target_os = "macos"))]
@@ -62,12 +75,6 @@ impl Recorder {
         }
     }
 }
-
-use chrono::Local;
-use display_info::DisplayInfo;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use tauri::{Emitter, Manager, State};
 
 #[derive(Default)]
 pub struct QuestState {
@@ -106,9 +113,8 @@ pub async fn start_recording(
     }
 
     // Initialize FFmpeg if not already done
-    if !cfg!(target_os="macos") {
-        ffmpeg::init_ffmpeg()?;
-    }
+    #[cfg(not(target_os = "macos"))]
+    ffmpeg::init_ffmpeg()?;
 
     // Get paths for both video and log files
     let (recordings_dir, timestamp) = get_session_path(&app)?;
@@ -204,12 +210,40 @@ pub fn log_input(event: serde_json::Value) -> Result<(), String> {
     }
     Ok(())
 }
-
+#[cfg(not(target_os = "macos"))]
 pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
     if let Ok(mut state) = LOGGER_STATE.lock() {
         if let Some(logger) = state.as_mut() {
             logger.log_ffmpeg(output, is_stderr)?;
         }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn request_record_perms(app: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        //todo: save settings.permissions.screen.requested so we don't overdo this
+        let output_path = app
+            .path()
+            .app_local_data_dir()
+            .map_err(|e| format!("Failed to get app data directory: {}", e))?
+            .join("tmp/perm");
+
+        println!(
+            "[MacOS Recorder] Creating temp file {} for recording permissions.",
+            output_path.to_str().unwrap()
+        );
+        let mut process = Command::new("screencapture");
+        process.args(["-x", output_path.to_str().unwrap()]);
+        let _ = process.spawn();
+        // remove the temp file
+        println!(
+            "[MacoOS Recorder] Removing {}. Permissions dialog triggered.",
+            output_path.to_str().unwrap()
+        );
+        let _ = fs::remove_file(output_path.to_str().unwrap());
     }
     Ok(())
 }

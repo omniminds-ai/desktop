@@ -30,7 +30,7 @@ Our recording system is designed specifically for training powerful computer-use
 
 ### Recording Format
 
-Recordings are stored in %LOCALAPPDATA%\ai.viralmind.desktop\recordings\ on Windows and consist of two files:
+Recordings are two files and stored in `%LOCALAPPDATA%\ai.viralmind.desktop\recordings\` on Windows and `${HOME}/Library/Application Support/ai.viralmind.desktop/recordings/` on MacOS:
 
 - .mp4 video capture
 
@@ -69,6 +69,24 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 ```bash
 winget install --id Rustlang.Rustup
 ```
+
+### MacOS
+
+1. Install bun
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+2. Install Build Tools
+```bash
+xcode-select --install
+```
+
+3. Install Rust
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
 
 ### Debian Linux / Ubuntu WSL
 

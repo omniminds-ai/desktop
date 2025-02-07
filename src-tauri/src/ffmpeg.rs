@@ -1,9 +1,14 @@
 use std::fs;
+#[cfg(not(target_os = "macos"))]
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
+#[cfg(not(target_os = "macos"))]
+use std::process::Stdio;
 use std::sync::OnceLock;
+#[cfg(not(target_os = "macos"))]
 use std::thread;
+#[cfg(not(target_os = "macos"))]
 use std::time::Duration;
 
 pub static FFMPEG_PATH: OnceLock<PathBuf> = OnceLock::new();
@@ -11,7 +16,6 @@ pub static FFMPEG_PATH: OnceLock<PathBuf> = OnceLock::new();
 const FFMPEG_URLS: &[(&str, &str)] = &[
     ("windows", "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"),
     ("linux", "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"),
-    ("macos", "https://evermeet.cx/ffmpeg/ffmpeg-118392-g0113e30806.zip"),
 ];
 
 fn get_temp_dir() -> PathBuf {
@@ -234,6 +238,7 @@ pub fn init_ffmpeg() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(not(target_os = "macos"))]
 pub struct FFmpegRecorder {
     width: u32,
     height: u32,
@@ -244,6 +249,7 @@ pub struct FFmpegRecorder {
     input_device: Option<String>,
 }
 
+#[cfg(not(target_os = "macos"))]
 impl FFmpegRecorder {
     pub fn new_with_input(
         width: u32,
