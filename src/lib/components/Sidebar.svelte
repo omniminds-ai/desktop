@@ -18,6 +18,7 @@
     disconnectWallet
   } from '$lib/stores/wallet';
   import logo from '$lib/assets/Logo_Standard_white.png';
+  import WalletButton from './WalletButton.svelte';
 
   const earnButtons = [
     { path: '/app/gym', icon: Dumbbell, label: 'Gym' }
@@ -36,30 +37,7 @@
   </div>
 
   <div class="absolute bottom-0 left-0 w-48 p-4">
-    {#if $walletAddress}
-      <div class="w-full py-2 px-4 flex items-center gap-2 rounded-lg bg-white/5">
-        <Wallet size={16} class="text-gray-400" />
-        <div class="flex-1 truncate text-sm text-gray-300">
-          {$walletAddress.slice(0, 4)}...{$walletAddress.slice(-4)}
-        </div>
-        <button
-          class="text-gray-400 hover:text-white transition-colors"
-          on:click={disconnectWallet}>
-          <LogOut size={16} />
-        </button>
-      </div>
-    {:else}
-      <a
-        href={getConnectionUrl()}
-        target="_blank"
-        class="w-full py-2 px-4 flex items-center justify-center gap-2 rounded-lg bg-black text-white hover:bg-neutral-800 transition-colors"
-        on:click={() => startPolling()}>
-        <Wallet size={16} />
-        <span class="font-['Poppins'] font-bold">
-          {$isConnecting ? 'Connecting...' : 'Connect'}
-        </span>
-      </a>
-    {/if}
+    <WalletButton />
   </div>
 
   <a
