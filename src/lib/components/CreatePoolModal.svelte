@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Token, TokenType } from '$lib/types/forge';
+  import { fade } from 'svelte/transition';
   import Button from './Button.svelte';
   import Input from './Input.svelte';
   import TextArea from './TextArea.svelte';
@@ -52,7 +53,9 @@
 </script>
 
 {#if show}
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div
+    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    transition:fade={{ duration: 100 }}>
     <div class="bg-gray-900 rounded-xl w-full max-w-lg p-6 space-y-4">
       <h2 class="text-xl font-bold text-white">Create Training Pool</h2>
 
