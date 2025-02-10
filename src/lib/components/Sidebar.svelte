@@ -1,17 +1,32 @@
 <script lang="ts">
-  import { MessageSquare, Dumbbell, Server, TestTube2, Workflow, Hammer, Wallet, LogOut } from "lucide-svelte";
-  import { page } from "$app/state";
-  import { walletAddress, isConnecting, getConnectionUrl, startPolling, disconnectWallet } from "$lib/stores/wallet";
-  import logo from "$lib/assets/Logo_Standard_white.png";
+  import {
+    MessageSquare,
+    Dumbbell,
+    Server,
+    TestTube2,
+    Workflow,
+    Hammer,
+    Wallet,
+    LogOut
+  } from 'lucide-svelte';
+  import { page } from '$app/state';
+  import {
+    walletAddress,
+    isConnecting,
+    getConnectionUrl,
+    startPolling,
+    disconnectWallet
+  } from '$lib/stores/wallet';
+  import logo from '$lib/assets/Logo_Standard_white.png';
 
   const earnButtons = [
-    { path: "/app/gym", icon: Dumbbell, label: "Gym" },
-    { path: "/app/node", icon: Server, label: "Node" },
+    { path: '/app/gym', icon: Dumbbell, label: 'Gym' }
+    // { path: "/app/node", icon: Server, label: "Node" },
   ];
 
   const spendButtons = [
-    { path: "/app/forge", icon: Hammer, label: "Forge" },
-    { path: "/app/lab", icon: TestTube2, label: "Lab" },
+    { path: '/app/forge', icon: Hammer, label: 'Forge' }
+    // { path: "/app/lab", icon: TestTube2, label: "Lab" },
   ];
 </script>
 
@@ -27,10 +42,9 @@
         <div class="flex-1 truncate text-sm text-gray-300">
           {$walletAddress.slice(0, 4)}...{$walletAddress.slice(-4)}
         </div>
-        <button 
+        <button
           class="text-gray-400 hover:text-white transition-colors"
-          on:click={disconnectWallet}
-        >
+          on:click={disconnectWallet}>
           <LogOut size={16} />
         </button>
       </div>
@@ -39,8 +53,7 @@
         href={getConnectionUrl()}
         target="_blank"
         class="w-full py-2 px-4 flex items-center justify-center gap-2 rounded-lg bg-black text-white hover:bg-neutral-800 transition-colors"
-        on:click={() => startPolling()}
-      >
+        on:click={() => startPolling()}>
         <Wallet size={16} />
         <span class="font-['Poppins'] font-bold">
           {$isConnecting ? 'Connecting...' : 'Connect'}
@@ -51,10 +64,10 @@
 
   <a
     href="/app"
-    class="w-full py-2 px-4 flex items-center gap-3 rounded-full transition-colors {page.url.pathname === '/app'
+    class="w-full py-2 px-4 flex items-center gap-3 rounded-full transition-colors {page.url
+      .pathname === '/app'
       ? 'bg-secondary-300 text-white'
-      : 'hover:bg-white/10 text-gray-300'}"
-  >
+      : 'hover:bg-white/10 text-gray-300'}">
     <MessageSquare size={20} />
     <span class="font-['Poppins'] font-bold">Chat</span>
   </a>
@@ -65,10 +78,11 @@
       {@const Icon = button.icon}
       <a
         href={button.path}
-        class="w-full py-2 px-4 flex items-center gap-3 rounded-full transition-colors {page.url.pathname.startsWith(button.path)
+        class="w-full py-2 px-4 flex items-center gap-3 rounded-full transition-colors {page.url.pathname.startsWith(
+          button.path
+        )
           ? 'bg-secondary-300 text-white'
-          : 'hover:bg-white/10 text-gray-300'}"
-      >
+          : 'hover:bg-white/10 text-gray-300'}">
         <Icon size={20} />
         <span class="font-['Poppins'] font-bold">{button.label}</span>
       </a>
@@ -81,10 +95,11 @@
       {@const Icon = button.icon}
       <a
         href={button.path}
-        class="w-full py-2 px-4 flex items-center gap-3 rounded-full transition-colors {page.url.pathname.startsWith(button.path)
+        class="w-full py-2 px-4 flex items-center gap-3 rounded-full transition-colors {page.url.pathname.startsWith(
+          button.path
+        )
           ? 'bg-secondary-300 text-white'
-          : 'hover:bg-white/10 text-gray-300'}"
-      >
+          : 'hover:bg-white/10 text-gray-300'}">
         <Icon size={20} />
         <span class="font-['Poppins'] font-bold">{button.label}</span>
       </a>

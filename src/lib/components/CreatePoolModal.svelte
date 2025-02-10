@@ -1,5 +1,8 @@
 <script lang="ts">
   import type { Token, TokenType } from '$lib/types/forge';
+  import Button from './Button.svelte';
+  import Input from './Input.svelte';
+  import TextArea from './TextArea.svelte';
 
   export let show = false;
   export let onClose: () => void;
@@ -58,7 +61,7 @@
           <label for="pool-name" class="block text-sm font-semibold text-gray-300 mb-1">
             Pool Name
           </label>
-          <input
+          <Input
             id="pool-name"
             type="text"
             bind:value={name}
@@ -71,13 +74,12 @@
           <label for="skill-list" class="block text-sm font-semibold text-gray-300 mb-1">
             Skills to Collect
           </label>
-          <textarea
+          <TextArea
             id="skill-list"
             bind:value={skills}
-            class="w-full h-32 p-2 bg-gray-800 rounded-lg text-white border border-gray-700 focus:border-secondary-300 focus:outline-none resize-none"
             placeholder="List the skills you want to collect demonstrations for..."
             required>
-          </textarea>
+          </TextArea>
         </div>
 
         <div>
@@ -95,10 +97,9 @@
             {/each}
 
             {#if selectedTokenType === 'CUSTOM'}
-              <input
+              <Input
                 type="text"
                 bind:value={customTokenAddress}
-                class="w-full p-2 bg-gray-800 rounded-lg text-white border border-gray-700 focus:border-secondary-300 focus:outline-none mt-2"
                 placeholder="Enter token contract address..."
                 required />
             {/if}
@@ -106,17 +107,15 @@
         </div>
 
         <div class="flex justify-end gap-2 pt-4">
-          <button
+          <Button
             type="button"
-            class="px-4 py-2 text-gray-300 hover:text-white transition-colors"
-            on:click={handleClose}>
+            class="hover:bg-gray-800! hover:text-white! py-2!"
+            onclick={handleClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            class="px-4 py-2 bg-secondary-300 text-white rounded-lg hover:bg-secondary-400 transition-colors">
+          </Button>
+          <Button type="submit" class="hover:bg-gray-800! hover:text-white! py-2!">
             Create Pool
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -6,6 +6,9 @@
   import { walletAddress } from '$lib/stores/wallet';
   import { listPools, createPool, updatePool } from '$lib/api/forge';
   import type { TrainingPool, Token } from '$lib/types/forge';
+  import Button from './Button.svelte';
+  import CopyButton from './CopyButton.svelte';
+  import TextArea from './TextArea.svelte';
 
   let trainingPools: TrainingPool[] = [];
   let showCreateModal = false;
@@ -84,12 +87,12 @@
   <div>
     <div class="flex justify-between items-center mb-2">
       <h2 class="text-2xl font-bold">Forge</h2>
-      <button
-        class="px-4 py-2 bg-secondary-300 text-white rounded-lg hover:bg-secondary-400 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-secondary-300"
-        on:click={() => (showCreateModal = true)}
+      <Button
+        class="px-4! py-2!"
+        onclick={() => (showCreateModal = true)}
         disabled={$walletAddress ? false : true}>
         New Training Pool
-      </button>
+      </Button>
     </div>
     <p class="text-gray-400">Turn expert skills into AI agents with crowd-powered training</p>
   </div>
@@ -101,7 +104,7 @@
   {/if}
 
   {#if !$walletAddress}
-    <div class="text-center text-gray-400 py-8">
+    <div class="text-center text-blac py-8">
       Connect your wallet to view and manage training pools
     </div>
   {:else if loading}
@@ -145,17 +148,16 @@
                 <b>{pool.token.symbol}</b>
               </div>
             </div>
-            <div class="flex gap-2">
-              <button
-                class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 cursor-pointer transition-colors"
-                on:click|stopPropagation={() => previewQuest(pool.skills)}>
+            <div class="flex gap-2 items-center">
+              <Button
+                class="px-3 py-1.5 text-sm"
+                variant="secondary"
+                type="button"
+                onclick={() => previewQuest(pool.skills)}>
                 Preview Gym
-              </button>
-              <button
-                class="px-3 py-1.5 bg-secondary-300 text-white text-sm rounded hover:bg-secondary-400 cursor-pointer transition-colors">
-                Export Data
-              </button>
-              <div class="text-gray-400 cursor-pointer">
+              </Button>
+              <Button class="px-3 py-1.5 text-sm">Export Data</Button>
+              <div class="text-gray-400 flex items-center cursor-pointer">
                 {#if pool.expanded}
                   <ChevronDown size={24} />
                 {:else}
@@ -171,22 +173,22 @@
                 <div class="flex justify-between items-center mb-2">
                   <div class="text-sm font-semibold">Skills to Collect</div>
                   {#if pool.status !== 'out of funds'}
-                    <button
-                      class="px-3 py-1.5 text-sm rounded border cursor-pointer transition-colors {pool.status ===
-                      'live'
-                        ? 'border-gray-300 text-gray-700 hover:bg-gray-200'
-                        : 'border-green-500 text-green-600 hover:bg-green-100'}"
-                      on:click={() => handleStatusToggle(pool)}>
+                    <Button
+                      class="px-3 py-1.5 text-sm {pool.status === 'live'
+                        ? 'border-gray-300! text-gray-700! hover:bg-gray-200!'
+                        : 'border-green-500! text-green-600! hover:bg-green-100!'}"
+                      onclick={() => handleStatusToggle(pool)}>
                       {pool.status === 'live' ? 'Pause Pool' : 'Resume Pool'}
-                    </button>
+                    </Button>
                   {/if}
                 </div>
-                <textarea
-                  class="w-full h-32 p-3 bg-gray-100 rounded-lg resize-none hover:bg-gray-200 transition-colors"
+                <TextArea
+                  class="h-32"
+                  variant="light"
                   placeholder="List the skills you want to collect demonstrations for..."
                   bind:value={pool.skills}
-                  on:input={(e) => handleSkillsChange(pool, e.currentTarget.value)}>
-                </textarea>
+                  oninput={(e) => handleSkillsChange(pool, e.currentTarget.value)}>
+                </TextArea>
               </div>
 
               <div>
@@ -194,14 +196,10 @@
                 <div class="flex gap-2 items-center">
                   <input
                     type="text"
-                    class="flex-1 p-2 bg-gray-100 rounded-lg hover:bg-gray-200 cursor-text"
+                    class="flex-1 p-2 bg-gray-200 rounded-lg cursor-text"
                     readonly
                     value={pool.depositAddress} />
-                  <button
-                    class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 cursor-pointer transition-colors"
-                    on:click={() => navigator.clipboard.writeText(pool.depositAddress)}>
-                    Copy
-                  </button>
+                  <CopyButton content={pool.depositAddress} />
                 </div>
               </div>
             </div>

@@ -1,39 +1,28 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
-  import { listen, emit } from "@tauri-apps/api/event";
-  import {
-    Send,
-    User,
-    Keyboard,
-    Mouse,
-    Gamepad,
-    Video,
-    Square,
-    ArrowLeft,
-  } from "lucide-svelte";
-  import Card from "../Card.svelte";
-  import RecordButton from "./RecordButton.svelte";
-  import * as gym from "../../gym";
-  import { onMount, onDestroy } from "svelte";
+  import { invoke } from '@tauri-apps/api/core';
+  import { listen, emit } from '@tauri-apps/api/event';
+  import { Send, User, Keyboard, Mouse, Gamepad, Video, Square, ArrowLeft } from 'lucide-svelte';
+  import Card from '../Card.svelte';
+  import RecordButton from './RecordButton.svelte';
+  import * as gym from '../../gym';
+  import { onMount, onDestroy } from 'svelte';
 
-  import pfp from "$lib/assets/V_pfp_v1.png";
-  import tone from "$lib/assets/tone.wav";
-  import blip from "$lib/assets/blip.wav";
-  import {
-    MessagePartType,
-    type Message,
-    type QuestInfo,
-  } from "$lib/types/gym";
-  import PrivacyPolicyEmbed from "./PrivacyPolicyEmbed.svelte";
+  import pfp from '$lib/assets/V_pfp_v1.png';
+  import tone from '$lib/assets/tone.wav';
+  import blip from '$lib/assets/blip.wav';
+  import { MessagePartType, type Message, type QuestInfo } from '$lib/types/gym';
+  import PrivacyPolicyEmbed from './PrivacyPolicyEmbed.svelte';
 
-  import { page } from "$app/state";
+  import { page } from '$app/state';
+  import Button from '../Button.svelte';
+  import Input from '../Input.svelte';
 
-  const { prompt = "" } = $props<{ prompt?: string }>();
-  const previewSkills = page.url.searchParams.get("preview");
+  const { prompt = '' } = $props<{ prompt?: string }>();
+  const previewSkills = page.url.searchParams.get('preview');
 
-  let message = $state("");
+  let message = $state('');
   let inputEvents = $state<any[]>([]);
-  let recordingState = $state<"recording" | "stopping" | "stopped">("stopped");
+  let recordingState = $state<'recording' | 'stopping' | 'stopped'>('stopped');
   let isScrolled = $state(false);
   let chatMessages = $state<Message[]>([]);
   let typingMessage = $state<{
@@ -51,9 +40,9 @@
   async function fetchAppIcons(apps: string[]) {
     const icons: Record<string, string> = {};
     for (const app of apps) {
-      const response = await invoke("list_apps", { includeIcons: true });
-      const appList = response as { name: string; icon?: string; }[];
-      const matchingApp = appList.find(a => a.name === app);
+      const response = await invoke('list_apps', { includeIcons: true });
+      const appList = response as { name: string; icon?: string }[];
+      const matchingApp = appList.find((a) => a.name === app);
       if (matchingApp?.icon) {
         icons[app] = matchingApp.icon;
       }
@@ -63,84 +52,84 @@
 
   const welcomeMessages: Message[] = [
     {
-      role: "assistant" as const,
+      role: 'assistant' as const,
       parts: [
         {
           type: MessagePartType.text as const,
-          content: "welcome to my gym, trainer",
-        },
-      ],
+          content: 'welcome to my gym, trainer'
+        }
+      ]
     },
     {
-      role: "assistant" as const,
+      role: 'assistant' as const,
       parts: [
         {
           type: MessagePartType.text as const,
-          content: "i'm building ai agents by learning from humans like you",
-        },
-      ],
+          content: "i'm building ai agents by learning from humans like you"
+        }
+      ]
     },
     {
-      role: "assistant" as const,
+      role: 'assistant' as const,
       parts: [
         {
           type: MessagePartType.text as const,
           content:
-            "i'll give you random tasks. ordering food, making spreadsheets, whatever you humans do",
-        },
-      ],
+            "i'll give you random tasks. ordering food, making spreadsheets, whatever you humans do"
+        }
+      ]
     },
     {
-      role: "assistant" as const,
+      role: 'assistant' as const,
       parts: [
         {
           type: MessagePartType.text as const,
-          content: "complete the objective exactly as i say = instant $viral",
-        },
-      ],
+          content: 'complete the objective exactly as i say = instant $viral'
+        }
+      ]
     },
     {
-      role: "assistant" as const,
+      role: 'assistant' as const,
       parts: [
         {
           type: MessagePartType.text as const,
-          content: "and together we show ai how humans really get things done",
-        },
-      ],
+          content: 'and together we show ai how humans really get things done'
+        }
+      ]
     },
     {
-      role: "assistant" as const,
+      role: 'assistant' as const,
       parts: [
         {
           type: MessagePartType.text as const,
-          content: "before we start, the privacy policy. read it.",
-        },
-      ],
+          content: 'before we start, the privacy policy. read it.'
+        }
+      ]
     },
     {
-      role: "system" as const,
+      role: 'system' as const,
       parts: [
         {
           type: MessagePartType.embed as const,
           content: PrivacyPolicyEmbed,
           props: {
-            privacyAccepted: () => privacyAccepted,
+            privacyAccepted: () => privacyAccepted
           },
           actions: [
             {
-              type: "primary",
-              text: "Looks good to me!",
-              fn: () => handlePrivacyAccept(),
+              type: 'primary',
+              text: 'Looks good to me!',
+              fn: () => handlePrivacyAccept()
             },
             {
-              type: "destroy",
-              text: "Hell No!",
-              fn: () => handlePrivacyDecline(),
-            },
-          ],
-        },
-      ],
-    },
+              type: 'destroy',
+              text: 'Hell No!',
+              fn: () => handlePrivacyDecline()
+            }
+          ]
+        }
+      ]
+    }
   ];
 
   const MAX_EVENTS = 10;
@@ -165,14 +154,14 @@
       typingMessage = {
         content: content.slice(0, i),
         target: content,
-        messageIndex,
+        messageIndex
       };
 
       // Add random variation to typing speed (±20%)
       const variation = baseDelay * (0.8 + Math.random() * 0.4);
 
       // Play sound on word boundaries or every 4 chars
-      if (i % 4 === 0 || content[i - 1] === " ") {
+      if (i % 4 === 0 || content[i - 1] === ' ') {
         // Reset audio to start
         toneAudio.currentTime = 0;
         toneAudio.play().catch(() => {}); // Ignore errors from rapid audio plays
@@ -187,14 +176,14 @@
   async function addMessage(msg: Message) {
     const messageIndex = chatMessages.length;
 
-    if (msg.role === "assistant" && msg.parts[0].type === "text") {
+    if (msg.role === 'assistant' && msg.parts[0].type === 'text') {
       // Add empty message first
       chatMessages = [
         ...chatMessages,
         {
           ...msg,
-          parts: [{ ...msg.parts[0], content: "" }],
-        },
+          parts: [{ ...msg.parts[0], content: '' }]
+        }
       ];
       scrollToBottom();
 
@@ -205,7 +194,7 @@
       chatMessages = chatMessages.map((m, i) => (i === messageIndex ? msg : m));
     } else {
       // Play blip sound for non-text messages
-      if (msg.parts[0].type !== "text") {
+      if (msg.parts[0].type !== 'text') {
         blipAudio.currentTime = 0;
         blipAudio.play().catch(() => {});
       }
@@ -217,7 +206,7 @@
   async function addMessagesWithDelay(messages: Message[]) {
     for (const msg of messages) {
       await addMessage(msg);
-      if (msg.role === "assistant") {
+      if (msg.role === 'assistant') {
         await new Promise((resolve) => setTimeout(resolve, MESSAGE_DELAY));
       }
     }
@@ -230,16 +219,16 @@
     blipAudio = new Audio(blip);
     blipAudio.volume = 0.15;
 
-    const content = document.querySelector(".chat-content");
+    const content = document.querySelector('.chat-content');
     if (content) {
-      content.addEventListener("scroll", () => {
+      content.addEventListener('scroll', () => {
         isScrolled = content.scrollTop > 10;
       });
     }
 
     // Listen for recording status changes
     let unlisten: () => void;
-    listen("recording-status", (event: any) => {
+    listen('recording-status', (event: any) => {
       recordingState = event.payload.state;
     }).then((unlistenFn) => {
       unlisten = unlistenFn;
@@ -263,26 +252,24 @@
     // Clean up audio instances
     if (toneAudio) {
       toneAudio.pause();
-      toneAudio.src = "";
+      toneAudio.src = '';
       toneAudio.remove();
     }
     if (blipAudio) {
       blipAudio.pause();
-      blipAudio.src = "";
+      blipAudio.src = '';
       blipAudio.remove();
     }
   });
 
   async function generateQuestFromSkills(skills: string) {
     await addMessage({
-      role: "assistant",
-      parts: [
-        { type: MessagePartType.loading, content: "Generating quest..." },
-      ],
+      role: 'assistant',
+      parts: [{ type: MessagePartType.loading, content: 'Generating quest...' }]
     });
 
     try {
-      const quest = await gym.generateQuest(skills, "test-address");
+      const quest = await gym.generateQuest(skills, 'test-address');
 
       // Remove loading message
       chatMessages = chatMessages.slice(0, -1);
@@ -296,44 +283,43 @@
       }
 
       await addMessage({
-        role: "assistant",
+        role: 'assistant',
         parts: [
           {
             type: MessagePartType.quest,
-            content: "",
+            content: '',
             quest,
             actions: [
               {
-                type: "component",
+                type: 'component',
                 component: RecordButton,
                 props: {
                   onStart: handleRecordingStart,
-                  onCancel: handleRecordingCancel,
-                },
+                  onCancel: handleRecordingCancel
+                }
               },
               {
-                type: "destroy",
-                text: "Not Interested",
-                fn: () => handleQuestDecline(),
-              },
-            ],
-          },
-        ],
+                type: 'destroy',
+                text: 'Not Interested',
+                fn: () => handleQuestDecline()
+              }
+            ]
+          }
+        ]
       });
     } catch (error) {
-      console.error("Failed to generate quest:", error);
+      console.error('Failed to generate quest:', error);
       // Remove loading message
       chatMessages = chatMessages.slice(0, -1);
 
       await addMessage({
-        role: "assistant",
+        role: 'assistant',
         parts: [
           {
             type: MessagePartType.text,
-            content:
-              "sorry, something went wrong generating your quest. try again later.",
-          },
-        ],
+            content: 'sorry, something went wrong generating your quest. try again later.'
+          }
+        ]
       });
     }
   }
@@ -341,87 +327,87 @@
   async function handlePrivacyAccept() {
     privacyAccepted = true;
     await addMessage({
-      role: "user",
-      parts: [{ type: MessagePartType.text, content: "Looks good to me!" }],
+      role: 'user',
+      parts: [{ type: MessagePartType.text, content: 'Looks good to me!' }]
     });
     await addMessage({
-      role: "assistant",
-      parts: [{ type: MessagePartType.text, content: "welcome aboard." }],
+      role: 'assistant',
+      parts: [{ type: MessagePartType.text, content: 'welcome aboard.' }]
     });
     await addMessage({
-      role: "assistant",
+      role: 'assistant',
       parts: [
         {
           type: MessagePartType.text,
-          content: "let's create some agents that'll change everything.",
-        },
-      ],
+          content: "let's create some agents that'll change everything."
+        }
+      ]
     });
     await addMessage({
-      role: "assistant",
+      role: 'assistant',
       parts: [
         {
           type: MessagePartType.text,
-          content: "generating your first task...",
-        },
-      ],
+          content: 'generating your first task...'
+        }
+      ]
     });
-    generateQuestFromSkills(prompt || "Free Race");
+    generateQuestFromSkills(prompt || 'Free Race');
   }
 
   function handlePrivacyDecline() {
     addMessage({
-      role: "user",
-      parts: [{ type: MessagePartType.text, content: "Hell no!" }],
+      role: 'user',
+      parts: [{ type: MessagePartType.text, content: 'Hell no!' }]
     });
     addMessage({
-      role: "assistant",
+      role: 'assistant',
       parts: [
         {
           type: MessagePartType.text,
-          content: "ok. come back when you're ready.",
-        },
-      ],
+          content: "ok. come back when you're ready."
+        }
+      ]
     });
   }
 
   async function handleRecordingStart() {
     addMessage({
-      role: "user",
-      parts: [{ type: MessagePartType.text, content: "Let's do this! 💪" }],
+      role: 'user',
+      parts: [{ type: MessagePartType.text, content: "Let's do this! 💪" }]
     });
     // Emit quest-overlay event when recording actually starts
     if (currentQuest) {
-      await emit("quest-overlay", { quest: currentQuest });
+      await emit('quest-overlay', { quest: currentQuest });
     }
     toggleRecording();
   }
 
   function handleRecordingCancel() {
     addMessage({
-      role: "user",
-      parts: [{ type: MessagePartType.text, content: "Recording cancelled" }],
+      role: 'user',
+      parts: [{ type: MessagePartType.text, content: 'Recording cancelled' }]
     });
   }
 
   function handleQuestDecline() {
     addMessage({
-      role: "user",
-      parts: [{ type: MessagePartType.text, content: "Not interested." }],
+      role: 'user',
+      parts: [{ type: MessagePartType.text, content: 'Not interested.' }]
     });
   }
 
   async function toggleRecording() {
     try {
-      if (recordingState === "stopped") {
+      if (recordingState === 'stopped') {
         gym.startRecording().catch(console.error);
-      } else if (recordingState === "recording") {
+      } else if (recordingState === 'recording') {
         gym.stopRecording().catch(console.error);
         // Clear quest from overlay
-        await emit("quest-overlay", { quest: null });
+        await emit('quest-overlay', { quest: null });
       }
     } catch (error) {
-      console.error("Recording error:", error);
+      console.error('Recording error:', error);
     }
   }
 
@@ -430,62 +416,62 @@
     if (!message.trim()) return;
 
     await addMessage({
-      role: "user",
-      parts: [{ type: MessagePartType.text, content: message }],
+      role: 'user',
+      parts: [{ type: MessagePartType.text, content: message }]
     });
     const currentMessage = message;
-    message = "";
+    message = '';
 
     try {
-      if (currentMessage.toLowerCase() === "list apps") {
-        const apps = await invoke("list_apps", { includeIcons: true });
-        console.log("Installed apps:", apps);
+      if (currentMessage.toLowerCase() === 'list apps') {
+        const apps = await invoke('list_apps', { includeIcons: true });
+        console.log('Installed apps:', apps);
         console.log(
           (apps as { name: any; path: any }[])
             .map((app: { name: any; path: any }) => `${app.name}`)
-            .join("\n")
+            .join('\n')
         );
         await addMessage({
-          role: "assistant",
+          role: 'assistant',
           parts: [
             {
               type: MessagePartType.text,
-              content: "I've logged the list of installed apps to the console.",
-            },
-          ],
+              content: "I've logged the list of installed apps to the console."
+            }
+          ]
         });
       } else {
-        const response = await invoke("handle_message", {
-          message: currentMessage,
+        const response = await invoke('handle_message', {
+          message: currentMessage
         });
         await addMessage({
-          role: "assistant",
-          parts: [{ type: MessagePartType.text, content: response as string }],
+          role: 'assistant',
+          parts: [{ type: MessagePartType.text, content: response as string }]
         });
       }
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error('Failed to send message:', error);
     }
   }
 
   function formatEvent(event: any): string {
     const { type, data } = event;
     switch (type) {
-      case "KeyPress":
+      case 'KeyPress':
         return `Key pressed: ${data.key}`;
-      case "KeyRelease":
+      case 'KeyRelease':
         return `Key released: ${data.key}`;
-      case "MouseMove":
+      case 'MouseMove':
         return `Mouse position: (${data.x.toFixed(1)}, ${data.y.toFixed(1)})`;
-      case "MouseDelta":
+      case 'MouseDelta':
         return `Mouse delta: (${data.x}, ${data.y})`;
-      case "MouseClick":
+      case 'MouseClick':
         return `Mouse ${data.state.toLowerCase()}: ${data.button}`;
-      case "MouseWheel":
+      case 'MouseWheel':
         return `Mouse wheel: ${data.delta}`;
-      case "JoystickButton":
+      case 'JoystickButton':
         return `Joystick ${data.id} button ${data.button}: ${data.state.toLowerCase()}`;
-      case "JoystickAxis":
+      case 'JoystickAxis':
         return `Joystick ${data.id} axis ${data.axis}: ${data.value.toFixed(2)}`;
       default:
         return JSON.stringify(event);
@@ -493,7 +479,7 @@
   }
 
   // Listen for global input events from Rust
-  listen<any>("input-event", (event: { payload: any }) => {
+  listen<any>('input-event', (event: { payload: any }) => {
     inputEvents = [event.payload, ...inputEvents.slice(0, MAX_EVENTS - 1)];
   });
 </script>
@@ -505,26 +491,18 @@
       transition-all duration-200 ease-in-out text-secondary-300 border
       {isScrolled
       ? 'bg-white/75 backdrop-blur-sm border-secondary-300 hover:bg-white shadow-md'
-      : 'bg-white/0 hover:text-secondary-400 border-transparent'}"
-  >
+      : 'bg-white/0 hover:text-secondary-400 border-transparent'}">
     <ArrowLeft size={20} />
     Back to Gym
   </a>
   <div
     bind:this={chatContent}
-    class="flex-1 pt-16 px-6 pb-6 space-y-3 overflow-y-auto chat-content"
-  >
+    class="flex-1 pt-16 px-6 pb-6 space-y-3 overflow-y-auto chat-content">
     {#each chatMessages as msg, i}
       <div
-        class="flex gap-2 transition-all duration-200 {msg.role === 'user'
-          ? 'justify-end'
-          : ''}"
-      >
-        {#if msg.role === "user"}
-          <Card
-            variant="primary"
-            className="max-w-2xl shadow-sm bg-secondary-300 text-white"
-          >
+        class="flex gap-2 transition-all duration-200 {msg.role === 'user' ? 'justify-end' : ''}">
+        {#if msg.role === 'user'}
+          <Card variant="primary" className="max-w-2xl shadow-sm bg-secondary-300 text-white">
             {#each msg.parts as part}
               <div class="whitespace-pre-wrap tracking-wide font-medium">
                 {part.content}
@@ -532,20 +510,14 @@
             {/each}
           </Card>
           <div
-            class="shrink-0 w-8 h-8 rounded-full bg-secondary-100 text-white flex items-center justify-center shadow-md"
-          >
+            class="shrink-0 w-8 h-8 rounded-full bg-secondary-100 text-white flex items-center justify-center shadow-md">
             <User size={18} />
           </div>
         {:else}
-          <div
-            class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md"
-          >
+          <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
             <img src={pfp} alt="V" class="w-full h-full object-cover" />
           </div>
-          <Card
-            variant="secondary"
-            className="max-w-2xl shadow-sm space-y-4 relative bg-black/5"
-          >
+          <Card variant="secondary" className="max-w-2xl shadow-sm space-y-4 relative bg-black/5">
             {#each msg.parts as part}
               <div>
                 {#if part.type === MessagePartType.embed}
@@ -553,27 +525,24 @@
                 {:else if part.type === MessagePartType.loading}
                   <div class="flex items-center gap-2">
                     <div
-                      class="w-4 h-4 rounded-full border-2 border-secondary-300 border-t-transparent animate-spin"
-                    ></div>
+                      class="w-4 h-4 rounded-full border-2 border-secondary-300 border-t-transparent animate-spin">
+                    </div>
                     <span class="text-sm">{part.content}</span>
                   </div>
                 {:else if part.type === MessagePartType.quest && part.quest}
                   <div
-                    class="p-4 rounded bg-black/10 space-y-4 hover:bg-black/15 transition-colors duration-200 border border-secondary-300/20"
-                  >
+                    class="p-4 rounded bg-black/10 space-y-4 hover:bg-black/15 transition-colors duration-200 border border-secondary-300/20">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-2">
                         <span
-                          class="px-2 py-1 text-xs font-semibold bg-secondary-300 text-white rounded-full"
-                          >New Quest</span
-                        >
+                          class="px-2 py-1 text-xs font-semibold bg-secondary-300 text-white rounded-full">
+                          New Quest
+                        </span>
                         <h3 class="text-sm tracking-tight uppercase">
                           {part.quest.title}
                         </h3>
                       </div>
-                      <div
-                        class="px-2 py-1 text-xs font-semibold bg-secondary-300/10 rounded-full"
-                      >
+                      <div class="px-2 py-1 text-xs font-semibold bg-secondary-300/10 rounded-full">
                         Task #{part.quest.task_id}
                       </div>
                     </div>
@@ -584,9 +553,7 @@
                     <div class="space-y-2">
                       {#each part.quest.subgoals as subgoal}
                         <div class="flex items-center gap-2 text-sm opacity-75">
-                          <div
-                            class="w-1.5 h-1.5 rounded-full bg-secondary-300"
-                          ></div>
+                          <div class="w-1.5 h-1.5 rounded-full bg-secondary-300"></div>
                           <span>{subgoal}</span>
                         </div>
                       {/each}
@@ -594,7 +561,8 @@
                     {#if part.quest.relevant_applications.length > 0}
                       <div class="flex flex-wrap gap-2 mt-2">
                         {#each part.quest.relevant_applications as app}
-                          <div class="flex items-center gap-1 px-2 py-1 text-xs bg-secondary-300/5 rounded-full">
+                          <div
+                            class="flex items-center gap-1 px-2 py-1 text-xs bg-secondary-300/5 rounded-full">
                             {#if appIcons[app]}
                               <img src={appIcons[app]} alt={app} class="w-4 h-4 object-contain" />
                             {/if}
@@ -607,8 +575,8 @@
                 {:else}
                   <div class="whitespace-pre-wrap">
                     {#if typingMessage && typingMessage.messageIndex === i}
-                      {typingMessage.content}<span class="animate-pulse">▋</span
-                      >
+                      {typingMessage.content}
+                      <span class="animate-pulse">▋</span>
                     {:else}
                       {part.content}
                     {/if}
@@ -617,28 +585,19 @@
                 {#if part.actions}
                   {#each part.actions as action}
                     <div class="flex gap-2 mt-4">
-                      {#if action.type === "primary"}
-                        <button
-                          onclick={action.fn}
-                          class="px-4 py-2 bg-secondary-400 text-white rounded hover:bg-secondary-400 hover:shadow-md transition-all duration-200 tracking-wide font-medium"
-                        >
+                      {#if action.type === 'primary'}
+                        <Button onclick={action.fn}>
                           {action.text}
-                        </button>
-                      {:else if action.type === "destroy"}
-                        <button
-                          onclick={action.fn}
-                          class="px-4 py-2 border border-secondary-300 text-secondary-300 rounded hover:bg-secondary-300 hover:text-white hover:shadow-md transition-all duration-200 tracking-wide font-medium"
-                        >
+                        </Button>
+                      {:else if action.type === 'destroy'}
+                        <Button variant="destroy" onclick={action.fn}>
                           {action.text}
-                        </button>
-                      {:else if action.type === "warning"}
-                        <button
-                          onclick={action.fn}
-                          class="px-4 py-2 border border-secondary-300 text-secondary-300 rounded hover:bg-secondary-300 hover:text-white hover:shadow-md transition-all duration-200 tracking-wide font-medium"
-                        >
+                        </Button>
+                      {:else if action.type === 'warning'}
+                        <Button variant="warning" onclick={action.fn}>
                           {action.text}
-                        </button>
-                      {:else if action.type === "component"}
+                        </Button>
+                      {:else if action.type === 'component'}
                         <action.component {...action.props}></action.component>
                       {/if}
                     </div>
@@ -654,11 +613,10 @@
     {#if inputEvents.length > 0}
       <div class="flex gap-4">
         <div
-          class="shrink-0 w-8 h-8 rounded-full bg-secondary-300 text-white flex items-center justify-center shadow-sm"
-        >
-          {#if inputEvents.length > 0 && inputEvents[0].type.startsWith("Key")}
+          class="shrink-0 w-8 h-8 rounded-full bg-secondary-300 text-white flex items-center justify-center shadow-sm">
+          {#if inputEvents.length > 0 && inputEvents[0].type.startsWith('Key')}
             <Keyboard size={18} />
-          {:else if inputEvents.length > 0 && inputEvents[0].type.startsWith("Joystick")}
+          {:else if inputEvents.length > 0 && inputEvents[0].type.startsWith('Joystick')}
             <Gamepad size={18} />
           {:else}
             <Mouse size={18} />
@@ -677,31 +635,27 @@
   <div>
     <div class="p-4 bg-white border-t border-gray-200">
       <div class="flex gap-3 items-center max-w-4xl mx-auto">
-        <button
+        <Button
           onclick={toggleRecording}
-          class="p-3 rounded-full {recordingState === 'recording'
-            ? 'bg-red-500'
-            : 'bg-secondary-300'} text-white hover:opacity-90 transition-colors shadow-sm hover:shadow-md"
-        >
-          {#if recordingState === "recording"}
+          class={(recordingState === 'recording'
+            ? 'bg-red-500! hover:text-red-500! hover:bg-white! border-red-500!'
+            : '') + ' rounded-full! flex!'}>
+          {#if recordingState === 'recording'}
             <Square size={20} />
           {:else}
             <Video size={20} />
           {/if}
-        </button>
+        </Button>
         <form class="flex-1 flex gap-3 items-center" onsubmit={sendMessage}>
-          <input
+          <Input
             type="text"
+            variant="light"
             placeholder="Type your message..."
             bind:value={message}
-            class="flex-1 px-6 py-3 rounded-full border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:bg-white transition-colors"
-          />
-          <button
-            type="submit"
-            class="p-3 rounded-full bg-secondary-300 text-white hover:bg-secondary-400 transition-colors shadow-sm hover:shadow-md"
-          >
+            class="flex-1 rounded-full!" />
+          <Button type="submit" class="rounded-full!">
             <Send size={20} />
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -6,7 +6,7 @@
   
   </script>
   
-  <div class="h-screen flex bg-transparent overflow-hidden">
+  <div class="h-screen flex bg-primary-600/40 overflow-hidden">
     <Sidebar />
     <div class="flex-1 p-2">
       <div class="h-full overflow-hidden bg-gray-50 border border-gray-500 rounded-md">

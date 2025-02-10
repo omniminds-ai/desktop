@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { Video } from "lucide-svelte";
-  import { onDestroy } from "svelte";
+  import { Video } from 'lucide-svelte';
+  import { onDestroy } from 'svelte';
+  import Button from '../Button.svelte';
 
   let countingDown = $state(false);
   let countdown = $state(3);
@@ -45,16 +46,14 @@
   });
 </script>
 
-<button
+<Button
   onclick={countingDown ? cancelCountdown : startCountdown}
-  class="px-4 py-2 bg-secondary-300 text-white rounded hover:bg-secondary-400 hover:shadow-md transition-all duration-200 tracking-wide font-medium flex items-center gap-2"
-  class:bg-red-500={countingDown}
-  class:hover:bg-red-700={countingDown}
->
-  <Video size={16} />
+  class={(countingDown ? 'bg-red-500! hover:bg-red-600! hover:text-white! border-red-500!' : '') +
+    'rounded-md! flex items-center gap-2'}>
+  <Video size={20} />
   {#if countingDown}
     Cancel ({countdown}s)
   {:else}
     Start Recording Quest
   {/if}
-</button>
+</Button>
