@@ -1933,34 +1933,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gym-desktop"
-version = "0.1.0"
-dependencies = [
- "app-finder",
- "base64 0.21.7",
- "chrono",
- "display-info",
- "image 0.24.9",
- "lazy_static",
- "multiinput",
- "once_cell",
- "rdev",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
- "tar",
- "tauri",
- "tauri-build",
- "tauri-plugin-opener",
- "tauri-plugin-os",
- "tauri-plugin-shell",
- "window-vibrancy",
- "xcap",
- "xz2",
- "zip",
-]
-
-[[package]]
 name = "h2"
 version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5912,6 +5884,34 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "viralmind-desktop"
+version = "0.1.0"
+dependencies = [
+ "app-finder",
+ "base64 0.21.7",
+ "chrono",
+ "display-info",
+ "image 0.24.9",
+ "lazy_static",
+ "multiinput",
+ "once_cell",
+ "rdev",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "tar",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "tauri-plugin-os",
+ "tauri-plugin-shell",
+ "window-vibrancy",
+ "xcap",
+ "xz2",
+ "zip",
+]
 
 [[package]]
 name = "vswhom"

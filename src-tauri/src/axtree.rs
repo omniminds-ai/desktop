@@ -21,7 +21,7 @@ const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/rel
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
-    temp.push("gym-desktop");
+    temp.push("viralmind-desktop");
     temp
 }
 

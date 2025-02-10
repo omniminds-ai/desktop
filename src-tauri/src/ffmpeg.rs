@@ -20,7 +20,7 @@ const FFMPEG_URLS: &[(&str, &str)] = &[
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
-    temp.push("gym-desktop");
+    temp.push("viralmind-desktop");
     temp
 }
 

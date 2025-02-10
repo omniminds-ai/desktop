@@ -281,11 +281,11 @@ pub async fn request_input_perms() -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
         //todo: save settings.permissions.input.requested so we don't overdo this
-        println!("[Input] Listening for single input event for input permissions.",);
-        if let Err(error) = listen(|event| println!("{:#?}", event.time)) {
-            println!("Error Requesting Perms: {:?}", error)
-        }
-        println!("[Input] Input event found. Permissions dialog triggered.",);
+        // println!("[Input] Listening for single input event for input permissions.",);
+        // if let Err(error) = listen(|event| println!("{:#?}", event.time)) {
+        //     println!("Error Requesting Perms: {:?}", error)
+        // }
+        // println!("[Input] Input event found. Permissions dialog triggered.",);
     }
     Ok(())
 }
