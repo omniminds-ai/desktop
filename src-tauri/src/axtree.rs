@@ -11,10 +11,13 @@ static DUMP_TREE_PATH: OnceLock<PathBuf> = OnceLock::new();
 static POLLING_ACTIVE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 
 #[cfg(target_os = "windows")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/raw/refs/heads/main/target/windows-x64/dump-tree.exe";
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.1.0-windows-x64.exe";
+
+#[cfg(target_os = "linux")]
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.1.0-linux-x64-arm64.js";
 
 #[cfg(target_os = "macos")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/raw/refs/heads/main/target/macos-arm64/dump-tree";
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.1.0-macos-arm64";
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
@@ -69,14 +72,43 @@ pub fn init_dump_tree() -> Result<(), String> {
         format!("Failed to create temp directory: {}", e)
     })?;
 
-    #[cfg(target_os = "windows")]
-    let dump_tree_path = temp_dir.join("dump-tree.exe");
-    #[cfg(target_os = "macos")]
-    let dump_tree_path = temp_dir.join("dump-tree");
+    // Get the filename from the URL for proper version tracking
+    let response = reqwest::blocking::get(DUMP_TREE_URL)
+        .map_err(|e| format!("Failed to check latest version: {}", e))?;
 
-    if !dump_tree_path.exists() {
-        // Download dump-tree
+    let dump_tree_filename = response
+        .url()
+        .path_segments()
+        .and_then(|segments| segments.last())
+        .ok_or_else(|| "Invalid URL format".to_string())?;
+
+    let dump_tree_path = temp_dir.join(dump_tree_filename);
+
+    let should_download = if !dump_tree_path.exists() {
+        true
+    } else {
+        // Extract versions and compare
+        let current_version = dump_tree_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .and_then(|name| name.split('-').nth(2))
+            .unwrap_or("0.0.0");
+
+        let new_version = dump_tree_filename.split('-').nth(2).unwrap_or("0.0.0");
+
+        current_version < new_version
+    };
+
+    if should_download {
+        println!("[AxTree] Downloading new version: {}", dump_tree_filename);
         download_file(DUMP_TREE_URL, &dump_tree_path)?;
+
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&dump_tree_path, fs::Permissions::from_mode(0o755))
+                .map_err(|e| format!("Failed to set executable permissions: {}", e))?;
+        }
     }
 
     println!("[AxTree] Using dump-tree at {}", dump_tree_path.display());

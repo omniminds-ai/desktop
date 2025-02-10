@@ -120,8 +120,6 @@ pub async fn start_recording(
     let (recordings_dir, timestamp) = get_session_path(&app)?;
     let video_path = recordings_dir.join(format!("recording_{}.mp4", timestamp));
 
-    println!("{}", video_path.display());
-
     // Get primary display info
     let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
     let primary = displays
