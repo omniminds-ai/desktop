@@ -6,10 +6,16 @@ export interface Token {
   address: string;
 }
 
+export enum TrainingPoolStatus {
+  live = 'live',
+  paused = 'paused',
+  noFunds = 'no-funds'
+}
+
 export interface TrainingPool {
   _id: string;
   name: string;
-  status: 'live' | 'paused' | 'out of funds';
+  status: TrainingPoolStatus;
   demonstrations: number;
   funds: number;
   token: Token;
@@ -27,7 +33,7 @@ export interface CreatePoolInput {
 }
 
 export interface UpdatePoolInput {
-  _id: string;
-  status?: 'live' | 'paused';
+  id: string;
+  status?: TrainingPoolStatus.live | TrainingPoolStatus.paused;
   skills?: string;
 }

@@ -1,11 +1,11 @@
 <script lang="ts">
   import Card from './Card.svelte';
   import CreatePoolModal from './CreatePoolModal.svelte';
-  import { ChevronDown, ChevronRight } from 'lucide-svelte';
+  import { ChevronDown, ChevronRight, Train, TrainIcon } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import { walletAddress } from '$lib/stores/wallet';
   import { listPools, createPool, updatePool } from '$lib/api/forge';
-  import type { TrainingPool, Token } from '$lib/types/forge';
+  import { type TrainingPool, type Token, TrainingPoolStatus } from '$lib/types/forge';
   import Button from './Button.svelte';
   import CopyButton from './CopyButton.svelte';
   import TextArea from './TextArea.svelte';
@@ -59,11 +59,11 @@
 
   async function handleUpdatePool(
     pool: TrainingPool,
-    updates: { status?: 'live' | 'paused'; skills?: string }
+    updates: { status?: TrainingPoolStatus.live | TrainingPoolStatus.paused; skills?: string }
   ) {
     try {
       await updatePool({
-        _id: pool._id,
+        id: pool._id,
         ...updates
       });
       loadPools();
@@ -78,7 +78,10 @@
 
   function handleStatusToggle(pool: TrainingPool) {
     handleUpdatePool(pool, {
-      status: pool.status === 'live' ? 'paused' : 'live'
+      status:
+        pool.status === TrainingPoolStatus.live
+          ? TrainingPoolStatus.paused
+          : TrainingPoolStatus.live
     });
   }
 </script>
@@ -128,15 +131,15 @@
                 <div class="font-title text-lg">{pool.name}</div>
                 <div
                   class="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full {pool.status ===
-                  'live'
+                  TrainingPoolStatus.live
                     ? 'bg-green-500/10 text-green-500'
-                    : pool.status === 'paused'
+                    : pool.status === TrainingPoolStatus.paused
                       ? 'bg-gray-500/10 text-gray-500'
                       : 'bg-yellow-500/10 text-yellow-600'}">
                   <div
-                    class="w-1.5 h-1.5 rounded-full {pool.status === 'live'
+                    class="w-1.5 h-1.5 rounded-full {pool.status === TrainingPoolStatus.live
                       ? 'bg-green-500 animate-pulse'
-                      : pool.status === 'paused'
+                      : pool.status === TrainingPoolStatus.paused
                         ? 'bg-gray-500'
                         : 'bg-yellow-500 animate-pulse'}">
                   </div>
@@ -172,13 +175,13 @@
               <div>
                 <div class="flex justify-between items-center mb-2">
                   <div class="text-sm font-semibold">Skills to Collect</div>
-                  {#if pool.status !== 'out of funds'}
+                  {#if pool.status !== TrainingPoolStatus.noFunds}
                     <Button
-                      class="px-3 py-1.5 text-sm {pool.status === 'live'
+                      class="px-3 py-1.5 text-sm {pool.status === TrainingPoolStatus.live
                         ? 'border-gray-300! text-gray-700! hover:bg-gray-200!'
                         : 'border-green-500! text-green-600! hover:bg-green-100!'}"
                       onclick={() => handleStatusToggle(pool)}>
-                      {pool.status === 'live' ? 'Pause Pool' : 'Resume Pool'}
+                      {pool.status === TrainingPoolStatus.live ? 'Pause Pool' : 'Resume Pool'}
                     </Button>
                   {/if}
                 </div>

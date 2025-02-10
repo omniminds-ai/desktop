@@ -6,12 +6,7 @@
     variant?: 'dark' | 'light';
   }
 
-  const {
-    class: className = '',
-    variant = 'dark',
-    value = $bindable(''),
-    ...rest
-  }: Props = $props();
+  let { class: className = '', variant = 'dark', value = $bindable(''), ...rest }: Props = $props();
 
   console.log(variant);
   const variantClasses = $derived.by(() => {
@@ -35,4 +30,5 @@
 
 <input
   class="{variantClasses} w-full py-2 px-3 rounded-lg border focus:outline-none focus:ring transition-all {className}"
+  bind:value
   {...rest} />

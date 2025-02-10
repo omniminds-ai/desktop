@@ -5,14 +5,20 @@
   import Input from './Input.svelte';
   import TextArea from './TextArea.svelte';
 
-  export let show = false;
-  export let onClose: () => void;
-  export let onCreate: (data: { name: string; skills: string; token: Token }) => void;
+  const {
+    show,
+    onClose,
+    onCreate
+  }: {
+    show: boolean;
+    onClose: () => void;
+    onCreate: (data: { name: string; skills: string; token: Token }) => void;
+  } = $props();
 
-  let name = '';
-  let skills = '';
-  let selectedTokenType: TokenType = 'VIRAL';
-  let customTokenAddress = '';
+  let name = $state('');
+  let skills = $state('');
+  let selectedTokenType: TokenType = $state('VIRAL');
+  let customTokenAddress = $state('');
 
   const DEFAULT_ADDRESSES = {
     SOL: 'So11111111111111111111111111111111111111112',
@@ -59,7 +65,7 @@
     <div class="bg-gray-900 rounded-xl w-full max-w-lg p-6 space-y-4">
       <h2 class="text-xl font-bold text-white">Create Training Pool</h2>
 
-      <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+      <form onsubmit={handleSubmit} class="space-y-4">
         <div>
           <label for="pool-name" class="block text-sm font-semibold text-gray-300 mb-1">
             Pool Name

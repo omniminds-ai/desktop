@@ -6,7 +6,7 @@
     variant?: 'dark' | 'light';
   }
 
-  const { class: className, variant = 'dark', value = $bindable(''), ...rest }: Props = $props();
+  let { class: className, variant = 'dark', value = $bindable(''), ...rest }: Props = $props();
 
   const variantClasses = $derived.by(() => {
     let classes = '';
@@ -30,5 +30,6 @@
 
 <textarea
   class="{variantClasses} w-full h-32 p-2 rounded-lg border focus:outline-none resize-none {className}"
+  bind:value
   {...rest}>
 </textarea>
