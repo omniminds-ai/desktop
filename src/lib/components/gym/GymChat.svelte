@@ -1,7 +1,8 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
   import { listen, emit } from '@tauri-apps/api/event';
-  import { Send, User, Keyboard, Mouse, Gamepad, Video, Square, ArrowLeft } from 'lucide-svelte';
+  import { Send, User, Keyboard, Mouse, Gamepad, Video, Square } from 'lucide-svelte';
+  import GymHeader from './GymHeader.svelte';
   import Card from '../Card.svelte';
   import RecordButton from './RecordButton.svelte';
   import * as gym from '../../gym';
@@ -507,16 +508,9 @@
 </script>
 
 <div class="h-full flex flex-col relative">
-  <a
-    href="/app/gym"
-    class="absolute z-10 top-4 left-4 px-4 py-2 flex items-center gap-2 rounded-full
-      transition-all duration-200 ease-in-out text-secondary-300 border
-      {isScrolled
-      ? 'bg-white/75 backdrop-blur-sm border-secondary-300 hover:bg-white shadow-md'
-      : 'bg-white/0 hover:text-secondary-400 border-transparent'}">
-    <ArrowLeft size={20} />
-    Back to Gym
-  </a>
+  <div class="p-4">
+    <GymHeader title="Training Session" />
+  </div>
   <div
     bind:this={chatContent}
     class="flex-1 pt-16 px-6 pb-6 space-y-3 overflow-y-auto chat-content">

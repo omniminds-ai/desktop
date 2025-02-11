@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { getRaces } from '$lib/api/forge';
   import type { Race } from '$lib/types/gym';
+  import GymHeader from './gym/GymHeader.svelte';
 
   const freeRacePrompts = [
     "Hey, I'd like to help train AI and maybe earn some $VIRAL. What kind of tasks can I help with?",
@@ -16,7 +17,6 @@
     Brain,
     DollarSign,
     Globe,
-    Settings,
     FileText,
     Mail,
     Film,
@@ -30,7 +30,6 @@
     Brain,
     DollarSign,
     Globe,
-    Settings,
     FileText,
     Mail,
     Film,
@@ -55,7 +54,7 @@
 <div class="h-full">
   <div class="p-4">
     <div class="mb-12">
-      <h2 class="text-2xl font-title text-secondary-300 mb-6">Start Training</h2>
+      <GymHeader title="Start Training" />
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <a href="/app/gym/chat?prompt={encodeURIComponent(randomFreeRacePrompt)}" class="block">
           <Card
