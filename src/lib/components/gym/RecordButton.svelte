@@ -49,7 +49,7 @@
 <Button
   onclick={countingDown ? cancelCountdown : startCountdown}
   class={(countingDown ? 'bg-red-500! hover:bg-red-600! hover:text-white! border-red-500!' : '') +
-    'rounded-md! flex items-center gap-2'}>
+    'flex! items-center gap-2'}>
   <Video size={20} />
   {#if countingDown}
     Cancel ({countdown}s)
