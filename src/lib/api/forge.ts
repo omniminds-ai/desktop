@@ -1,6 +1,17 @@
 import type { TrainingPool, CreatePoolInput, UpdatePoolInput } from '$lib/types/forge';
+import type { Race } from '$lib/types/gym';
 
 const API_BASE = 'http://localhost/api/forge';
+
+export async function getRaces(): Promise<Race[]> {
+  const response = await fetch(`${API_BASE}/races`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch races');
+  }
+
+  return response.json();
+}
 
 export async function listPools(address: string): Promise<TrainingPool[]> {
   const response = await fetch(`${API_BASE}/list`, {

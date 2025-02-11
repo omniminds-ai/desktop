@@ -23,6 +23,7 @@ export interface TrainingPool {
   ownerAddress: string;
   depositAddress: string;
   expanded?: boolean;
+  unsavedSkills?: boolean;
 }
 
 export interface CreatePoolInput {

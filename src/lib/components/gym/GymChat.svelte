@@ -16,6 +16,7 @@
   import { page } from '$app/state';
   import Button from '../Button.svelte';
   import Input from '../Input.svelte';
+  import { privacyAccepted as privacyStore } from '$lib/stores/privacy';
 
   const { prompt = '' } = $props<{ prompt?: string }>();
   const previewSkills = page.url.searchParams.get('preview');
@@ -33,7 +34,7 @@
   let chatContent: HTMLElement;
   let toneAudio: HTMLAudioElement;
   let blipAudio: HTMLAudioElement;
-  let privacyAccepted = $state(false);
+  let privacyAccepted = $state($privacyStore);
   let currentQuest = $state<QuestInfo | null>(null);
   let appIcons = $state<Record<string, string>>({});
 
@@ -131,6 +132,8 @@
       ]
     }
   ];
+
+  const privacyMessages: Message[] = welcomeMessages.slice(0, -2);
 
   const MAX_EVENTS = 10;
   const MESSAGE_DELAY = 500; // Shorter delay between messages
@@ -234,14 +237,26 @@
       unlisten = unlistenFn;
     });
 
-    // If in preview mode, skip welcome and go straight to quest generation
-    if (previewSkills) {
-      privacyAccepted = true; // Skip privacy policy in preview mode
-      generateQuestFromSkills(previewSkills);
-    } else {
-      // Start welcome messages for normal mode
-      addMessagesWithDelay(welcomeMessages);
+    // If in preview mode or privacy already accepted, skip welcome and go straight to quest generation
+    async function init() {
+      if (previewSkills) {
+        privacyAccepted = true; // Skip privacy policy in preview mode
+        generateQuestFromSkills(previewSkills);
+      } else if (privacyAccepted) {
+        // Skip welcome for returning users, just handle prompt and generate quest
+        if (prompt) {
+          await addMessage({
+            role: 'user',
+            parts: [{ type: MessagePartType.text, content: prompt }]
+          });
+        }
+        generateQuestFromSkills(prompt || 'anything keep it simple');
+      } else {
+        // Start welcome messages with privacy policy for first time users
+        addMessagesWithDelay(welcomeMessages);
+      }
     }
+    init();
 
     return () => {
       unlisten?.();
@@ -326,6 +341,7 @@
 
   async function handlePrivacyAccept() {
     privacyAccepted = true;
+    privacyStore.set(true);
     await addMessage({
       role: 'user',
       parts: [{ type: MessagePartType.text, content: 'Looks good to me!' }]
@@ -343,16 +359,22 @@
         }
       ]
     });
-    await addMessage({
-      role: 'assistant',
-      parts: [
-        {
-          type: MessagePartType.text,
-          content: 'generating your first task...'
-        }
-      ]
-    });
-    generateQuestFromSkills(prompt || 'Free Race');
+    if (prompt) {
+      await addMessage({
+        role: 'user',
+        parts: [{ type: MessagePartType.text, content: prompt }]
+      });
+      await addMessage({
+        role: 'assistant',
+        parts: [
+          {
+            type: MessagePartType.text,
+            content: "i'll help you get started with some tasks that'll help train our AI and earn you rewards."
+          }
+        ]
+      });
+    }
+    generateQuestFromSkills(prompt || 'anything keep it simple');
   }
 
   function handlePrivacyDecline() {

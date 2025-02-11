@@ -60,3 +60,35 @@ export async function stopRecording() {
     throw error;
   }
 }
+
+export async function checkQuestProgress(quest: Quest): Promise<{completed_subgoals: boolean[], completed_objectives: number}> {
+  try {
+    // Get screenshots
+    const screenshots = [];
+    {
+      const screenshot = await invoke('take_screenshot');
+      screenshots.push(screenshot);
+    }
+
+    // Call progress endpoint
+    const response = await fetch('http://localhost/api/gym/progress', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        quest,
+        screenshots,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to check progress');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to check quest progress:', error);
+    throw error;
+  }
+}

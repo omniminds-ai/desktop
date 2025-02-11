@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
   import { Target, Award } from 'lucide-svelte';
+  import * as gym from '$lib/gym';
 
   type RecordingState = 'recording' | 'stopping' | 'stopped';
 
@@ -16,6 +17,7 @@
   let recordingState = $state<RecordingState>('stopped');
   let recordingTime = $state(0);
   let timer: number;
+  let progressTimer: number;
 
   interface Quest {
     task_id: string;
@@ -47,16 +49,31 @@
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
+  async function checkProgress() {
+    if (!currentQuest || recordingState !== 'recording') return;
+
+    try {
+      const progress = await gym.checkQuestProgress(currentQuest);
+      completedSubgoals = progress.completed_subgoals;
+      completedObjectives = progress.completed_objectives;
+    } catch (error) {
+      console.error('Error checking progress:', error);
+    }
+  }
+
   function resetQuest() {
     recordingTime = 0;
     completedObjectives = 0;
     completedSubgoals = [];
     currentQuest = null;
+    if (progressTimer) clearInterval(progressTimer);
   }
 
   function initializeQuest(quest: Quest) {
     currentQuest = quest;
     completedSubgoals = new Array(quest.subgoals.length).fill(false);
+    // Start progress checking
+    progressTimer = setInterval(checkProgress, 5000);
   }
 
   onMount(() => {

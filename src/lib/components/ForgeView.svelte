@@ -26,6 +26,8 @@
       loading = true;
       error = null;
       trainingPools = await listPools($walletAddress);
+      // Initialize unsavedSkills flag for each pool
+      trainingPools = trainingPools.map(pool => ({ ...pool, unsavedSkills: false }));
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load training pools';
     } finally {
@@ -73,7 +75,19 @@
   }
 
   function handleSkillsChange(pool: TrainingPool, skills: string) {
-    handleUpdatePool(pool, { skills });
+    pool.skills = skills;
+    pool.unsavedSkills = true;
+    trainingPools = trainingPools;
+  }
+
+  async function handleSaveSkills(pool: TrainingPool) {
+    try {
+      await handleUpdatePool(pool, { skills: pool.skills });
+      pool.unsavedSkills = false;
+      trainingPools = trainingPools;
+    } catch (err) {
+      // Error is already handled by handleUpdatePool
+    }
   }
 
   function handleStatusToggle(pool: TrainingPool) {
@@ -175,15 +189,24 @@
               <div>
                 <div class="flex justify-between items-center mb-2">
                   <div class="text-sm font-semibold">Skills to Collect</div>
-                  {#if pool.status !== TrainingPoolStatus.noFunds}
-                    <Button
-                      class="px-3 py-1.5 text-sm {pool.status === TrainingPoolStatus.live
-                        ? 'border-gray-300! text-gray-700! hover:bg-gray-200!'
-                        : 'border-green-500! text-green-600! hover:bg-green-100!'}"
-                      onclick={() => handleStatusToggle(pool)}>
-                      {pool.status === TrainingPoolStatus.live ? 'Pause Pool' : 'Resume Pool'}
-                    </Button>
-                  {/if}
+                  <div class="flex gap-2">
+                    {#if pool.unsavedSkills}
+                      <Button
+                        class="px-3 py-1.5 text-sm border-green-500! text-green-600! hover:bg-green-100! bg-gray-200!"
+                        onclick={() => handleSaveSkills(pool)}>
+                        Save Skills
+                      </Button>
+                    {/if}
+                    {#if pool.status !== TrainingPoolStatus.noFunds}
+                      <Button
+                        class="px-3 py-1.5 text-sm {pool.status === TrainingPoolStatus.live
+                          ? 'border-gray-300! text-gray-700! hover:bg-gray-200!'
+                          : 'border-green-500! text-green-600! hover:bg-green-100!'}"
+                        onclick={() => handleStatusToggle(pool)}>
+                        {pool.status === TrainingPoolStatus.live ? 'Pause Pool' : 'Resume Pool'}
+                      </Button>
+                    {/if}
+                  </div>
                 </div>
                 <TextArea
                   class="h-32"

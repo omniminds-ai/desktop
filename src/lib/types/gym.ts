@@ -1,5 +1,14 @@
 import type { Component, ComponentProps } from "svelte";
 
+export interface Race {
+  title: string;
+  description: string;
+  category: string;
+  icon: string;
+  skills: string[];
+  agent_prompt: string;
+}
+
 export type MessageRole = "assistant" | "user" | "system";
 export enum MessagePartType {
   text = "text",
