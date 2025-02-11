@@ -39,7 +39,7 @@ impl Recorder {
         }
     }
 
-    fn new(video_path: &PathBuf, _primary: &DisplayInfo) -> Result<Self, String> {
+    fn new(video_path: &PathBuf, primary: &DisplayInfo) -> Result<Self, String> {
         #[cfg(target_os = "macos")]
         {
             return Ok(Recorder::MacOS(MacOSScreenRecorder::new(
