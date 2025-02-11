@@ -46,7 +46,7 @@
     
     <Card padding="lg" className="mb-6">
       <h3 class="text-xl font-title mb-4">App Blacklist</h3>
-      <p class="text-gray-700 mb-6">Apps in this list will be excluded from recording sessions.</p>
+      <p class="text-gray-700 mb-6">Apps in this list will be excluded from recording sessions when uploading.</p>
 
       <div class="space-y-6">
         <!-- Blacklisted Apps -->

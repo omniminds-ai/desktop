@@ -2,7 +2,7 @@ use app_finder::{AppCommon, AppFinder};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use display_info::DisplayInfo;
 use serde_json;
-use std::io::Cursor;
+use std::io::{Cursor, Read};
 use tauri::{Emitter, Manager};
 use window_vibrancy::*;
 use xcap::{image::ImageFormat, Monitor};
@@ -14,7 +14,7 @@ mod macos_screencapture;
 mod record;
 
 use input::request_input_perms;
-use record::{request_record_perms, start_recording, stop_recording, QuestState};
+use record::{request_record_perms, start_recording, stop_recording, list_recordings, get_recording_file, get_app_data_dir, write_file, QuestState};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -104,6 +104,10 @@ pub fn run() {
             list_apps,
             request_record_perms,
             request_input_perms,
+            list_recordings,
+            get_recording_file,
+            get_app_data_dir,
+            write_file,
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();

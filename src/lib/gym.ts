@@ -1,5 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 
+export interface Recording {
+  id: string;
+  timestamp: string;
+  duration_seconds: number;
+  status: string;
+  title: string;
+  description: string;
+}
+
 export interface Quest {
   task_id: string;
   title: string;

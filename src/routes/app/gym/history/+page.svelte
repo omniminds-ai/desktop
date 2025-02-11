@@ -2,55 +2,53 @@
   import { onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import { Search, Upload, Edit, Download } from 'lucide-svelte';
+  import { Search, Upload, Edit, Download, Play } from 'lucide-svelte';
   import GymHeader from '$lib/components/gym/GymHeader.svelte';
+  import { invoke } from '@tauri-apps/api/core';
+  import type { Recording } from '$lib/gym';
 
   let searchQuery = '';
   let sortOrder: 'newest' | 'oldest' = 'newest';
-  let races = [
-    {
-      id: '1',
-      title: 'AI Training Session',
-      description: 'Helped improve language understanding',
-      tokens: 1500,
-      duration_minutes: 25,
-      reward: {
-        amount: 50,
-        ticker: 'VIRAL'
-      },
-      status: 'unclaimed'
-    }
-  ];
+  let recordings: Recording[] = [];
+  let processing: string | null = null;
 
-  $: filteredRaces = races
-    .filter(race => 
-      race.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      race.description.toLowerCase().includes(searchQuery.toLowerCase())
+  onMount(async () => {
+    try {
+      recordings = await invoke('list_recordings');
+    } catch (error) {
+      console.error('Failed to fetch recordings:', error);
+    }
+  });
+
+  $: filteredRecordings = recordings
+    .filter(recording => 
+      recording.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (recording.description && recording.description.toLowerCase().includes(searchQuery.toLowerCase()))
     )
     .sort((a, b) => {
       if (sortOrder === 'newest') {
-        return (b.id as any) - (a.id as any);
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       } else {
-        return (a.id as any) - (b.id as any);
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
       }
     });
 
-  function handleUpload(raceId: string) {
-    console.log('Uploading race:', raceId);
+  function handleUpload(recordingId: string) {
+    console.log('Uploading recording:', recordingId);
     // Implement upload logic here
   }
 </script>
 
 <div class="h-full">
   <div class="p-4">
-    <GymHeader title="Race History" />
+    <GymHeader title="Recording History" />
     
-    <div class="flex flex-col sm:flex-row gap-4 mb-3">
+    <div class="flex flex-col sm:flex-row gap-4 mb-6">
       <div class="relative flex-grow">
         <input
           type="text"
           bind:value={searchQuery}
-          placeholder="Search races..."
+          placeholder="Search recordings..."
           class="w-full pl-10 pr-4 py-2 bg-white border-2 border-gray-200 rounded-lg focus:outline-none focus:border-secondary-300 text-gray-800"
         />
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -66,36 +64,44 @@
     </div>
   </div>
 
-  <div class="grid gap-4 px-2">
-    {#each filteredRaces as race}
+  <div class="grid gap-4 px-4 pb-4">
+    {#each filteredRecordings as recording}
       <Card padding="lg" className="border-2">
         <div class="flex flex-col sm:flex-row justify-between gap-4">
           <div>
-            <h3 class="text-xl font-title mb-2">{race.title}</h3>
-            <p class="text-gray-700 mb-3">{race.description}</p>
+            <h3 class="text-xl font-title mb-2">{recording.title}</h3>
+            <p class="text-gray-700 mb-3">{recording.description || 'No description'}</p>
             <div class="flex flex-wrap gap-4 text-sm text-gray-600">
-              <span>{race.tokens} tokens</span>
-              <span>{race.duration_minutes} minutes</span>
-              <span>Reward: {race.reward.amount} ${race.reward.ticker}</span>
-              {#if race.status === 'unclaimed'}
-                <span class="text-yellow-500">(Unclaimed)</span>
-              {/if}
+              <span>{Math.round(recording.duration_seconds / 60)} minutes</span>
+              <span>Status: {recording.status}</span>
+              <span>Recorded: {new Date(recording.timestamp).toLocaleString()}</span>
             </div>
           </div>
           
           <div class="flex flex-col gap-2 w-32">
-            <Button variant="secondary" onclick={() => console.log('Edit race:', race.id)} class="h-8 text-sm flex! items-center">
-              <Edit class="w-3.5 h-3.5 mr-1.5 shrink-0" />
-              <span>Edit</span>
-            </Button>
-            <Button variant="secondary" onclick={() => console.log('Export race:', race.id)} class="h-8 text-sm flex! items-center">
-              <Download class="w-3.5 h-3.5 mr-1.5 shrink-0" />
-              <span>Export</span>
-            </Button>
-            {#if race.status === 'unclaimed'}
-              <Button onclick={() => handleUpload(race.id)} class="h-8 text-sm flex! items-center">
+            <a href="/app/gym/history/{recording.id}" class="block">
+              <Button variant="secondary" class="h-8 text-sm flex! items-center w-full">
+                <Edit class="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                <span>View Details</span>
+              </Button>
+            </a>
+            {#if recording.status === 'completed'}
+              <Button onclick={() => handleUpload(recording.id)} class="h-8 text-sm flex! items-center">
                 <Upload class="w-3.5 h-3.5 mr-1.5 shrink-0" />
                 <span>Upload</span>
+              </Button>
+              <Button 
+                onclick={() => handleProcess(recording.id)} 
+                class="h-8 text-sm flex! items-center"
+                disabled={processing === recording.id}
+              >
+                {#if processing === recording.id}
+                  <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                  <span>Processing...</span>
+                {:else}
+                  <Play class="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                  <span>Process</span>
+                {/if}
               </Button>
             {/if}
           </div>

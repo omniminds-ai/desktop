@@ -508,12 +508,12 @@
 </script>
 
 <div class="h-full flex flex-col relative">
-  <div class="p-4">
+  <div class="pt-4 px-4">
     <GymHeader title="Training Session" />
   </div>
   <div
     bind:this={chatContent}
-    class="flex-1 pt-16 px-6 pb-6 space-y-3 overflow-y-auto chat-content">
+    class="flex-1 px-6 pb-6 space-y-3 overflow-y-auto chat-content">
     {#each chatMessages as msg, i}
       <div
         class="flex gap-2 transition-all duration-200 {msg.role === 'user' ? 'justify-end' : ''}">

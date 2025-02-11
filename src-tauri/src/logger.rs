@@ -1,6 +1,7 @@
 use chrono::Local;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
+use std::path::PathBuf;
 use tauri::Manager;
 
 pub struct Logger {
@@ -8,18 +9,8 @@ pub struct Logger {
 }
 
 impl Logger {
-    pub fn new(app: &tauri::AppHandle) -> Result<Self, String> {
-        let log_dir = app
-            .path()
-            .app_local_data_dir()
-            .map_err(|e| format!("Failed to get app data directory: {}", e))?
-            .join("recordings");
-
-        std::fs::create_dir_all(&log_dir)
-            .map_err(|e| format!("Failed to create log directory: {}", e))?;
-
-        let timestamp = Local::now().format("%Y%m%d_%H%M%S");
-        let log_path = log_dir.join(format!("input_log_{}.jsonl", timestamp));
+    pub fn new(session_dir: PathBuf) -> Result<Self, String> {
+        let log_path = session_dir.join("input_log.jsonl");
 
         let file = OpenOptions::new()
             .create(true)

@@ -7,11 +7,24 @@ use crate::logger::Logger;
 use crate::macos_screencapture::MacOSScreenRecorder;
 use chrono::Local;
 use display_info::DisplayInfo;
-use std::fs;
+use serde::{Deserialize, Serialize};
+use std::fs::{self, File, create_dir_all};
+use std::io::{Read, BufReader};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
+
+#[derive(Serialize, Deserialize)]
+pub struct RecordingMeta {
+    id: String,
+    timestamp: String,
+    duration_seconds: u64,
+    status: String,
+    title: String,
+    description: String,
+}
 
 enum Recorder {
     #[cfg(not(target_os = "macos"))]
@@ -79,6 +92,7 @@ impl Recorder {
 #[derive(Default)]
 pub struct QuestState {
     pub objectives_completed: Mutex<i32>,
+    pub recording_start_time: Mutex<Option<chrono::DateTime<chrono::Local>>>,
 }
 
 // Global state for recording and logging
@@ -98,7 +112,41 @@ fn get_session_path(app: &tauri::AppHandle) -> Result<(PathBuf, String), String>
         .map_err(|e| format!("Failed to create recordings directory: {}", e))?;
 
     let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
-    Ok((recordings_dir, timestamp))
+    let session_dir = recordings_dir.join(&timestamp);
+    
+    std::fs::create_dir_all(&session_dir)
+        .map_err(|e| format!("Failed to create session directory: {}", e))?;
+
+    Ok((session_dir, timestamp))
+}
+
+#[tauri::command]
+pub async fn list_recordings(app: tauri::AppHandle) -> Result<Vec<RecordingMeta>, String> {
+    let recordings_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?
+        .join("recordings");
+
+    if !recordings_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut recordings = Vec::new();
+    for entry in fs::read_dir(&recordings_dir).map_err(|e| format!("Failed to read recordings directory: {}", e))? {
+        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
+        let meta_path = entry.path().join("meta.json");
+        if meta_path.exists() {
+            let meta_str = fs::read_to_string(&meta_path)
+                .map_err(|e| format!("Failed to read meta file: {}", e))?;
+            let meta: RecordingMeta = serde_json::from_str(&meta_str)
+                .map_err(|e| format!("Failed to parse meta file: {}", e))?;
+            recordings.push(meta);
+        }
+    }
+
+    recordings.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    Ok(recordings)
 }
 
 #[tauri::command]
@@ -116,11 +164,25 @@ pub async fn start_recording(
     #[cfg(not(target_os = "macos"))]
     ffmpeg::init_ffmpeg()?;
 
-    // Get paths for both video and log files
-    let (recordings_dir, timestamp) = get_session_path(&app)?;
-    let video_path = recordings_dir.join(format!("recording_{}.mp4", timestamp));
+    let (session_dir, timestamp) = get_session_path(&app)?;
+    let video_path = session_dir.join("recording.mp4");
 
-    // Get primary display info
+    // Create and save initial meta file
+    let meta = RecordingMeta {
+        id: timestamp.clone(),
+        timestamp: Local::now().to_rfc3339(),
+        duration_seconds: 0,
+        status: "recording".to_string(),
+        title: "Recording Session".to_string(),
+        description: "".to_string(),
+    };
+    
+    fs::write(
+        session_dir.join("meta.json"),
+        serde_json::to_string_pretty(&meta).map_err(|e| format!("Failed to serialize meta: {}", e))?,
+    )
+    .map_err(|e| format!("Failed to write meta file: {}", e))?;
+
     let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
     let primary = displays
         .iter()
@@ -128,8 +190,9 @@ pub async fn start_recording(
         .or_else(|| displays.first())
         .ok_or_else(|| "No display found".to_string())?;
 
-    // Reset quest state and emit recording started event
     *quest_state.objectives_completed.lock().unwrap() = 0;
+    *quest_state.recording_start_time.lock().unwrap() = Some(Local::now());
+
     app.emit(
         "recording-status",
         serde_json::json!({
@@ -139,14 +202,13 @@ pub async fn start_recording(
     .unwrap();
 
     let mut recorder = Recorder::new(&video_path, &primary)?;
-
     recorder.start()?;
     *rec_state = Some(recorder);
 
     // Start input logging and listening
     let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
     if log_state.is_none() {
-        *log_state = Some(Logger::new(&app)?);
+        *log_state = Some(Logger::new(session_dir.clone())?);
     }
 
     // Start input listener
@@ -161,7 +223,7 @@ pub async fn start_recording(
 #[tauri::command]
 pub async fn stop_recording(
     app: tauri::AppHandle,
-    _quest_state: State<'_, QuestState>,
+    quest_state: State<'_, QuestState>,
 ) -> Result<(), String> {
     // Emit recording stopping event
     app.emit(
@@ -182,13 +244,49 @@ pub async fn stop_recording(
     // Stop dump-tree polling
     axtree::stop_dump_tree_polling()?;
 
-    // Stop screen recording last since it might hang
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
     if let Some(mut recorder) = rec_state.take() {
         recorder.stop()?;
     }
 
-    // Emit recording stopped event
+    // Update meta file with duration
+    if let Some(start_time) = *quest_state.recording_start_time.lock().unwrap() {
+        let duration = Local::now().signed_duration_since(start_time).num_seconds() as u64;
+        
+        let recordings_dir = app
+            .path()
+            .app_local_data_dir()
+            .map_err(|e| format!("Failed to get app data directory: {}", e))?
+            .join("recordings");
+
+        // Find the most recent recording directory
+        let mut entries: Vec<_> = fs::read_dir(&recordings_dir)
+            .map_err(|e| format!("Failed to read recordings directory: {}", e))?
+            .collect::<Result<_, _>>()
+            .map_err(|e| format!("Failed to read directory entries: {}", e))?;
+        
+        entries.sort_by_key(|entry| std::cmp::Reverse(entry.metadata().unwrap().modified().unwrap()));
+
+        if let Some(latest_dir) = entries.first() {
+            let meta_path = latest_dir.path().join("meta.json");
+            if meta_path.exists() {
+                let meta_str = fs::read_to_string(&meta_path)
+                    .map_err(|e| format!("Failed to read meta file: {}", e))?;
+                let mut meta: RecordingMeta = serde_json::from_str(&meta_str)
+                    .map_err(|e| format!("Failed to parse meta file: {}", e))?;
+                
+                meta.duration_seconds = duration;
+                meta.status = "completed".to_string();
+
+                fs::write(
+                    &meta_path,
+                    serde_json::to_string_pretty(&meta).map_err(|e| format!("Failed to serialize meta: {}", e))?,
+                )
+                .map_err(|e| format!("Failed to write meta file: {}", e))?;
+            }
+        }
+    }
+
     app.emit(
         "recording-status",
         serde_json::json!({
@@ -208,6 +306,7 @@ pub fn log_input(event: serde_json::Value) -> Result<(), String> {
     }
     Ok(())
 }
+
 #[cfg(not(target_os = "macos"))]
 pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
     if let Ok(mut state) = LOGGER_STATE.lock() {
@@ -216,6 +315,62 @@ pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_recording_file(app: tauri::AppHandle, recording_id: String, filename: String, as_base64: Option<bool>) -> Result<String, String> {
+    let recordings_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?
+        .join("recordings")
+        .join(&recording_id);
+
+    let file_path = recordings_dir.join(&filename);
+    if !file_path.exists() {
+        return Err(format!("File not found: {}", filename));
+    }
+
+    let mut file = File::open(&file_path)
+        .map_err(|e| format!("Failed to open file: {}", e))?;
+    if as_base64 == Some(true) {
+        let mut reader = BufReader::new(file);
+        let mut buffer = Vec::new();
+        reader.read_to_end(&mut buffer)
+            .map_err(|e| format!("Failed to read file: {}", e))?;
+        
+        Ok(format!("data:video/mp4;base64,{}", BASE64.encode(&buffer)))
+    } else {
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .map_err(|e| format!("Failed to read file: {}", e))?;
+
+        Ok(contents)
+    }
+}
+
+#[tauri::command]
+pub async fn write_file(app: tauri::AppHandle, path: String, content: String) -> Result<(), String> {
+    // Create parent directories if they don't exist
+    if let Some(parent) = std::path::Path::new(&path).parent() {
+        create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directories: {}", e))?;
+    }
+
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to write file: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
+    let path = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+    
+    Ok(path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
