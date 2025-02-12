@@ -6,12 +6,13 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
+use tauri::Url;
 
 static DUMP_TREE_PATH: OnceLock<PathBuf> = OnceLock::new();
 static POLLING_ACTIVE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 
 #[cfg(target_os = "windows")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.1.0-windows-x64.exe";
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.0.1-windows-x64.exe";
 
 #[cfg(target_os = "linux")]
 const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.1.0-linux-x64-arm64.js";
@@ -76,13 +77,17 @@ pub fn init_dump_tree() -> Result<(), String> {
     let response = reqwest::blocking::get(DUMP_TREE_URL)
         .map_err(|e| format!("Failed to check latest version: {}", e))?;
 
-    let dump_tree_filename = response
-        .url()
+    let url_parser = Url::parse(DUMP_TREE_URL)
+        .map_err(|e| format!("Failed to parse URL: {}", e))?;
+
+    let dump_tree_filename = url_parser
         .path_segments()
         .and_then(|segments| segments.last())
         .ok_or_else(|| "Invalid URL format".to_string())?;
 
     let dump_tree_path = temp_dir.join(dump_tree_filename);
+
+    println!("{}", dump_tree_filename);
 
     let should_download = if !dump_tree_path.exists() {
         true
