@@ -41,9 +41,9 @@
   </div>
 
   <a
-    href="/app"
+    href="/app/chat"
     class="w-full py-2 px-4 flex items-center gap-3 rounded-full transition-colors {page.url
-      .pathname === '/app'
+      .pathname === '/app/chat'
       ? 'bg-secondary-300 text-white'
       : 'hover:bg-white/10 text-gray-300'}">
     <MessageSquare size={20} />
