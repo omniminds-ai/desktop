@@ -12,7 +12,7 @@
   let currentBlacklist: string[] = [];
   let searchQuery = '';
 
-  blacklistedApps.subscribe(value => {
+  blacklistedApps.subscribe((value) => {
     currentBlacklist = value;
   });
 
@@ -25,7 +25,7 @@
     }
   });
 
-  $: filteredApps = apps.filter(app => 
+  $: filteredApps = apps.filter((app) =>
     app.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -36,17 +36,19 @@
   }
 
   function removeFromBlacklist(appName: string) {
-    blacklistedApps.set(currentBlacklist.filter(app => app !== appName));
+    blacklistedApps.set(currentBlacklist.filter((app) => app !== appName));
   }
 </script>
 
 <div class="h-full">
   <div class="p-4">
     <GymHeader title="Settings" />
-    
+
     <Card padding="lg" className="mb-6">
       <h3 class="text-xl font-title mb-4">App Blacklist</h3>
-      <p class="text-gray-700 mb-6">Apps in this list will be excluded from recording sessions when uploading.</p>
+      <p class="text-gray-700 mb-6">
+        Apps in this list will be excluded from recording sessions when uploading.
+      </p>
 
       <div class="space-y-6">
         <!-- Blacklisted Apps -->
@@ -57,8 +59,7 @@
                 <span class="text-sm text-gray-700">{app}</span>
                 <button
                   class="text-gray-400 hover:text-gray-600"
-                  onclick={() => removeFromBlacklist(app)}
-                >
+                  onclick={() => removeFromBlacklist(app)}>
                   <X class="w-4 h-4" />
                 </button>
               </div>
@@ -73,23 +74,21 @@
             variant="light"
             placeholder="Search apps..."
             bind:value={searchQuery}
-            class="w-full"
-          />
+            class="w-full" />
 
-          <div class="grid gap-2">
-            {#each filteredApps.slice(0, 5) as app}
+          <div class="grid gap-2 h-[30vh] overflow-y-auto">
+            {#each filteredApps as app}
               {#if !currentBlacklist.includes(app.name)}
                 <button
-                  class="flex items-center justify-between w-full px-4 py-2 text-left hover:bg-gray-50 rounded-lg group"
-                  onclick={() => addToBlacklist(app.name)}
-                >
+                  class="flex h-10 items-center justify-between w-full px-4 py-2 text-left hover:bg-gray-100 duration-75 transition-colors rounded-lg group"
+                  onclick={() => addToBlacklist(app.name)}>
                   <div class="flex items-center gap-3">
                     {#if app.icon}
                       <img src={app.icon} alt={app.name} class="w-6 h-6 object-contain" />
                     {/if}
                     <span class="text-gray-700">{app.name}</span>
                   </div>
-                  <Plus class="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                  <Plus class="w-4 h-4 text-gray-400 group-hover:text-secondary-300" />
                 </button>
               {/if}
             {/each}

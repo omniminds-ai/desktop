@@ -18,7 +18,7 @@
   onMount(async () => {
     try {
       const recordings = await invoke<Recording[]>('list_recordings');
-      recording = recordings.find(r => r.id === recordingId) || null;
+      recording = recordings.find((r) => r.id === recordingId) || null;
 
       // Load video
       try {
@@ -33,11 +33,11 @@
 
       // Load raw events
       try {
-        const text = await invoke<string>('get_recording_file', { 
-          recordingId, 
-          filename: 'input_log.jsonl' 
+        const text = await invoke<string>('get_recording_file', {
+          recordingId,
+          filename: 'input_log.jsonl'
         });
-        rawEvents = text.split('\n').filter(line => line.trim());
+        rawEvents = text.split('\n').filter((line) => line.trim());
       } catch (error) {
         console.log('Raw events not available');
       }
@@ -79,18 +79,14 @@
 <div class="h-full">
   <div class="p-4">
     <GymHeader title="Recording Details" />
-    
+
     {#if recording}
-      <div class="flex gap-6">
+      <div class="flex gap-6 xl:flex-row flex-col">
         <!-- Video Section -->
-        <div class="flex-1">
+        <div class="w-full xl:w-1/2">
           <Card padding="lg" className="mb-6">
-            <div class="relative pt-[56.25%]">
-              <video 
-                controls 
-                class="absolute top-0 left-0 w-full h-full"
-                src={videoSrc || ''}
-              >
+            <div class="">
+              <video controls class="w-full h-full" src={videoSrc || ''}>
                 Your browser does not support the video tag.
               </video>
             </div>
@@ -98,37 +94,36 @@
         </div>
 
         <!-- Data Section -->
-        <div class="w-1/2">
+        <div class="w-full xl:w-1/2">
           <Card padding="lg">
             <div class="flex gap-2 mb-4">
-              <Button 
+              <Button
                 variant={selectedView === 'raw' ? 'primary' : 'secondary'}
-                onclick={() => selectedView = 'raw'}
-                class="flex-1"
-              >
+                onclick={() => (selectedView = 'raw')}
+                class="flex-1">
                 Raw Events
               </Button>
-              <Button 
+              <Button
                 variant={selectedView === 'sft' ? 'primary' : 'secondary'}
-                onclick={() => selectedView = 'sft'}
+                onclick={() => (selectedView = 'sft')}
                 class="flex-1"
-                disabled={!sftHtml}
-              >
+                disabled={!sftHtml}>
                 SFT Data
               </Button>
-              <Button 
+              <Button
                 variant={selectedView === 'grpo' ? 'primary' : 'secondary'}
-                onclick={() => selectedView = 'grpo'}
+                onclick={() => (selectedView = 'grpo')}
                 class="flex-1"
-                disabled={!grpoHtml}
-              >
+                disabled={!grpoHtml}>
                 GRPO Data
               </Button>
             </div>
 
             <div class="h-[600px] overflow-auto">
               {#if selectedView === 'raw'}
-                <pre class="text-sm text-gray-700 whitespace-pre-wrap">{rawEvents.map(formatJson).join('\n')}</pre>
+                <pre class="text-sm text-gray-700 whitespace-pre-wrap">{rawEvents
+                    .map(formatJson)
+                    .join('\n')}</pre>
               {:else if selectedView === 'sft'}
                 {#if sftHtml}
                   {@html sftHtml}
@@ -153,9 +148,7 @@
         </div>
       </div>
     {:else}
-      <div class="text-center py-8 text-gray-500">
-        Loading recording details...
-      </div>
+      <div class="text-center py-8 text-gray-500">Loading recording details...</div>
     {/if}
   </div>
 </div>

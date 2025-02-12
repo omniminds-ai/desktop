@@ -21,9 +21,11 @@
   });
 
   $: filteredRecordings = recordings
-    .filter(recording => 
-      recording.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (recording.description && recording.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(
+      (recording) =>
+        recording.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (recording.description &&
+          recording.description.toLowerCase().includes(searchQuery.toLowerCase()))
     )
     .sort((a, b) => {
       if (sortOrder === 'newest') {
@@ -37,27 +39,29 @@
     console.log('Uploading recording:', recordingId);
     // Implement upload logic here
   }
+  function handleProcess(recordingId: string) {
+    console.log('Processing recording:', recordingId);
+    // Implement process logic here
+  }
 </script>
 
 <div class="h-full">
   <div class="p-4">
     <GymHeader title="Recording History" />
-    
+
     <div class="flex flex-col sm:flex-row gap-4 mb-6">
       <div class="relative flex-grow">
         <input
           type="text"
           bind:value={searchQuery}
           placeholder="Search recordings..."
-          class="w-full pl-10 pr-4 py-2 bg-white border-2 border-gray-200 rounded-lg focus:outline-none focus:border-secondary-300 text-gray-800"
-        />
+          class="w-full pl-10 pr-4 py-2 bg-white border-2 border-gray-200 rounded-lg focus:outline-none focus:border-secondary-300 text-gray-800" />
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
       </div>
-      
+
       <select
         bind:value={sortOrder}
-        class="px-4 py-2 bg-white border-2 border-gray-200 rounded-lg focus:outline-none focus:border-secondary-300 text-gray-800"
-      >
+        class="px-4 py-2 bg-white border-2 border-gray-200 rounded-lg focus:outline-none focus:border-secondary-300 text-gray-800">
         <option value="newest">Newest First</option>
         <option value="oldest">Oldest First</option>
       </select>
@@ -77,7 +81,7 @@
               <span>Recorded: {new Date(recording.timestamp).toLocaleString()}</span>
             </div>
           </div>
-          
+
           <div class="flex flex-col gap-2 w-32">
             <a href="/app/gym/history/{recording.id}" class="block">
               <Button variant="secondary" class="h-8 text-sm flex! items-center w-full">
@@ -86,17 +90,20 @@
               </Button>
             </a>
             {#if recording.status === 'completed'}
-              <Button onclick={() => handleUpload(recording.id)} class="h-8 text-sm flex! items-center">
+              <Button
+                onclick={() => handleUpload(recording.id)}
+                class="h-8 text-sm flex! items-center">
                 <Upload class="w-3.5 h-3.5 mr-1.5 shrink-0" />
                 <span>Upload</span>
               </Button>
-              <Button 
-                onclick={() => handleProcess(recording.id)} 
+              <Button
+                onclick={() => handleProcess(recording.id)}
                 class="h-8 text-sm flex! items-center"
-                disabled={processing === recording.id}
-              >
+                disabled={processing === recording.id}>
                 {#if processing === recording.id}
-                  <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                  <div
+                    class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
+                  </div>
                   <span>Processing...</span>
                 {:else}
                   <Play class="w-3.5 h-3.5 mr-1.5 shrink-0" />
