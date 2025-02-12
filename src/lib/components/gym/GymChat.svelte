@@ -25,6 +25,8 @@
   let message = $state('');
   let inputEvents = $state<any[]>([]);
   let recordingState = $state<'recording' | 'stopping' | 'stopped'>('stopped');
+  let questAccepted = $state(false);
+  let recordingLoading = $state(false);
   let isScrolled = $state(false);
   let chatMessages = $state<Message[]>([]);
   let typingMessage = $state<{
@@ -238,26 +240,13 @@
       unlisten = unlistenFn;
     });
 
-    // If in preview mode or privacy already accepted, skip welcome and go straight to quest generation
-    async function init() {
-      if (previewSkills) {
-        privacyAccepted = true; // Skip privacy policy in preview mode
-        generateQuestFromSkills(previewSkills);
-      } else if (privacyAccepted) {
-        // Skip welcome for returning users, just handle prompt and generate quest
-        if (prompt) {
-          await addMessage({
-            role: 'user',
-            parts: [{ type: MessagePartType.text, content: prompt }]
-          });
-        }
-        generateQuestFromSkills(prompt || 'anything keep it simple');
-      } else {
-        // Start welcome messages with privacy policy for first time users
-        addMessagesWithDelay(welcomeMessages);
-      }
+    if (prompt && privacyAccepted) {
+      addMessage({
+        role: 'user',
+        parts: [{ type: MessagePartType.text, content: prompt }]
+      });
     }
-    init();
+    initQuest();
 
     return () => {
       unlisten?.();
@@ -277,6 +266,21 @@
       blipAudio.remove();
     }
   });
+
+  // If in preview mode or privacy already accepted, skip welcome and go straight to quest generation
+  async function initQuest() {
+    if (previewSkills) {
+      privacyAccepted = true; // Skip privacy policy in preview mode
+      await generateQuestFromSkills(previewSkills);
+    } else if (privacyAccepted) {
+      // Skip welcome for returning users, just generate quest
+      await generateQuestFromSkills(prompt || 'anything keep it simple');
+    } else {
+      // Start welcome messages with privacy policy for first time users
+      await addMessagesWithDelay(welcomeMessages);
+    }
+    scrollToBottom();
+  }
 
   async function generateQuestFromSkills(skills: string) {
     await addMessage({
@@ -311,12 +315,14 @@
                 component: RecordButton,
                 props: {
                   onStart: handleRecordingStart,
-                  onCancel: handleRecordingCancel
+                  onCancel: handleRecordingCancel,
+                  disabled: () => questAccepted
                 }
               },
               {
                 type: 'destroy',
                 text: 'Not Interested',
+                props: { disabled: () => questAccepted },
                 fn: () => handleQuestDecline()
               }
             ]
@@ -370,7 +376,8 @@
         parts: [
           {
             type: MessagePartType.text,
-            content: "i'll help you get started with some tasks that'll help train our AI and earn you rewards."
+            content:
+              "i'll help you get started with some tasks that'll help train our AI and earn you rewards."
           }
         ]
       });
@@ -395,6 +402,7 @@
   }
 
   async function handleRecordingStart() {
+    questAccepted = true;
     addMessage({
       role: 'user',
       parts: [{ type: MessagePartType.text, content: "Let's do this! 💪" }]
@@ -407,28 +415,43 @@
   }
 
   function handleRecordingCancel() {
-    addMessage({
-      role: 'user',
-      parts: [{ type: MessagePartType.text, content: 'Recording cancelled' }]
-    });
+    questAccepted = false;
   }
 
-  function handleQuestDecline() {
+  async function handleQuestDecline() {
+    questAccepted = false;
     addMessage({
       role: 'user',
       parts: [{ type: MessagePartType.text, content: 'Not interested.' }]
     });
+    await addMessage({
+      role: 'assistant',
+      parts: [
+        {
+          type: MessagePartType.text,
+          content: 'No worries! Let me generate another quest that you may like better.'
+        }
+      ]
+    });
+    initQuest();
   }
 
   async function toggleRecording() {
     try {
+      recordingLoading = true;
       if (recordingState === 'stopped') {
-        gym.startRecording().catch(console.error);
+        await gym.startRecording().catch(console.error);
       } else if (recordingState === 'recording') {
-        gym.stopRecording().catch(console.error);
+        await gym.stopRecording().catch(console.error);
+        //todo: log how many minutes/events & viralm collected
+        addMessage({
+          role: 'system',
+          parts: [{ type: MessagePartType.text, content: 'Training session ended.' }]
+        });
         // Clear quest from overlay
         await emit('quest-overlay', { quest: null });
       }
+      recordingLoading = false;
     } catch (error) {
       console.error('Recording error:', error);
     }
@@ -511,9 +534,7 @@
   <div class="pt-4 px-4">
     <GymHeader title="Training Session" />
   </div>
-  <div
-    bind:this={chatContent}
-    class="flex-1 px-6 pb-6 space-y-3 overflow-y-auto chat-content">
+  <div bind:this={chatContent} class="flex-1 px-6 pb-6 space-y-3 overflow-y-auto chat-content">
     {#each chatMessages as msg, i}
       <div
         class="flex gap-2 transition-all duration-200 {msg.role === 'user' ? 'justify-end' : ''}">
@@ -602,15 +623,38 @@
                   {#each part.actions as action}
                     <div class="flex gap-2 mt-4">
                       {#if action.type === 'primary'}
-                        <Button onclick={action.fn}>
+                        <Button
+                          {...Object.fromEntries(
+                            Object.entries(action.props || []).map(([key, value]) => [
+                              key,
+                              typeof value === 'function' ? value() : value
+                            ])
+                          )}
+                          onclick={action.fn}>
                           {action.text}
                         </Button>
                       {:else if action.type === 'destroy'}
-                        <Button variant="destroy" onclick={action.fn}>
+                        <Button
+                          {...Object.fromEntries(
+                            Object.entries(action.props || []).map(([key, value]) => [
+                              key,
+                              typeof value === 'function' ? value() : value
+                            ])
+                          )}
+                          variant="destroy"
+                          onclick={action.fn}>
                           {action.text}
                         </Button>
                       {:else if action.type === 'warning'}
-                        <Button variant="warning" onclick={action.fn}>
+                        <Button
+                          {...Object.fromEntries(
+                            Object.entries(action.props || []).map(([key, value]) => [
+                              key,
+                              typeof value === 'function' ? value() : value
+                            ])
+                          )}
+                          variant="warning"
+                          onclick={action.fn}>
                           {action.text}
                         </Button>
                       {:else if action.type === 'component'}
@@ -653,11 +697,15 @@
       <div class="flex gap-3 items-center max-w-4xl mx-auto">
         <Button
           onclick={toggleRecording}
-          class={(recordingState === 'recording'
+          class={(recordingState === 'recording' || recordingLoading
             ? 'bg-red-500! hover:text-red-500! hover:bg-white! border-red-500!'
             : '') + ' rounded-full! flex!'}>
           {#if recordingState === 'recording'}
             <Square size={20} />
+          {:else if recordingLoading}
+            <div
+              class="w-5 h-5 rounded-full border-2 border-white hover:border-red-500! border-t-transparent! animate-spin">
+            </div>
           {:else}
             <Video size={20} />
           {/if}

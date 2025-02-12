@@ -80,7 +80,7 @@
             {#each filteredApps as app}
               {#if !currentBlacklist.includes(app.name)}
                 <button
-                  class="flex h-10 items-center justify-between w-full px-4 py-2 text-left hover:bg-gray-100 duration-75 transition-colors rounded-lg group"
+                  class="flex h-10 items-center justify-between w-full px-4 py-2 text-left hover:cursor-pointer hover:bg-gray-100 duration-75 transition-colors rounded-lg group"
                   onclick={() => addToBlacklist(app.name)}>
                   <div class="flex items-center gap-3">
                     {#if app.icon}

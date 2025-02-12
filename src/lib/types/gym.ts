@@ -1,4 +1,5 @@
-import type { Component, ComponentProps } from "svelte";
+import type { Component, ComponentProps } from 'svelte';
+import type { HTMLButtonAttributes } from 'svelte/elements';
 
 export interface Race {
   title: string;
@@ -9,12 +10,12 @@ export interface Race {
   agent_prompt: string;
 }
 
-export type MessageRole = "assistant" | "user" | "system";
+export type MessageRole = 'assistant' | 'user' | 'system';
 export enum MessagePartType {
-  text = "text",
-  embed = "embed",
-  quest = "quest",
-  loading = "loading",
+  text = 'text',
+  embed = 'embed',
+  quest = 'quest',
+  loading = 'loading'
 }
 
 export interface QuestInfo {
@@ -32,12 +33,13 @@ export type MessagePart<T extends Component = any, P = ComponentProps<T>> = {
   actions?:
     | (
         | {
-            type: "primary" | "warning" | "destroy";
+            type: 'primary' | 'warning' | 'destroy';
             text: string;
+            props?: P;
             fn: () => void;
           }
         | {
-            type: "component";
+            type: 'component';
             component: T;
             props: P;
           }

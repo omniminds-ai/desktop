@@ -7,13 +7,14 @@
   let countdown = $state(3);
   let countdownInterval: number | undefined;
 
-  const { onStart, onCancel } = $props<{
+  const { onStart, onCancel, disabled } = $props<{
     onStart: () => void;
     onCancel: () => void;
+    disabled: () => boolean;
   }>();
 
   function startCountdown() {
-    if (countingDown) return;
+    if (countingDown || disabled() == true) return;
 
     countingDown = true;
     countdown = 3;
@@ -47,6 +48,7 @@
 </script>
 
 <Button
+  disabled={disabled() == true}
   onclick={countingDown ? cancelCountdown : startCountdown}
   class={(countingDown ? 'bg-red-500! hover:bg-red-600! hover:text-white! border-red-500!' : '') +
     'rounded-md! flex! items-center gap-2'}>
