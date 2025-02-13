@@ -1,12 +1,13 @@
 <script lang="ts">
   export let variant: 'default' | 'primary' | 'secondary' = 'default';
-  export let padding: 'sm' | 'md' | 'lg' = 'md';
+  export let padding: 'sm' | 'md' | 'lg' | 'none' = 'md';
   export let className = '';
 
   const paddingClasses = {
     sm: 'p-2 sm:p-3',
     md: 'p-3 sm:p-4 md:p-5',
-    lg: 'p-4 sm:p-5 md:p-6'
+    lg: 'p-4 sm:p-5 md:p-6',
+    none: 'p-0'
   };
 
   const variantClasses = {
