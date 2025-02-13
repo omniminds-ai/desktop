@@ -60,9 +60,9 @@ export async function generateQuest(prompt: string, address: string): Promise<Qu
   return await response.json();
 }
 
-export async function startRecording() {
+export async function startRecording(quest?: Quest) {
   try {
-    await invoke('start_recording');
+    await invoke('start_recording', { quest });
   } catch (error) {
     console.error('Failed to start recording:', error);
     throw error;

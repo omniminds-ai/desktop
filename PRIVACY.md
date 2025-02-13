@@ -10,6 +10,11 @@ Our service operates without user accounts or personal identification. When you 
 - Keyboard actions (including typed text)
 - Window layout metadata
 - Accessibility tree data
+- System information:
+  - Operating system type and version
+  - CPU architecture
+  - Language/locale settings
+  - Primary monitor resolution
 - Cryptocurrency wallet public key (only if connected for receiving rewards)
 
 The metadata we collect (window layout and accessibility trees) is used solely for AI training purposes.
@@ -17,13 +22,15 @@ The metadata we collect (window layout and accessibility trees) is used solely f
 Please note that since we record keyboard actions, any personal information you type during a recording session may be captured. We provide tools to help you review and remove such information before submission.
 
 We do NOT intentionally collect:
-- System-level personal information
 - Account credentials
 - Cryptocurrency wallet private keys or other sensitive wallet data
 - Hardware IDs (HWID)
 - Computer names
-- System identifiers
-- Any other machine-identifying metadata
+- MAC addresses
+- IP addresses
+- Device serial numbers
+- User account names
+- Any other machine or user-identifying metadata beyond the basic system information listed above
 
 You maintain full control over your recordings:
 - You can review all recordings before submission

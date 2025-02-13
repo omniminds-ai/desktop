@@ -11,7 +11,8 @@
   import pfp from '$lib/assets/V_pfp_v1.png';
   import tone from '$lib/assets/tone.wav';
   import blip from '$lib/assets/blip.wav';
-  import { MessagePartType, type Message, type QuestInfo } from '$lib/types/gym';
+  import { MessagePartType, type Message } from '$lib/types/gym';
+  import type { Quest } from '$lib/gym';
   import PrivacyPolicyEmbed from './PrivacyPolicyEmbed.svelte';
 
   import { page } from '$app/state';
@@ -38,7 +39,7 @@
   let toneAudio: HTMLAudioElement;
   let blipAudio: HTMLAudioElement;
   let privacyAccepted = $state($privacyStore);
-  let currentQuest = $state<QuestInfo | null>(null);
+  let currentQuest = $state<Quest | null>(null);
   let appIcons = $state<Record<string, string>>({});
 
   async function fetchAppIcons(apps: string[]) {
@@ -440,7 +441,7 @@
     try {
       recordingLoading = true;
       if (recordingState === 'stopped') {
-        await gym.startRecording().catch(console.error);
+        await gym.startRecording(currentQuest!).catch(console.error);
       } else if (recordingState === 'recording') {
         await gym.stopRecording().catch(console.error);
         //todo: log how many minutes/events & viralm collected
@@ -571,30 +572,30 @@
                     class="p-4 rounded bg-black/10 space-y-4 hover:bg-black/15 transition-colors duration-200 border border-secondary-300/20">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-2">
-                        <span
+                        <!-- <span
                           class="px-2 py-1 text-xs font-semibold bg-secondary-300 text-white rounded-full">
                           New Quest
-                        </span>
-                        <h3 class="text-sm tracking-tight uppercase">
+                        </span> -->
+                        <!-- <h3 class="text-sm tracking-tight uppercase">
                           {part.quest.title}
-                        </h3>
+                        </h3> -->
                       </div>
-                      <div class="px-2 py-1 text-xs font-semibold bg-secondary-300/10 rounded-full">
+                      <!-- <div class="px-2 py-1 text-xs font-semibold bg-secondary-300/10 rounded-full">
                         Task #{part.quest.task_id}
-                      </div>
+                      </div> -->
                     </div>
-                    <p class="text-base">{part.quest.concrete_scenario}</p>
-                    <div class="text-sm font-medium">
+                    <p class="text-base">{part.quest.objective}</p>
+                    <!-- <div class="text-sm font-medium">
                       Objective: {part.quest.objective}
-                    </div>
-                    <div class="space-y-2">
+                    </div> -->
+                    <!-- <div class="space-y-2">
                       {#each part.quest.subgoals as subgoal}
                         <div class="flex items-center gap-2 text-sm opacity-75">
                           <div class="w-1.5 h-1.5 rounded-full bg-secondary-300"></div>
                           <span>{subgoal}</span>
                         </div>
                       {/each}
-                    </div>
+                    </div> -->
                     {#if part.quest.relevant_applications.length > 0}
                       <div class="flex flex-wrap gap-2 mt-2">
                         {#each part.quest.relevant_applications as app}

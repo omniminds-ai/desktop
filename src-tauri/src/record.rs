@@ -30,6 +30,18 @@ pub struct RecordingMeta {
     version: String,
     locale: String,
     primary_monitor: MonitorInfo,
+    quest: Option<Quest>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Quest {
+    task_id: String,
+    title: String,
+    original_instruction: String,
+    concrete_scenario: String,
+    objective: String,
+    relevant_applications: Vec<String>,
+    subgoals: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -167,6 +179,7 @@ pub async fn list_recordings(app: tauri::AppHandle) -> Result<Vec<RecordingMeta>
 pub async fn start_recording(
     app: tauri::AppHandle,
     quest_state: State<'_, QuestState>,
+    quest: Option<Quest>,
 ) -> Result<(), String> {
     // Start screen recording
     let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
@@ -195,7 +208,11 @@ pub async fn start_recording(
         timestamp: Local::now().to_rfc3339(),
         duration_seconds: 0,
         status: "recording".to_string(),
-        title: "Recording Session".to_string(),
+        title: if let Some(q) = &quest {
+            q.title.clone()
+        } else {
+            "Recording Session".to_string()
+        },
         description: "".to_string(),
         platform: tauri_plugin_os::platform().to_string(),
         arch: tauri_plugin_os::arch().to_string(),
@@ -205,6 +222,7 @@ pub async fn start_recording(
             width: primary.width,
             height: primary.height,
         },
+        quest,
     };
 
     fs::write(

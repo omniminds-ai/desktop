@@ -36,6 +36,9 @@ import RecordingBadge from './RecordingBadge.svelte';
           <div class="flex items-center gap-2">
             <li>Window layout metadata and accessibility tree data</li>
           </div>
+          <div class="flex items-center gap-2">
+            <li>System information (OS, CPU architecture, language settings)</li>
+          </div>
           <li>Cryptocurrency wallet public key (for receiving rewards)</li>
         </ul>
       </section>

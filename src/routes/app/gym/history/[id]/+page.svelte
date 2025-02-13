@@ -163,8 +163,7 @@
                 <div class="text-sm text-gray-500 grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
                   <div>ID: {recording.id}</div>
                   <div>Resolution: {recording.primary_monitor.width}x{recording.primary_monitor.height}</div>
-                  <div>OS: {recording.platform} ({recording.arch})</div>
-                  <div>Version: {recording.version}</div>
+                  <div>OS: {recording.platform} {recording.version} ({recording.arch})</div>
                   <div>Locale: {recording.locale}</div>
                 </div>
               </div>
@@ -232,7 +231,7 @@
                 <div class="flex flex-col">
                   {#each filteredEvents.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage) as event, i}
                     <div class={`flex gap-2 items-start min-w-0 p-2 rounded ${i % 2 === 0 ? 'bg-gray-100' : ''}`}>
-                      <div class="flex flex-col gap-1 min-w-[50px]">
+                      <div class="flex flex-col gap-1 min-w-[50px] select-none">
                         <EventTimestamp 
                           timestamp={event.time} 
                           startTime={startTimestamp || 0}
