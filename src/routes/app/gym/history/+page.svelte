@@ -71,8 +71,8 @@
   <div class="grid gap-4 px-4 pb-4">
     {#each filteredRecordings as recording}
       <Card padding="lg" className="border-2">
-        <div class="flex flex-col sm:flex-row justify-between gap-4">
-          <div>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="grow">
             <h3 class="text-xl font-title mb-2">{recording.title}</h3>
             <p class="text-gray-700 mb-3">{recording.description || 'No description'}</p>
             <div class="flex flex-wrap gap-4 text-sm text-gray-600">
@@ -82,7 +82,7 @@
             </div>
           </div>
 
-          <div class="flex flex-col gap-2 w-32">
+          <div class="flex flex-col gap-2">
             <a href="/app/gym/history/{recording.id}" class="block">
               <Button variant="secondary" class="h-8 text-sm flex! items-center w-full">
                 <Edit class="w-3.5 h-3.5 mr-1.5 shrink-0" />

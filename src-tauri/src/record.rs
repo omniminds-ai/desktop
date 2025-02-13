@@ -5,12 +5,12 @@ use crate::input;
 use crate::logger::Logger;
 #[cfg(target_os = "macos")]
 use crate::macos_screencapture::MacOSScreenRecorder;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use chrono::Local;
 use display_info::DisplayInfo;
 use serde::{Deserialize, Serialize};
-use std::fs::{self, File, create_dir_all};
-use std::io::{Read, BufReader};
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use std::fs::{self, create_dir_all, File};
+use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
@@ -113,7 +113,7 @@ fn get_session_path(app: &tauri::AppHandle) -> Result<(PathBuf, String), String>
 
     let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
     let session_dir = recordings_dir.join(&timestamp);
-    
+
     std::fs::create_dir_all(&session_dir)
         .map_err(|e| format!("Failed to create session directory: {}", e))?;
 
@@ -133,7 +133,9 @@ pub async fn list_recordings(app: tauri::AppHandle) -> Result<Vec<RecordingMeta>
     }
 
     let mut recordings = Vec::new();
-    for entry in fs::read_dir(&recordings_dir).map_err(|e| format!("Failed to read recordings directory: {}", e))? {
+    for entry in fs::read_dir(&recordings_dir)
+        .map_err(|e| format!("Failed to read recordings directory: {}", e))?
+    {
         let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
         let meta_path = entry.path().join("meta.json");
         if meta_path.exists() {
@@ -165,6 +167,7 @@ pub async fn start_recording(
     ffmpeg::init_ffmpeg()?;
 
     let (session_dir, timestamp) = get_session_path(&app)?;
+
     let video_path = session_dir.join("recording.mp4");
 
     // Create and save initial meta file
@@ -176,10 +179,11 @@ pub async fn start_recording(
         title: "Recording Session".to_string(),
         description: "".to_string(),
     };
-    
+
     fs::write(
         session_dir.join("meta.json"),
-        serde_json::to_string_pretty(&meta).map_err(|e| format!("Failed to serialize meta: {}", e))?,
+        serde_json::to_string_pretty(&meta)
+            .map_err(|e| format!("Failed to serialize meta: {}", e))?,
     )
     .map_err(|e| format!("Failed to write meta file: {}", e))?;
 
@@ -252,7 +256,7 @@ pub async fn stop_recording(
     // Update meta file with duration
     if let Some(start_time) = *quest_state.recording_start_time.lock().unwrap() {
         let duration = Local::now().signed_duration_since(start_time).num_seconds() as u64;
-        
+
         let recordings_dir = app
             .path()
             .app_local_data_dir()
@@ -264,8 +268,9 @@ pub async fn stop_recording(
             .map_err(|e| format!("Failed to read recordings directory: {}", e))?
             .collect::<Result<_, _>>()
             .map_err(|e| format!("Failed to read directory entries: {}", e))?;
-        
-        entries.sort_by_key(|entry| std::cmp::Reverse(entry.metadata().unwrap().modified().unwrap()));
+
+        entries
+            .sort_by_key(|entry| std::cmp::Reverse(entry.metadata().unwrap().modified().unwrap()));
 
         if let Some(latest_dir) = entries.first() {
             let meta_path = latest_dir.path().join("meta.json");
@@ -274,13 +279,14 @@ pub async fn stop_recording(
                     .map_err(|e| format!("Failed to read meta file: {}", e))?;
                 let mut meta: RecordingMeta = serde_json::from_str(&meta_str)
                     .map_err(|e| format!("Failed to parse meta file: {}", e))?;
-                
+
                 meta.duration_seconds = duration;
                 meta.status = "completed".to_string();
 
                 fs::write(
                     &meta_path,
-                    serde_json::to_string_pretty(&meta).map_err(|e| format!("Failed to serialize meta: {}", e))?,
+                    serde_json::to_string_pretty(&meta)
+                        .map_err(|e| format!("Failed to serialize meta: {}", e))?,
                 )
                 .map_err(|e| format!("Failed to write meta file: {}", e))?;
             }
@@ -318,7 +324,12 @@ pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn get_recording_file(app: tauri::AppHandle, recording_id: String, filename: String, as_base64: Option<bool>) -> Result<String, String> {
+pub async fn get_recording_file(
+    app: tauri::AppHandle,
+    recording_id: String,
+    filename: String,
+    as_base64: Option<bool>,
+) -> Result<String, String> {
     let recordings_dir = app
         .path()
         .app_local_data_dir()
@@ -331,14 +342,14 @@ pub async fn get_recording_file(app: tauri::AppHandle, recording_id: String, fil
         return Err(format!("File not found: {}", filename));
     }
 
-    let mut file = File::open(&file_path)
-        .map_err(|e| format!("Failed to open file: {}", e))?;
+    let mut file = File::open(&file_path).map_err(|e| format!("Failed to open file: {}", e))?;
     if as_base64 == Some(true) {
         let mut reader = BufReader::new(file);
         let mut buffer = Vec::new();
-        reader.read_to_end(&mut buffer)
+        reader
+            .read_to_end(&mut buffer)
             .map_err(|e| format!("Failed to read file: {}", e))?;
-        
+
         Ok(format!("data:video/mp4;base64,{}", BASE64.encode(&buffer)))
     } else {
         let mut contents = String::new();
@@ -350,15 +361,17 @@ pub async fn get_recording_file(app: tauri::AppHandle, recording_id: String, fil
 }
 
 #[tauri::command]
-pub async fn write_file(app: tauri::AppHandle, path: String, content: String) -> Result<(), String> {
+pub async fn write_file(
+    app: tauri::AppHandle,
+    path: String,
+    content: String,
+) -> Result<(), String> {
     // Create parent directories if they don't exist
     if let Some(parent) = std::path::Path::new(&path).parent() {
-        create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directories: {}", e))?;
+        create_dir_all(parent).map_err(|e| format!("Failed to create directories: {}", e))?;
     }
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write file: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write file: {}", e))?;
 
     Ok(())
 }
@@ -369,7 +382,7 @@ pub async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
         .path()
         .app_local_data_dir()
         .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-    
+
     Ok(path.to_string_lossy().to_string())
 }
 

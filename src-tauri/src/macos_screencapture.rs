@@ -23,14 +23,14 @@ impl MacOSScreenRecorder {
     pub fn start(&mut self) -> Result<(), String> {
         println!("[MacOS Recorder] Starting recording.");
 
-        // Ensure the path ends with .mov
+        // Ensure the path ends with .mp4
         let output_path = if self
             .output_path
             .extension()
-            .map_or(true, |ext| ext != "mov")
+            .map_or(true, |ext| ext != "mp4")
         {
             let mut new_path = self.output_path.with_extension("");
-            new_path.set_extension("mov");
+            new_path.set_extension("mp4");
             new_path
         } else {
             self.output_path.clone()
