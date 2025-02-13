@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import { Search, Upload, Edit, Download, Play } from 'lucide-svelte';
+  import { Search, Upload, Edit, Play } from 'lucide-svelte';
   import GymHeader from '$lib/components/gym/GymHeader.svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
@@ -48,6 +48,11 @@
 <div class="h-full">
   <div class="p-4">
     <GymHeader title="Recording History" />
+    <button
+      onclick={() => invoke('open_recording_folder', { recordingId: '' })}
+      class="text-secondary-300 text-sm cursor-pointer mb-2 -mt-2 hover:underline">
+      Open Recordings Folder
+    </button>
 
     <div class="flex flex-col sm:flex-row gap-4 mb-6">
       <div class="relative flex-grow">
