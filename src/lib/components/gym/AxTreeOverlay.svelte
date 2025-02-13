@@ -1,13 +1,14 @@
 <script lang="ts">
   export let tree: any[];
   export let videoElement: HTMLVideoElement | null;
+  export let resolution: { width: number; height: number };
 
   function renderAxTreeOverlay(tree: any) {
     return tree.map((node: any) => {
       const boxes = [];
       
       // Add this node's box if it has valid dimensions
-      if (node.bbox && node.bbox.width > 0 && node.bbox.height > 0 && node.bbox.x > 0 && node.bbox.y > 0) {
+      if (node.bbox && node.bbox.width > 0 && node.bbox.height > 0) {
         boxes.push({
           ...node.bbox,
           name: node.name,
@@ -27,7 +28,7 @@
   $: boxes = renderAxTreeOverlay(tree);
   $: videoWidth = videoElement?.clientWidth || 0;
   $: videoHeight = videoElement?.clientHeight || 0;
-  $: scale = Math.min(videoWidth / 3440, videoHeight / 1440);
+  $: scale = Math.min(videoWidth / resolution.width, videoHeight / resolution.height);
 </script>
 
 <div 

@@ -25,6 +25,17 @@ pub struct RecordingMeta {
     status: String,
     title: String,
     description: String,
+    platform: String,
+    arch: String,
+    version: String,
+    locale: String,
+    primary_monitor: MonitorInfo,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MonitorInfo {
+    width: u32,
+    height: u32,
 }
 
 enum Recorder {
@@ -171,6 +182,13 @@ pub async fn start_recording(
 
     let video_path = session_dir.join("recording.mp4");
 
+    let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
+    let primary = displays
+        .iter()
+        .find(|d| d.is_primary)
+        .or_else(|| displays.first())
+        .ok_or_else(|| "No display found".to_string())?;
+
     // Create and save initial meta file
     let meta = RecordingMeta {
         id: timestamp.clone(),
@@ -179,6 +197,14 @@ pub async fn start_recording(
         status: "recording".to_string(),
         title: "Recording Session".to_string(),
         description: "".to_string(),
+        platform: tauri_plugin_os::platform().to_string(),
+        arch: tauri_plugin_os::arch().to_string(),
+        version: tauri_plugin_os::version().to_string(),
+        locale: tauri_plugin_os::locale().unwrap_or_default(),
+        primary_monitor: MonitorInfo {
+            width: primary.width,
+            height: primary.height,
+        },
     };
 
     fs::write(
@@ -187,13 +213,6 @@ pub async fn start_recording(
             .map_err(|e| format!("Failed to serialize meta: {}", e))?,
     )
     .map_err(|e| format!("Failed to write meta file: {}", e))?;
-
-    let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
-    let primary = displays
-        .iter()
-        .find(|d| d.is_primary)
-        .or_else(|| displays.first())
-        .ok_or_else(|| "No display found".to_string())?;
 
     *quest_state.objectives_completed.lock().unwrap() = 0;
     *quest_state.recording_start_time.lock().unwrap() = Some(Local::now());

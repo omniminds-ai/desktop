@@ -1,5 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
 
+export interface MonitorInfo {
+  width: number;
+  height: number;
+}
+
 export interface Recording {
   id: string;
   timestamp: string;
@@ -7,6 +12,11 @@ export interface Recording {
   status: string;
   title: string;
   description: string;
+  platform: string;
+  arch: string;
+  version: string;
+  locale: string;
+  primary_monitor: MonitorInfo;
 }
 
 export interface Quest {

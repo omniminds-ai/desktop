@@ -142,7 +142,14 @@
               {#if visibleAxTree !== null}
                 {#each filteredEvents as event}
                   {#if event.time === visibleAxTree && event.event === 'axtree'}
-                    <AxTreeOverlay tree={event.data.tree} {videoElement} />
+                    <AxTreeOverlay 
+                      tree={event.data.tree} 
+                      {videoElement}
+                      resolution={{
+                        width: recording.primary_monitor.width,
+                        height: recording.primary_monitor.height
+                      }} 
+                    />
                   {/if}
                 {/each}
               {/if}
@@ -153,7 +160,13 @@
             <div class="flex items-center justify-between gap-4">
               <div class="text-gray-700 min-w-0">
                 <div class="font-medium truncate">{recording.title}</div>
-                <div class="text-sm text-gray-500">Recording ID: {recording.id}</div>
+                <div class="text-sm text-gray-500 grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
+                  <div>ID: {recording.id}</div>
+                  <div>Resolution: {recording.primary_monitor.width}x{recording.primary_monitor.height}</div>
+                  <div>OS: {recording.platform} ({recording.arch})</div>
+                  <div>Version: {recording.version}</div>
+                  <div>Locale: {recording.locale}</div>
+                </div>
               </div>
               <Button
                 variant="secondary"
