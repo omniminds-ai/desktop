@@ -77,8 +77,8 @@ pub fn init_dump_tree() -> Result<(), String> {
     let _response = reqwest::blocking::get(DUMP_TREE_URL)
         .map_err(|e| format!("Failed to check latest version: {}", e))?;
 
-    let url_parser = Url::parse(DUMP_TREE_URL)
-        .map_err(|e| format!("Failed to parse URL: {}", e))?;
+    let url_parser =
+        Url::parse(DUMP_TREE_URL).map_err(|e| format!("Failed to parse URL: {}", e))?;
 
     let dump_tree_filename = url_parser
         .path_segments()

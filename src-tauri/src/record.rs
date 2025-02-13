@@ -378,7 +378,10 @@ pub async fn write_file(
 }
 
 #[tauri::command]
-pub async fn open_recording_folder(app: tauri::AppHandle, recording_id: String) -> Result<(), String> {
+pub async fn open_recording_folder(
+    app: tauri::AppHandle,
+    recording_id: String,
+) -> Result<(), String> {
     let recordings_dir = app
         .path()
         .app_local_data_dir()

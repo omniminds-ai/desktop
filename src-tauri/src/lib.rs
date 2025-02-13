@@ -20,8 +20,8 @@ mod record;
 
 use input::request_input_perms;
 use record::{
-    get_app_data_dir, get_recording_file, list_recordings, request_record_perms, start_recording,
-    stop_recording, write_file, QuestState, open_recording_folder
+    get_app_data_dir, get_recording_file, list_recordings, open_recording_folder,
+    request_record_perms, start_recording, stop_recording, write_file, QuestState,
 };
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -128,6 +128,7 @@ pub fn run() {
     }
 
     let _app = tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_shell::init())
         .manage(QuestState::default())

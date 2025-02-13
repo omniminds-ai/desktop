@@ -4,7 +4,9 @@
   import Button from '$lib/components/Button.svelte';
   import GymHeader from '$lib/components/gym/GymHeader.svelte';
   import EventTimestamp from '$lib/components/gym/EventTimestamp.svelte';
+  import AxTreeOverlay from '$lib/components/gym/AxTreeOverlay.svelte';
   import { invoke } from '@tauri-apps/api/core';
+  import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import { page } from '$app/state';
   import type { Recording } from '$lib/gym';
 
@@ -42,6 +44,11 @@
   let startTimestamp: number | null = null;
   let eventTypes: Set<string> = new Set();
   let enabledEventTypes: Set<string> = new Set();
+  let visibleAxTree: number | null = null;
+
+  async function copyEventData(event: any) {
+    await writeText(JSON.stringify(event, null, 2));
+  }
 
   onMount(async () => {
     try {
@@ -124,14 +131,21 @@
     <GymHeader title="Recording Details" />
 
     {#if recording}
-      <div class="flex gap-6 xl:flex-row flex-col">
+      <div class="flex gap-3 xl:flex-row flex-col h-[calc(100vh-7rem)]">
         <!-- Video Section -->
-        <div class="w-full xl:w-1/2">
+        <div class="w-full">
           <Card padding="none" className="mb-6">
-            <div class="">
+            <div class="relative">
               <video bind:this={videoElement} controls class="w-full h-full" src={videoSrc || ''}>
                 Your browser does not support the video tag.
               </video>
+              {#if visibleAxTree !== null}
+                {#each filteredEvents as event}
+                  {#if event.time === visibleAxTree && event.event === 'axtree'}
+                    <AxTreeOverlay tree={event.data.tree} {videoElement} />
+                  {/if}
+                {/each}
+              {/if}
             </div>
           </Card>
 
@@ -152,8 +166,8 @@
         </div>
 
         <!-- Data Section -->
-        <div class="w-full xl:w-1/2">
-          <Card padding="lg">
+        <div class="w-full xl:w-1/2 xl:max-w-md">
+          <Card padding="lg" className="h-full">
             <div class="flex flex-col gap-4 mb-4">
               <div class="flex gap-2">
               <Button
@@ -200,16 +214,32 @@
               {/if}
             </div>
 
-            <div class="h-[500px] overflow-auto">
+            <div class="h-full overflow-auto">
               {#if selectedView === 'raw'}
                 <div class="flex flex-col">
                   {#each filteredEvents.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage) as event, i}
                     <div class={`flex gap-2 items-start min-w-0 p-2 rounded ${i % 2 === 0 ? 'bg-gray-100' : ''}`}>
-                      <EventTimestamp 
-                        timestamp={event.time} 
-                        startTime={startTimestamp || 0}
-                        {videoElement} 
-                      />
+                      <div class="flex flex-col gap-1 min-w-[50px]">
+                        <EventTimestamp 
+                          timestamp={event.time} 
+                          startTime={startTimestamp || 0}
+                          {videoElement} 
+                        />
+                        {#if event.event === 'axtree'}
+                          <Button
+                            variant="secondary"
+                            class="text-sm p-0! px-1! w-full"
+                            onclick={() => visibleAxTree = visibleAxTree === event.time ? null : event.time}>
+                            {visibleAxTree === event.time ? 'Hide Tree' : 'Show Tree'}
+                          </Button>
+                        {/if}
+                        <Button
+                          variant="secondary"
+                          class="text-sm p-0! px-1! w-full"
+                          onclick={() => copyEventData(event)}>
+                          Copy
+                        </Button>
+                      </div>
                       <pre class="text-sm text-gray-700 whitespace-pre-wrap break-all flex-1 overflow-hidden">{formatJson(event)}</pre>
                     </div>
                   {/each}

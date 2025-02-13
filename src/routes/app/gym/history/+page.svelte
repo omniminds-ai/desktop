@@ -86,7 +86,7 @@
             <a href="/app/gym/history/{recording.id}" class="block">
               <Button variant="secondary" class="h-8 text-sm flex! items-center w-full">
                 <Edit class="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                <span>View Details</span>
+                <span>Details</span>
               </Button>
             </a>
             {#if recording.status === 'completed'}
