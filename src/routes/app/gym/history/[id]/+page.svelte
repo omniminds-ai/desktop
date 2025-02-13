@@ -5,10 +5,10 @@
   import GymHeader from '$lib/components/gym/GymHeader.svelte';
   import EventTimestamp from '$lib/components/gym/EventTimestamp.svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import type { Recording } from '$lib/gym';
 
-  const recordingId = $page.params.id;
+  const recordingId = page.params.id;
   let selectedView: 'raw' | 'sft' | 'grpo' = 'raw';
   let recording: Recording | null = null;
   let rawEvents: Array<{ time: number; event: string; data: any }> = [];
@@ -132,6 +132,21 @@
               <video bind:this={videoElement} controls class="w-full h-full" src={videoSrc || ''}>
                 Your browser does not support the video tag.
               </video>
+            </div>
+          </Card>
+
+          <Card padding="lg">
+            <div class="flex items-center justify-between gap-4">
+              <div class="text-gray-700 min-w-0">
+                <div class="font-medium truncate">{recording.title}</div>
+                <div class="text-sm text-gray-500">Recording ID: {recording.id}</div>
+              </div>
+              <Button
+                variant="secondary"
+                class="shrink-0"
+                onclick={() => invoke('open_recording_folder', { recordingId })}>
+                Open in Explorer
+              </Button>
             </div>
           </Card>
         </div>

@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
+use tauri_plugin_opener::OpenerExt;
 
 #[derive(Serialize, Deserialize)]
 pub struct RecordingMeta {
@@ -373,6 +374,25 @@ pub async fn write_file(
 
     fs::write(&path, content).map_err(|e| format!("Failed to write file: {}", e))?;
 
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn open_recording_folder(app: tauri::AppHandle, recording_id: String) -> Result<(), String> {
+    let recordings_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?
+        .join("recordings")
+        .join(&recording_id);
+
+    if !recordings_dir.exists() {
+        return Err(format!("Recording folder not found: {}", recording_id));
+    }
+
+    app.opener()
+        .open_path(recordings_dir.to_string_lossy().to_string(), None::<&str>)
+        .map_err(|e| format!("Failed to open folder: {}", e))?;
     Ok(())
 }
 
