@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from '@tauri-apps/api/core';
 
 export interface Recording {
   id: string;
@@ -22,27 +22,25 @@ export interface Quest {
 export async function generateQuest(prompt: string, address: string): Promise<Quest> {
   // Get screenshot
   // const screenshot = await invoke('take_screenshot');
-  
+
   // Get applications
-  const apps = await invoke("list_apps", { includeIcons: false });
-  const app_list = 
-    ((apps as { name: any; path: any; }[])
-      .map((app: { name: any; path: any; }) => 
-        `${app.name}`
-    )).join('\n')
+  const apps = await invoke('list_apps', { includeIcons: true });
+  const app_list = (apps as { name: any; path: any }[])
+    .map((app: { name: any; path: any }) => `${app.name}`)
+    .join('\n');
 
   // Call quest endpoint
   const response = await fetch('http://localhost/api/gym/quest', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       // screenshot,
       installed_applications: app_list,
       address,
-      prompt,
-    }),
+      prompt
+    })
   });
 
   if (!response.ok) {
@@ -70,7 +68,9 @@ export async function stopRecording() {
   }
 }
 
-export async function checkQuestProgress(quest: Quest): Promise<{completed_subgoals: boolean[], completed_objectives: number}> {
+export async function checkQuestProgress(
+  quest: Quest
+): Promise<{ completed_subgoals: boolean[]; completed_objectives: number }> {
   try {
     // Get screenshots
     const screenshots = [];
@@ -83,12 +83,12 @@ export async function checkQuestProgress(quest: Quest): Promise<{completed_subgo
     const response = await fetch('http://localhost/api/gym/progress', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         quest,
-        screenshots,
-      }),
+        screenshots
+      })
     });
 
     if (!response.ok) {
