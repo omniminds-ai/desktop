@@ -45,9 +45,8 @@
   }
 </script>
 
-<div class="h-full">
-  <div class="p-4">
-    <GymHeader title="Recording History" />
+<div class="h-full max-w-7xl mx-auto">
+  <div class="">
     <button
       onclick={() => invoke('open_recording_folder', { recordingId: '' })}
       class="text-secondary-300 text-sm cursor-pointer mb-2 -mt-2 hover:underline">
@@ -73,7 +72,7 @@
     </div>
   </div>
 
-  <div class="grid gap-4 px-4 pb-4">
+  <div class="grid gap-4 pb-4">
     {#each filteredRecordings as recording}
       <Card padding="lg" className="border-2">
         <div class="flex flex-col sm:flex-row gap-4">

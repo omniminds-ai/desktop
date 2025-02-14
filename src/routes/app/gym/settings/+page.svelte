@@ -1,12 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
-  import Button from '$lib/components/Button.svelte';
   import Input from '$lib/components/Input.svelte';
   import { Plus, X } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { blacklistedApps } from '$lib/stores/blacklist';
-  import GymHeader from '$lib/components/gym/GymHeader.svelte';
 
   let apps: { name: string; icon?: string }[] = [];
   let currentBlacklist: string[] = [];
@@ -40,10 +38,8 @@
   }
 </script>
 
-<div class="h-full">
-  <div class="p-4">
-    <GymHeader title="Settings" />
-
+<div class="h-full max-w-7xl mx-auto">
+  <div class="">
     <Card padding="lg" className="mb-6">
       <h3 class="text-xl font-title mb-4">App Blacklist</h3>
       <p class="text-gray-700 mb-6">
