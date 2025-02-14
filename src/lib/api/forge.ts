@@ -1,13 +1,13 @@
 import type { TrainingPool, CreatePoolInput, UpdatePoolInput } from '$lib/types/forge';
-import type { Race } from '$lib/types/gym';
+import type { ForgeApp } from '$lib/types/gym';
 
 const API_BASE = 'http://localhost/api/forge';
 
-export async function getRaces(): Promise<Race[]> {
-  const response = await fetch(`${API_BASE}/races`);
+export async function getApps(): Promise<ForgeApp[]> {
+  const response = await fetch(`${API_BASE}/apps`);
 
   if (!response.ok) {
-    throw new Error('Failed to fetch races');
+    throw new Error('Failed to fetch apps');
   }
 
   return response.json();

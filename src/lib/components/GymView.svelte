@@ -1,122 +1,107 @@
 <script lang="ts">
   import Card from './Card.svelte';
   import { onMount } from 'svelte';
-  import { getRaces } from '$lib/api/forge';
-  import type { Race } from '$lib/types/gym';
+  import { getApps } from '$lib/api/forge';
+  import type { ForgeApp } from '$lib/types/gym';
   import GymHeader from './gym/GymHeader.svelte';
-
-  const freeRacePrompts = [
-    "Hey, I'd like to help train AI and maybe earn some $VIRAL. What kind of tasks can I help with?",
-    "Hi! I'm interested in contributing to AI training and earning rewards. What should I do?",
-    'I want to help improve AI and earn some $VIRAL tokens. Where do I start?',
-    'Looking to contribute to AI training and get rewarded. What tasks are available?',
-    "Hey there! Ready to help train AI and earn some rewards. What's next?"
-  ];
-  const randomFreeRacePrompt = freeRacePrompts[Math.floor(Math.random() * freeRacePrompts.length)];
-  import {
-    Brain,
-    DollarSign,
-    Globe,
-    FileText,
-    Mail,
-    Film,
-    Code,
-    Briefcase,
-    Image
-  } from 'lucide-svelte';
-
-  let races: Race[] = [];
-  const iconMap = {
-    Brain,
-    DollarSign,
-    Globe,
-    FileText,
-    Mail,
-    Film,
-    Code,
-    Briefcase,
-    Image
-  };
+  let apps: ForgeApp[] = [];
+  let allCategories: string[] = [];
+  let selectedCategories: Set<string> = new Set();
 
   onMount(async () => {
     try {
-      races = await getRaces();
+      apps = await getApps();
+      // Get unique categories across all apps
+      allCategories = [...new Set(apps.flatMap(app => app.categories))].sort();
     } catch (error) {
-      console.error('Failed to fetch races:', error);
+      console.error('Failed to fetch apps:', error);
     }
   });
 
-  function getIcon(iconName: string) {
-    return iconMap[iconName as keyof typeof iconMap] || Brain;
+  function getFaviconUrl(domain: string) {
+    return `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=64`;
   }
+
+  function toggleCategory(category: string) {
+    if (selectedCategories.has(category)) {
+      selectedCategories.delete(category);
+    } else {
+      selectedCategories.add(category);
+    }
+    selectedCategories = selectedCategories; // Trigger reactivity
+  }
+
+  $: filteredApps = selectedCategories.size === 0 
+    ? apps 
+    : apps.filter(app => app.categories.some(cat => selectedCategories.has(cat)));
 </script>
 
-<div class="h-full">
-  <div class="p-4">
-    <div class="mb-12">
-      <GymHeader title="Start Training" />
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <a href="/app/gym/chat?prompt={encodeURIComponent(randomFreeRacePrompt)}" class="block">
-          <Card
-            padding="lg"
-            className="hover:scale-[1.02] hover:border-secondary-300 border-2 transition-all cursor-pointer h-full">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-              <div
-                class="w-10 h-10 sm:w-12 sm:h-12 bg-secondary-100/10 rounded-lg flex items-center justify-center">
-                <Brain class="w-5 h-5 sm:w-6 sm:h-6 text-secondary-300" />
-              </div>
-              <div>
-                <h3 class="text-lg sm:text-xl font-title">Free Race</h3>
-                <p class="text-gray-600">Train AI and earn rewards for free.</p>
-              </div>
+<div class="h-full p-2 sm:p-4 max-w-7xl mx-auto overflow-x-hidden">
+  <GymHeader title="Train AI and Earn" />
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+    <Card padding="lg" className="relative">
+      <div class="flex flex-col">
+        <div class="text-2xl font-semibold mb-1">1,234 VIRAL</div>
+        <div class="text-sm text-gray-500 mb-4">+ 5,678 in other tokens</div>
+        <a href="/app/gym/skills" class="inline-block bg-[#bc59fa] text-white px-4 py-2 rounded-lg text-center hover:bg-opacity-90 transition-colors">
+          View Skill Tree
+        </a>
+      </div>
+    </Card>
+    <Card padding="lg" className="relative">
+      <div class="flex flex-col">
+        <div class="text-2xl font-semibold mb-1">567 VIRAL</div>
+        <div class="text-sm text-gray-500 mb-4">Unclaimed Rewards</div>
+        <a href="/app/gym/history" class="inline-block bg-[#bc59fa] text-white px-4 py-2 rounded-lg text-center hover:bg-opacity-90 transition-colors">
+          View History
+        </a>
+      </div>
+    </Card>
+  </div>
+
+  <div class="mb-6">
+    <div class="flex flex-wrap gap-2">
+      <button 
+        class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors {selectedCategories.size === 0 ? 'bg-[#bc59fa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+        onclick={() => selectedCategories = new Set()}
+      >
+        All
+      </button>
+      {#each allCategories as category}
+        <button 
+          class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors {selectedCategories.has(category) ? 'bg-[#bc59fa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+          onclick={() => toggleCategory(category)}
+        >
+          {category}
+        </button>
+      {/each}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr w-full">
+    {#each filteredApps as app}
+      {#each app.tasks as task}
+        <a href="/app/gym/chat?prompt={encodeURIComponent(task.prompt)}&app={encodeURIComponent(JSON.stringify({
+          type: 'website',
+          name: app.name,
+          url: `https://${app.domain}`
+        }))}" class="block">
+          <Card padding="lg" className="relative h-full hover:border-[#bc59fa] border-4 border-[#f7edfd] hover:bg-gray-50 transition-colors">
+            <div class="text-md text-neutral-800 font-medium break-words mb-8">
+              {task.prompt}
+            </div>
+            <div class="absolute bottom-2 left-2 right-2 flex items-center gap-2">
+              <img 
+                src={getFaviconUrl(app.domain)} 
+                alt={`${app.name} icon`}
+                class="w-6 h-6"
+              />
+              <span class="text-sm text-gray-500 truncate">{app.name}</span>
             </div>
           </Card>
         </a>
-
-        <!-- Hide staked races until implementation
-        <a href="/app/gym/chat?prompt=Staked%20Race" class="block">
-          <Card
-            padding="lg"
-            className="hover:scale-[1.02] hover:border-secondary-300 border-2 transition-all cursor-pointer h-full">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-              <div
-                class="w-10 h-10 sm:w-12 sm:h-12 bg-secondary-100/10 rounded-lg flex items-center justify-center">
-                <DollarSign class="w-5 h-5 sm:w-6 sm:h-6 text-secondary-300" />
-              </div>
-              <div>
-                <h3 class="text-lg sm:text-xl font-title">Staked Races</h3>
-                <p class="text-gray-600">High stakes, high rewards</p>
-              </div>
-            </div>
-          </Card>
-        </a> -->
-      </div>
-    </div>
-
-    <div>
-      <h2 class="text-2xl font-title text-secondary-300 mb-6">Featured Races</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {#each races as race}
-          <a
-            href="/app/gym/chat?prompt={encodeURIComponent(race.agent_prompt)}"
-            class="block h-full">
-            <Card
-              padding="lg"
-              className="hover:scale-[1.02] hover:border-secondary-300 border-2 transition-all cursor-pointer h-full">
-              <div class="flex flex-col h-full">
-                <div
-                  class="w-10 h-10 sm:w-12 sm:h-12 bg-secondary-100/10 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
-                  <svelte:component
-                    this={getIcon(race.icon)}
-                    class="w-5 h-5 sm:w-6 sm:h-6 text-secondary-300" />
-                </div>
-                <h3 class="text-lg sm:text-xl font-title mb-2">{race.title}</h3>
-                <p class="text-gray-600 flex-grow">{race.description}</p>
-              </div>
-            </Card>
-          </a>
-        {/each}
-      </div>
-    </div>
+      {/each}
+    {/each}
   </div>
 </div>

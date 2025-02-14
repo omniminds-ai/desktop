@@ -1,13 +1,17 @@
 import type { Component, ComponentProps } from 'svelte';
 import type { HTMLButtonAttributes } from 'svelte/elements';
 
-export interface Race {
-  title: string;
+export interface ForgeApp {
+  name: string;
+  domain: string;
   description: string;
-  category: string;
-  icon: string;
-  skills: string[];
-  agent_prompt: string;
+  categories: string[];
+  tasks: {
+    prompt: string;
+  }[];
+  pool_id: {
+    name: string;
+  };
 }
 
 export type MessageRole = 'assistant' | 'user' | 'system';
