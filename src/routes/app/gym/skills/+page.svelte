@@ -2,6 +2,8 @@
     import { onMount } from 'svelte';
     import * as d3 from 'd3';
     import GymHeader from '$lib/components/gym/GymHeader.svelte';
+    import { getApps } from '$lib/api/forge';
+    import type { ForgeApp } from '$lib/types/gym';
 
     type NodeData = {
         name: string;
@@ -13,85 +15,29 @@
 
     let svg: SVGSVGElement;
     let mainGroup: d3.Selection<SVGGElement, unknown, null, undefined>;
+    let data: NodeData;
 
-    const data: NodeData = {
-        name: "Desktop",
-        icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=www.microsoft.com&sz=64",
-        children: [
-            {
-                name: "MiniWoB",
-                domain: "miniwob.farama.org",
-                description: "Web interaction tasks",
-                icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=miniwob.farama.org&sz=64",
-                children: [
-                    { name: "Click circle in target area" },
-                    { name: "Fill user registration form" },
-                    { name: "Select date on calendar" },
-                    { name: "Complete login form" },
-                    { name: "Draw pattern on grid" },
-                    { name: "Enter text into form fields" }
-                ]
-            },
-            {
-                name: "Booking.com",
-                domain: "booking.com",
-                description: "Travel booking platform",
-                icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=www.booking.com&sz=64",
-                children: [
-                    { name: "Find 5-star resort in Bahamas" },
-                    { name: "Find resort in Cabo" },
-                    { name: "Book JFK to LAX flight" }
-                ]
-            },
-            {
-                name: "DoorDash",
-                domain: "doordash.com",
-                description: "Food delivery",
-                icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=www.doordash.com&sz=64",
-                children: [
-                    { name: "Order flowers and chocolate" },
-                    { name: "Order medication" },
-                    { name: "Order boba for team" },
-                    { name: "Order cooking ingredients" }
-                ]
-            },
-            {
-                name: "OpenTable",
-                domain: "opentable.com",
-                description: "Restaurant reservations",
-                icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=www.opentable.com&sz=64",
-                children: [
-                    { name: "Book romantic dinner" },
-                    { name: "Find sushi tonight" },
-                    { name: "Reserve for group" }
-                ]
-            },
-            {
-                name: "Telegram",
-                domain: "telegram.org",
-                description: "Messaging platform",
-                icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=www.telegram.org&sz=64",
-                children: [
-                    { name: "Create channel" },
-                    { name: "Set admin roles" },
-                    { name: "Configure anti-spam" }
-                ]
-            },
-            {
-                name: "Discord",
-                domain: "discord.com",
-                description: "Community platform",
-                icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=www.discord.com&sz=64",
-                children: [
-                    { name: "Setup roles" },
-                    { name: "Configure verification" },
-                    { name: "Setup price bot" }
-                ]
-            }
-        ]
-    };
-    
-    onMount(() => {
+    onMount(async () => {
+        try {
+            const apps = await getApps();
+            data = {
+                name: "Desktop",
+                icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=www.microsoft.com&sz=64",
+                children: apps.map(app => ({
+                    name: app.name,
+                    domain: app.domain,
+                    description: app.description,
+                    icon_url: `https://s2.googleusercontent.com/s2/favicons?domain=${app.domain}&sz=64`,
+                    children: app.tasks.map(task => ({
+                        name: task.prompt
+                    }))
+                }))
+            };
+        } catch (error) {
+            console.error('Failed to fetch apps:', error);
+            return;
+        }
+
         const width = 2000; // Increased canvas size
         const height = 1600;
 
@@ -187,21 +133,21 @@
                         if (icon && d.data.icon_url) {
                             icon.src = d.data.icon_url;
                         }
-                        const nameEl = template.querySelector('.font-medium');
+                        const nameEl = template.querySelector('.app-name');
                         if (nameEl) {
                             nameEl.textContent = d.data.name;
                         }
-                        const descEl = template.querySelector('.text-xs');
-                        if (descEl) {
-                            descEl.textContent = d.data.description || '';
-                        }
+                        // const descEl = template.querySelector('.app-desc');
+                        // if (descEl) {
+                        //     descEl.textContent = d.data.description || '';
+                        // }
                         return template.outerHTML;
                     }
                 } else {
                     // Task node
                     const template = document.getElementById('task-node-template')?.cloneNode(true) as HTMLElement;
                     if (template) {
-                        const textEl = template.querySelector('.text-md');
+                        const textEl = template.querySelector('.task-text');
                         if (textEl) {
                             textEl.textContent = d.data.name;
                         }
@@ -256,15 +202,15 @@
     <!-- App node template -->
     <div id="app-node-template" class="relative w-[160px] h-[160px] bg-white border-4 border-black rounded-2xl p-4">
         <img class="app-icon absolute bottom-2 left-2 w-8 h-8" src="" alt="app icon">
-        <div>
-            <div class="font-medium text-xl text-neutral-800"></div>
-            <div class="text-xs text-neutral-600 mt-1"></div>
+        <div class="h-[calc(100%-2rem)] flex flex-col">
+            <div class="app-name font-medium text-neutral-800 text-balance line-clamp-2 text-[min(1.25rem,4vw)]"></div>
+            <div class="app-desc text-neutral-600 mt-1 text-balance line-clamp-3 text-[min(0.875rem,3vw)]"></div>
         </div>
     </div>
 
     <!-- Task node template -->
     <a id="task-node-template" href="#" class="relative w-[140px] h-[140px] bg-white border-4 border-[#f7edfd] hover:border-[#bc59fa] rounded-2xl p-4 hover:bg-gray-50 transition-colors no-underline block">
-        <div class="text-md text-neutral-800 font-medium break-words"></div>
+        <div class="task-text font-medium text-neutral-800 text-balance line-clamp-4 text-[min(1rem,3.5vw)] h-[calc(100%-2rem)]"></div>
         <img class="app-icon absolute bottom-2 left-2 w-6 h-6" src="" alt="app icon">
     </a>
 </div>
@@ -296,5 +242,14 @@
 
     :global(.skill-tree-node) {
         transition: transform 0.1s;
+    }
+
+    :global(.app-name),
+    :global(.app-desc),
+    :global(.task-text) {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-word;
     }
 </style>
