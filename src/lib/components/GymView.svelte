@@ -38,6 +38,9 @@
 
 <div class="h-full p-2 sm:p-4 max-w-7xl mx-auto overflow-x-hidden">
   <GymHeader title="Train AI and Earn" />
+  <div class="mx-auto mb-8">
+    <p class="text-gray-400">Share your computer skills, earn rewards, and help build the world's largest open-source dataset for training AI assistants.</p>
+  </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
     <Card padding="lg" className="relative">
@@ -59,6 +62,7 @@
       </div>
     </Card>
   </div>
+
 
   <div class="mb-6">
     <div class="flex flex-wrap gap-2">
