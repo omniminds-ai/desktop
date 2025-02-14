@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import * as d3 from 'd3';
   import { getAppsForSkills } from '$lib/api/forge';
+  import { svgToCssTransform } from '$lib/utils';
 
   type NodeData = {
     name: string;
@@ -51,7 +52,7 @@
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.2, 5]) // Allow more zoom out
       .on('zoom', (event) => {
-        mainGroup.attr('transform', event.transform);
+        mainGroup.attr('style', `transform:${svgToCssTransform(event.transform.toString())};`);
       });
 
     // Create the SVG container with zoom
@@ -75,23 +76,23 @@
     nodes.forEach((node, i) => {
       if (node.depth === 0) {
         // Center the root node
-        (node as any).x = 0;
-        (node as any).y = 0;
+        node.x = 0;
+        node.y = 0;
       } else if (node.depth === 1) {
         // Position app nodes in a circle around root
         const angle = (i / root.children!.length) * 2 * Math.PI;
-        (node as any).x = radius * Math.cos(angle);
-        (node as any).y = radius * Math.sin(angle);
+        node.x = radius * Math.cos(angle);
+        node.y = radius * Math.sin(angle);
       } else {
         // Position task nodes in smaller circles around their parent app
         const parent = node.parent!;
         const siblings = parent.children!;
         const angle = ((siblings.indexOf(node) + 0.5) / siblings.length) * 2 * Math.PI;
-        const parentX = (parent as any).x;
-        const parentY = (parent as any).y;
+        const parentX = parent.x || 0;
+        const parentY = parent.y || 0;
         const childRadius = 300; // Much larger radius for task nodes
-        (node as any).x = parentX + childRadius * Math.cos(angle);
-        (node as any).y = parentY + childRadius * Math.sin(angle);
+        node.x = parentX + childRadius * Math.cos(angle);
+        node.y = parentY + childRadius * Math.sin(angle);
       }
     });
 
@@ -247,30 +248,31 @@
 <!-- Hidden templates for D3 to use -->
 <div class="hidden">
   <!-- App node template -->
-  <div
-    id="app-node-template"
-    class="relative w-[160px] h-[160px] bg-white border-4 border-neutral-200 rounded-2xl p-4">
-    <img class="app-icon absolute bottom-2 left-2 w-8 h-8" src="" alt="app icon" />
-    <div class="h-[calc(100%-2rem)] flex flex-col">
-      <div
-        class="app-name font-medium text-neutral-800 text-balance line-clamp-2 text-[min(1.25rem,4vw)]">
-      </div>
-      <div
-        class="app-desc text-neutral-600 mt-1 text-balance line-clamp-3 text-[min(0.875rem,3vw)]">
+  <div class="" id="app-node-template">
+    <div class="relative w-[160px] h-[160px] bg-white border-4 border-neutral-200 rounded-2xl p-4">
+      <img class="app-icon absolute bottom-2 left-2 w-8 h-8" src="" alt="app icon" />
+      <div class="h-[calc(100%-2rem)] flex flex-col">
+        <div
+          class="app-name font-medium text-neutral-800 text-balance line-clamp-2 text-[min(1.25rem,4vw)]">
+        </div>
+        <div
+          class="app-desc text-neutral-600 mt-1 text-balance line-clamp-3 text-[min(0.875rem,3vw)]">
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Task node template -->
-  <a
-    id="task-node-template"
-    href="#"
-    class="relative w-[140px] h-[140px] bg-white rounded-2xl p-4 hover:bg-gray-50 transition-colors no-underline block">
+  <a id="task-node-template" class="" href="#">
     <div
-      class="task-text font-medium text-neutral-800 text-balance line-clamp-4 text-[min(1rem,3.5vw)] h-[calc(100%-2rem)]">
+      class="relative w-[140px] h-[140px] bg-white rounded-2xl p-4 hover:bg-gray-50
+      transition-colors no-underline block">
+      <div
+        class="task-text font-medium text-neutral-800 text-balance line-clamp-4 text-[min(1rem,3.5vw)] h-[calc(100%-2rem)]">
+      </div>
+      <img class="app-icon absolute bottom-2 left-2 w-6 h-6" src="" alt="app icon" />
+      <div class="absolute inset-0 border-4 rounded-2xl transition-colors" data-border></div>
     </div>
-    <img class="app-icon absolute bottom-2 left-2 w-6 h-6" src="" alt="app icon" />
-    <div class="absolute inset-0 border-4 rounded-2xl transition-colors" data-border></div>
   </a>
 </div>
 

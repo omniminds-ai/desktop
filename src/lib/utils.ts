@@ -12,3 +12,9 @@ export async function getPlatform(): Promise<'macos' | 'windows' | 'linux'> {
   else if (res === 'macos') return 'macos';
   else return 'linux';
 }
+
+export function svgToCssTransform(svgTransform: string): string {
+  return svgTransform
+    .replace(/translate\(([-\d.,]+),([-\d.,]+)\)/, (_, x, y) => `translate(${x}px, ${y}px)`)
+    .replace(/scale\(([-\d.,]+)\)/, (_, s) => `scale(${s})`);
+}
