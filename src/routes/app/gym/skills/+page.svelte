@@ -24,7 +24,7 @@
       const apps = await getAppsForSkills();
       data = {
         name: 'Desktop',
-        icon_url: 'https://s2.googleusercontent.com/s2/favicons?domain=www.microsoft.com&sz=64',
+        icon_url: 'https://viralmind.ai/favicon.png',
         children: apps.map((app) => ({
           name: app.name,
           domain: app.domain,
@@ -209,10 +209,10 @@
             if (border) {
               if (d.data.completed) {
                 border.className =
-                  'absolute inset-0 border-4 border-secondary-300 rounded-2xl transition-colors';
+                  'absolute inset-0 border-4 border-[#f0e0fc] hover:border-secondary-300 rounded-2xl transition-colors';
               } else {
                 border.className =
-                  'absolute inset-0 border-4 border-[#f7edfd] hover:border-secondary-300
+                  'absolute inset-0 border-4 border-[#f7edfd] hover:border-secondary-300 rounded-2xl transition-colors';
               }
             }
             return template.outerHTML;

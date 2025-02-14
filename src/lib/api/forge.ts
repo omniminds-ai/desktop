@@ -12,11 +12,9 @@ export async function getAppsForGym(): Promise<ForgeApp[]> {
   }
 
   const apps: ForgeApp[] = await response.json();
-  
+
   // Shuffle apps and limit to 6
-  const shuffledApps = apps
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 6);
+  const shuffledApps = apps.sort(() => Math.random() - 0.5).slice(0, 6);
 
   // For each app, keep only a random subset of tasks
   return shuffledApps.map((app: ForgeApp) => ({
@@ -31,9 +29,9 @@ export async function getAppsForHistory(): Promise<ForgeApp[]> {
   // Get recordings to build app map
   const recordings: any[] = await invoke('list_recordings');
   const appMap = new Map<string, ForgeApp>();
-  
+
   // Build apps from recordings
-  recordings.forEach(recording => {
+  recordings.forEach((recording) => {
     if (recording.status === 'completed' && recording.quest) {
       const quest = recording.quest;
       if (!appMap.has(quest.app)) {
@@ -48,7 +46,7 @@ export async function getAppsForHistory(): Promise<ForgeApp[]> {
         });
       }
       const app = appMap.get(quest.app)!;
-      if (!app.tasks.some(t => t.prompt === quest.title)) {
+      if (!app.tasks.some((t) => t.prompt === quest.title)) {
         app.tasks.push({
           prompt: quest.title,
           completed: true,
@@ -66,9 +64,9 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
   // Get completed apps from history
   const historyApps = await getAppsForHistory();
   const appMap = new Map<string, ForgeApp>();
-  
+
   // Add history apps to map
-  historyApps.forEach(app => {
+  historyApps.forEach((app) => {
     appMap.set(app.name, app);
   });
 
@@ -77,7 +75,7 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
     const response = await fetch(`${API_BASE}/apps`);
     if (response.ok) {
       const apiApps: ForgeApp[] = await response.json();
-      apiApps.forEach(apiApp => {
+      apiApps.forEach((apiApp) => {
         const existingApp = appMap.get(apiApp.name);
         if (existingApp) {
           // Merge API app info into existing app
@@ -85,8 +83,8 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
           existingApp.description = apiApp.description;
           existingApp.categories = apiApp.categories;
           // Add any new tasks from API
-          apiApp.tasks.forEach(apiTask => {
-            if (!existingApp.tasks.some(t => t.prompt === apiTask.prompt)) {
+          apiApp.tasks.forEach((apiTask) => {
+            if (!existingApp.tasks.some((t) => t.prompt === apiTask.prompt)) {
               existingApp.tasks.push({
                 ...apiTask,
                 completed: false
@@ -98,7 +96,7 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
           appMap.set(apiApp.name, {
             ...apiApp,
             seen: false,
-            tasks: apiApp.tasks.map(task => ({
+            tasks: apiApp.tasks.map((task) => ({
               ...task,
               completed: false
             }))
@@ -119,8 +117,8 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
   }
 
   // Split into seen and unseen
-  const seen = allApps.filter(app => app.seen);
-  const unseen = allApps.filter(app => !app.seen);
+  const seen = allApps.filter((app) => app.seen);
+  const unseen = allApps.filter((app) => !app.seen);
 
   // Always include all seen apps
   let result = [...seen];
@@ -140,9 +138,9 @@ export async function listPools(address: string): Promise<TrainingPool[]> {
   const response = await fetch(`${API_BASE}/list`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ address }),
+    body: JSON.stringify({ address })
   });
 
   if (!response.ok) {
@@ -156,9 +154,9 @@ export async function createPool(input: CreatePoolInput): Promise<TrainingPool> 
   const response = await fetch(`${API_BASE}/create`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify(input)
   });
 
   if (!response.ok) {
@@ -172,9 +170,9 @@ export async function updatePool(input: UpdatePoolInput): Promise<TrainingPool> 
   const response = await fetch(`${API_BASE}/update`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify(input)
   });
 
   if (!response.ok) {
