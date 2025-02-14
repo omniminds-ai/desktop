@@ -419,12 +419,15 @@ pub async fn open_recording_folder(
     app: tauri::AppHandle,
     recording_id: String,
 ) -> Result<(), String> {
-    let recordings_dir = app
+    let mut recordings_dir = app
         .path()
         .app_local_data_dir()
         .map_err(|e| format!("Failed to get app data directory: {}", e))?
-        .join("recordings")
-        .join(&recording_id);
+        .join("recordings");
+    // only add the ID if requested
+    if !recording_id.is_empty() {
+        recordings_dir = recordings_dir.join(&recording_id);
+    }
 
     if !recordings_dir.exists() {
         return Err(format!("Recording folder not found: {}", recording_id));

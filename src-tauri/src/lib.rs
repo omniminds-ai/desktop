@@ -6,6 +6,7 @@ use std::{
     fmt::format,
     fs::File,
     io::{BufReader, BufWriter, Cursor, Write},
+    path::PathBuf,
     thread,
 };
 use tauri::{Emitter, Manager};
