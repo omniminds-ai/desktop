@@ -168,6 +168,21 @@ pub fn run() {
                 .find(|d| d.is_primary)
                 .or_else(|| displays.first())
                 .ok_or_else(|| "No display found".to_string())?;
+            // set overlay locations for specific platforms
+
+            let mut overlay_x = primary.x as f64;
+            let mut overlay_y = primary.y as f64;
+
+            if cfg!(target_os = "macos") {
+                overlay_y += 35.0;
+                overlay_x += 0.0;
+            }
+
+            if cfg!(target_os = "linux") {
+                // do this becuase some linux distros have top bars
+                overlay_y += 25.0;
+                overlay_x += 0.0;
+            }
 
             // Create transparent overlay window
             let overlay_window = tauri::WebviewWindowBuilder::new(
@@ -180,7 +195,7 @@ pub fn run() {
             .decorations(false)
             .focused(false)
             .shadow(false)
-            .position(primary.x as f64, primary.y as f64)
+            .position(overlay_x, overlay_y)
             .inner_size(primary.width as f64, primary.height as f64)
             .skip_taskbar(true)
             .visible_on_all_workspaces(true)

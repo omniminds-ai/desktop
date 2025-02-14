@@ -8,8 +8,8 @@
   const freeRacePrompts = [
     "Hey, I'd like to help train AI and maybe earn some $VIRAL. What kind of tasks can I help with?",
     "Hi! I'm interested in contributing to AI training and earning rewards. What should I do?",
-    "I want to help improve AI and earn some $VIRAL tokens. Where do I start?",
-    "Looking to contribute to AI training and get rewarded. What tasks are available?",
+    'I want to help improve AI and earn some $VIRAL tokens. Where do I start?',
+    'Looking to contribute to AI training and get rewarded. What tasks are available?',
     "Hey there! Ready to help train AI and earn some rewards. What's next?"
   ];
   const randomFreeRacePrompt = freeRacePrompts[Math.floor(Math.random() * freeRacePrompts.length)];
@@ -66,13 +66,14 @@
                 <Brain class="w-5 h-5 sm:w-6 sm:h-6 text-secondary-300" />
               </div>
               <div>
-                <h3 class="text-lg sm:text-xl font-title">Free Races</h3>
-                <p class="text-gray-600">Train AI and earn rewards</p>
+                <h3 class="text-lg sm:text-xl font-title">Free Race</h3>
+                <p class="text-gray-600">Train AI and earn rewards for free.</p>
               </div>
             </div>
           </Card>
         </a>
 
+        <!-- Hide staked races until implementation
         <a href="/app/gym/chat?prompt=Staked%20Race" class="block">
           <Card
             padding="lg"
@@ -88,7 +89,7 @@
               </div>
             </div>
           </Card>
-        </a>
+        </a> -->
       </div>
     </div>
 
@@ -96,7 +97,9 @@
       <h2 class="text-2xl font-title text-secondary-300 mb-6">Featured Races</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {#each races as race}
-          <a href="/app/gym/chat?prompt={encodeURIComponent(race.agent_prompt)}" class="block h-full">
+          <a
+            href="/app/gym/chat?prompt={encodeURIComponent(race.agent_prompt)}"
+            class="block h-full">
             <Card
               padding="lg"
               className="hover:scale-[1.02] hover:border-secondary-300 border-2 transition-all cursor-pointer h-full">
