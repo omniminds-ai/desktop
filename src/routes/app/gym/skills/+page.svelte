@@ -1,10 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as d3 from 'd3';
-  import GymHeader from '$lib/components/gym/GymHeader.svelte';
-  import { getAppsForSkills, getAppsForHistory } from '$lib/api/forge';
-  import type { ForgeApp } from '$lib/types/gym';
-  import { invoke } from '@tauri-apps/api/core';
+  import { getAppsForSkills } from '$lib/api/forge';
 
   type NodeData = {
     name: string;
@@ -212,10 +209,10 @@
             if (border) {
               if (d.data.completed) {
                 border.className =
-                  'absolute inset-0 border-4 border-[#bc59fa] rounded-2xl transition-colors';
+                  'absolute inset-0 border-4 border-secondary-300 rounded-2xl transition-colors';
               } else {
                 border.className =
-                  'absolute inset-0 border-4 border-[#f7edfd] hover:border-[#bc59fa] rounded-2xl transition-colors';
+                  'absolute inset-0 border-4 border-[#f7edfd] hover:border-secondary-300
               }
             }
             return template.outerHTML;

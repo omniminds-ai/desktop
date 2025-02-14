@@ -8,7 +8,6 @@
 
   let { class: className = '', variant = 'dark', value = $bindable(''), ...rest }: Props = $props();
 
-  console.log(variant);
   const variantClasses = $derived.by(() => {
     let classes = '';
     switch (variant) {
