@@ -83,7 +83,7 @@
 
         // Setup zoom behavior
         const zoom = d3.zoom<SVGSVGElement, unknown>()
-            .scaleExtent([0.2, 2]) // Allow more zoom out
+            .scaleExtent([0.2, 5]) // Allow more zoom out
             .on('zoom', (event) => {
                 mainGroup.attr('transform', event.transform);
             });
@@ -92,12 +92,12 @@
         const svgElement = d3.select(svg)
             .attr("width", "100%")
             .attr("height", "100%")
-            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("viewBox", `${-width/2} ${-height/2} ${width} ${height}`)
             .call(zoom);
 
         // Create main group for zooming
         mainGroup = svgElement.append("g")
-            .attr("transform", `translate(${width/2},${height/2})`);
+            // .attr("transform", `translate(${width/2},${height/2})`);
 
         // Create the hierarchy
         const root = d3.hierarchy(data);
