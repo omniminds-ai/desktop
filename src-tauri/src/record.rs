@@ -23,6 +23,7 @@ pub struct RecordingMeta {
     timestamp: String,
     duration_seconds: u64,
     status: String,
+    reason: Option<String>,
     title: String,
     description: String,
     platform: String,
@@ -35,13 +36,11 @@ pub struct RecordingMeta {
 
 #[derive(Serialize, Deserialize)]
 pub struct Quest {
-    task_id: String,
     title: String,
-    original_instruction: String,
-    concrete_scenario: String,
-    objective: String,
-    relevant_applications: Vec<String>,
-    subgoals: Vec<String>,
+    app: String,
+    icon_url: String,
+    objectives: Vec<String>,
+    content: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -115,8 +114,8 @@ impl Recorder {
 
 #[derive(Default)]
 pub struct QuestState {
-    pub objectives_completed: Mutex<i32>,
     pub recording_start_time: Mutex<Option<chrono::DateTime<chrono::Local>>>,
+    pub current_recording_id: Mutex<Option<String>>,
 }
 
 // Global state for recording and logging
@@ -192,6 +191,9 @@ pub async fn start_recording(
     ffmpeg::init_ffmpeg()?;
 
     let (session_dir, timestamp) = get_session_path(&app)?;
+    
+    // Store the recording ID
+    *quest_state.current_recording_id.lock().unwrap() = Some(timestamp.clone());
 
     let video_path = session_dir.join("recording.mp4");
 
@@ -222,6 +224,7 @@ pub async fn start_recording(
             width: primary.width,
             height: primary.height,
         },
+        reason: None,
         quest,
     };
 
@@ -232,7 +235,6 @@ pub async fn start_recording(
     )
     .map_err(|e| format!("Failed to write meta file: {}", e))?;
 
-    *quest_state.objectives_completed.lock().unwrap() = 0;
     *quest_state.recording_start_time.lock().unwrap() = Some(Local::now());
 
     app.emit(
@@ -266,7 +268,8 @@ pub async fn start_recording(
 pub async fn stop_recording(
     app: tauri::AppHandle,
     quest_state: State<'_, QuestState>,
-) -> Result<(), String> {
+    reason: Option<String>,
+) -> Result<String, String> {
     // Emit recording stopping event
     app.emit(
         "recording-status",
@@ -320,6 +323,7 @@ pub async fn stop_recording(
 
                 meta.duration_seconds = duration;
                 meta.status = "completed".to_string();
+                meta.reason = reason;
 
                 fs::write(
                     &meta_path,
@@ -339,7 +343,27 @@ pub async fn stop_recording(
     )
     .unwrap();
 
-    Ok(())
+    // Find the most recent recording directory to get its ID
+    let recordings_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?
+        .join("recordings");
+
+    let mut entries: Vec<_> = fs::read_dir(&recordings_dir)
+        .map_err(|e| format!("Failed to read recordings directory: {}", e))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("Failed to read directory entries: {}", e))?;
+
+    entries
+        .sort_by_key(|entry| std::cmp::Reverse(entry.metadata().unwrap().modified().unwrap()));
+
+    // Get the recording ID from state
+    if let Some(recording_id) = quest_state.current_recording_id.lock().unwrap().take() {
+        Ok(recording_id)
+    } else {
+        Err("No recording ID found".to_string())
+    }
 }
 
 pub fn log_input(event: serde_json::Value) -> Result<(), String> {

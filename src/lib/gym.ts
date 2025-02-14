@@ -19,15 +19,7 @@ export interface Recording {
   primary_monitor: MonitorInfo;
 }
 
-export interface Quest {
-  task_id: string;
-  title: string;
-  original_instruction: string;
-  concrete_scenario: string;
-  objective: string;
-  relevant_applications: string[];
-  subgoals: string[];
-}
+import type { Quest } from './types/gym';
 
 export async function generateQuest(prompt: string, address: string): Promise<Quest> {
   // Get screenshot
@@ -69,9 +61,10 @@ export async function startRecording(quest?: Quest) {
   }
 }
 
-export async function stopRecording() {
+export async function stopRecording(reason?: string): Promise<string> {
   try {
-    await invoke('stop_recording');
+    const recordingId = await invoke<string>('stop_recording', { reason });
+    return recordingId;
   } catch (error) {
     console.error('Failed to stop recording:', error);
     throw error;

@@ -18,6 +18,14 @@ export enum MessagePartType {
   loading = 'loading'
 }
 
+export interface Quest {
+  title: string;
+  app: string;
+  icon_url: string;
+  objectives: string[];  // List of 4 objectives, first one must be opening/navigating to the app
+  content: string;
+}
+
 export interface QuestInfo {
   task_id: string;
   title: string;

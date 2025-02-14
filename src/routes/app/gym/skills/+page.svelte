@@ -19,6 +19,20 @@
         icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=www.microsoft.com&sz=64",
         children: [
             {
+                name: "MiniWoB",
+                domain: "miniwob.farama.org",
+                description: "Web interaction tasks",
+                icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=miniwob.farama.org&sz=64",
+                children: [
+                    { name: "Click circle in target area" },
+                    { name: "Fill user registration form" },
+                    { name: "Select date on calendar" },
+                    { name: "Complete login form" },
+                    { name: "Draw pattern on grid" },
+                    { name: "Enter text into form fields" }
+                ]
+            },
+            {
                 name: "Booking.com",
                 domain: "booking.com",
                 description: "Travel booking platform",
@@ -197,9 +211,16 @@
                         if (icon && parentIcon) {
                             icon.src = parentIcon;
                         }
-                        // Set href for chat link
+                        // Set href for chat link with app info
                         if (template instanceof HTMLAnchorElement) {
-                            template.href = `/app/gym/chat?prompt=${encodeURIComponent(d.data.name)}`;
+                            const parent = d.parent?.data;
+                            const appType = parent?.domain ? 'website' : 'executable';
+                            const appInfo = {
+                                type: appType,
+                                name: parent?.name || '',
+                                ...(appType === 'website' ? { url: `https://${parent?.domain}` } : {})
+                            };
+                            template.href = `/app/gym/chat?prompt=${encodeURIComponent(d.data.name)}&app=${encodeURIComponent(JSON.stringify(appInfo))}`;
                         }
                         return template.outerHTML;
                     }

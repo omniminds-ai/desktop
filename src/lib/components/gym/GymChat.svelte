@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
   import { listen, emit } from '@tauri-apps/api/event';
   import { Send, User, Keyboard, Mouse, Gamepad, Video, Square } from 'lucide-svelte';
@@ -462,6 +462,7 @@
     event.preventDefault();
     if (!message.trim()) return;
 
+    // Convert to display format for UI
     await addMessage({
       role: 'user',
       parts: [{ type: MessagePartType.text, content: message }]
@@ -488,16 +489,77 @@
           ]
         });
       } else {
-        const response = await invoke('handle_message', {
-          message: currentMessage
+        // Get simplified message history
+        const messageHistory = chatMessages.map(msg => ({
+          role: msg.role,
+          content: msg.parts[0].content,
+          // Convert quest messages to tool calls
+          tool_call: msg.parts[0].type === 'quest' && msg.parts[0].quest ? {
+            name: 'generate_quest',
+            arguments: msg.parts[0].quest
+          } : undefined
+        }));
+
+        // Get app info if available
+        let appInfo;
+        if (currentQuest && currentQuest.relevant_applications && currentQuest.relevant_applications.length > 0) {
+          const appName = currentQuest.relevant_applications[0];
+          const apps = await invoke('list_apps', { includeIcons: true }) as { name: string; path: string }[];
+          const app = apps.find(a => a.name === appName);
+          
+          if (app) {
+            appInfo = {
+              type: 'executable' as const,
+              name: app.name,
+              path: app.path
+            };
+          } else {
+            // Assume it's a website if not found in installed apps
+            appInfo = {
+              type: 'website' as const,
+              name: appName,
+              url: `https://${appName.toLowerCase()}.com` // Basic URL inference
+            };
+          }
+        }
+
+        const response = await fetch('/api/forge/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [...messageHistory, { role: 'user', content: currentMessage }],
+            task_prompt: prompt || 'anything keep it simple',
+            app: appInfo
+          })
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const assistantResponse = await response.json();
+        
+        // Convert API response back to display format
         await addMessage({
           role: 'assistant',
-          parts: [{ type: MessagePartType.text, content: response as string }]
+          parts: [{ 
+            type: assistantResponse.tool_call ? MessagePartType.quest : MessagePartType.text,
+            content: assistantResponse.content,
+            quest: assistantResponse.tool_call?.arguments
+          }]
         });
       }
     } catch (error) {
       console.error('Failed to send message:', error);
+      await addMessage({
+        role: 'assistant',
+        parts: [{ 
+          type: MessagePartType.text, 
+          content: "I'm sorry, I encountered an error processing your message. Please try again." 
+        }]
+      });
     }
   }
 
@@ -725,4 +787,4 @@
       </div>
     </div>
   </div>
-</div>
+</div> -->

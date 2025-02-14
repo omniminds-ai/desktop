@@ -3,6 +3,9 @@
   import { onMount, onDestroy } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
   import * as gym from '$lib/gym';
+  import AppText from '$lib/components/gym/AppText.svelte';
+  import { tweened } from 'svelte/motion';
+  import { cubicOut } from 'svelte/easing';
 
   type RecordingState = 'recording' | 'stopping' | 'stopped';
 
@@ -17,18 +20,25 @@
   let recordingState = $state<RecordingState>('stopped');
   let recordingTime = $state(0);
   let timer: number;
-
-  interface Quest {
-    task_id: string;
-    title: string;
-    original_instruction: string;
-    concrete_scenario: string;
-    objective: string;
-    relevant_applications: string[];
-    subgoals: string[];
-  }
-
+  import type { Quest } from '$lib/types/gym';
   let currentQuest = $state<Quest | null>(null);
+  
+  const slideIn = tweened(-100, {
+    duration: 500,
+    easing: cubicOut
+  });
+
+  const showContent = tweened(1, {
+    duration: 300,
+    easing: cubicOut
+  });
+
+  function startAnimations() {
+    slideIn.set(0);
+    setTimeout(() => {
+      showContent.set(0);
+    }, 3000);
+  }
 
   function startTimer() {
     timer = setInterval(() => {
@@ -53,6 +63,8 @@
 
   function initializeQuest(quest: Quest) {
     currentQuest = quest;
+    showContent.set(1);
+    startAnimations();
   }
 
   onMount(() => {
@@ -93,34 +105,42 @@
   onDestroy(() => {
     stopTimer();
   });
+
+  let isMinimized = $derived($showContent === 0);
 </script>
 
 <div class="overlay-content">
   {#if recordingState !== 'stopped' && currentQuest}
-    <div
-      class="fixed top-4 right-4 w-96 bg-black/80 rounded-lg border border-purple-500/50 p-4 text-white shadow-lg backdrop-blur-sm">
-      <div class="flex items-center justify-between mb-3">
-        <span class="px-2 py-1 text-xs font-semibold bg-red-600 rounded-full animate-pulse">
-          {#if recordingState === 'recording'}
-            Recording
-          {:else if recordingState === 'stopping'}
-            Saving...
-          {/if}
-        </span>
-        <span class="text-purple-400 font-mono">{formatTime(recordingTime)}</span>
-      </div>
-
-      <p class="text-sm text-purple-400 mb-4">
-        {currentQuest.objective}
-      </p>
-
-      {#if currentQuest.relevant_applications.length > 0}
-        <div class="flex flex-wrap gap-2">
-          {#each currentQuest.relevant_applications as app}
-            <span class="px-2 py-1 text-xs bg-purple-600/20 rounded-full">{app}</span>
-          {/each}
+    <div 
+      class="fixed top-4 right-0 bg-black/80 rounded-lg border border-purple-500/50 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300"
+      style="transform: translateX(calc({$slideIn}px))">
+      <div class="p-2">
+        <div class="flex items-center gap-1.5">
+          <span class="px-2 py-1 text-xs font-semibold bg-red-600 rounded-full animate-pulse whitespace-nowrap">
+            {#if recordingState === 'recording'}
+              Recording
+            {:else if recordingState === 'stopping'}
+              Saving...
+            {/if}
+          </span>
+          <span class="text-purple-400 font-mono transition-opacity duration-300" class:hidden={isMinimized}>{formatTime(recordingTime)}</span>
         </div>
-      {/if}
+
+        <div class="transition-opacity duration-300" class:hidden={isMinimized}>
+          <h3 class="text-lg font-bold text-white my-2 break-words">{currentQuest.title}</h3>
+          
+          <div class="mb-3">
+            <h4 class="text-sm font-semibold text-white/90 mb-1">Objectives:</h4>
+            <ul class="list-disc pl-4 space-y-1">
+              {#each currentQuest.objectives as objective}
+                <li class="text-sm text-white/80 break-words">
+                  <AppText text={objective} />
+                </li>
+              {/each}
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
