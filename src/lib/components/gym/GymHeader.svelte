@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { History, Settings, LayoutDashboard, Network, ArrowLeft } from 'lucide-svelte';
+  import { History, Settings, LayoutDashboard, Network, HomeIcon } from 'lucide-svelte';
   let title = $derived.by(() => {
     let path = page.route.id;
     // handle dynamic history routes
@@ -51,8 +51,8 @@
   {#if page.route.id !== '/app/gym'}
     <button
       onclick={() => goto('/app/gym/')}
-      class="text-secondary-300 text-sm cursor-pointer mb-2 flex gap-2 items-center hover:underline">
-      <ArrowLeft size={15} strokeWidth={3} /> Gym Home
+      class="text-gray-800 text-sm cursor-pointer mb-2 flex gap-2 items-center border-b border-transparent hover:border-gray-800">
+      <HomeIcon size={15} /> Gym Home
     </button>
   {/if}
 </div>
