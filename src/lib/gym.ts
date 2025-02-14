@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { join } from '@tauri-apps/api/path';
 
 export interface MonitorInfo {
   width: number;
@@ -17,6 +18,9 @@ export interface Recording {
   version: string;
   locale: string;
   primary_monitor: MonitorInfo;
+  meta?: {
+    quest: Quest;
+  };
 }
 
 import type { Quest } from './types/gym';

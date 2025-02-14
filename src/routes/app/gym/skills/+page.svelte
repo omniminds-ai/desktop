@@ -2,8 +2,9 @@
     import { onMount } from 'svelte';
     import * as d3 from 'd3';
     import GymHeader from '$lib/components/gym/GymHeader.svelte';
-    import { getApps } from '$lib/api/forge';
+    import { getAppsForSkills, getAppsForHistory } from '$lib/api/forge';
     import type { ForgeApp } from '$lib/types/gym';
+    import { invoke } from '@tauri-apps/api/core';
 
     type NodeData = {
         name: string;
@@ -11,6 +12,9 @@
         description?: string;
         icon_url?: string;
         children?: NodeData[];
+        seen?: boolean;
+        completed?: boolean;
+        recordingId?: string;
     };
 
     let svg: SVGSVGElement;
@@ -19,7 +23,8 @@
 
     onMount(async () => {
         try {
-            const apps = await getApps();
+            // Get apps and tasks with seen/completed info
+            const apps = await getAppsForSkills();
             data = {
                 name: "Desktop",
                 icon_url: "https://s2.googleusercontent.com/s2/favicons?domain=www.microsoft.com&sz=64",
@@ -28,8 +33,11 @@
                     domain: app.domain,
                     description: app.description,
                     icon_url: `https://s2.googleusercontent.com/s2/favicons?domain=${app.domain}&sz=64`,
+                    seen: app.seen,
                     children: app.tasks.map(task => ({
-                        name: task.prompt
+                        name: task.prompt,
+                        completed: task.completed,
+                        recordingId: task.recordingId
                     }))
                 }))
             };
@@ -56,8 +64,7 @@
             .call(zoom);
 
         // Create main group for zooming
-        mainGroup = svgElement.append("g")
-            // .attr("transform", `translate(${width/2},${height/2})`);
+        mainGroup = svgElement.append("g");
 
         // Create the hierarchy
         const root = d3.hierarchy(data);
@@ -137,10 +144,10 @@
                         if (nameEl) {
                             nameEl.textContent = d.data.name;
                         }
-                        // const descEl = template.querySelector('.app-desc');
-                        // if (descEl) {
-                        //     descEl.textContent = d.data.description || '';
-                        // }
+                        // Set border color based on seen status
+                        if (d.data.seen) {
+                            template.className = template.className.replace('border-neutral-200', 'border-neutral-800');
+                        }
                         return template.outerHTML;
                     }
                 } else {
@@ -157,16 +164,30 @@
                         if (icon && parentIcon) {
                             icon.src = parentIcon;
                         }
-                        // Set href for chat link with app info
+                        // Set href and style based on completion
                         if (template instanceof HTMLAnchorElement) {
-                            const parent = d.parent?.data;
-                            const appType = parent?.domain ? 'website' : 'executable';
-                            const appInfo = {
-                                type: appType,
-                                name: parent?.name || '',
-                                ...(appType === 'website' ? { url: `https://${parent?.domain}` } : {})
-                            };
-                            template.href = `/app/gym/chat?prompt=${encodeURIComponent(d.data.name)}&app=${encodeURIComponent(JSON.stringify(appInfo))}`;
+                            if (d.data.completed) {
+                                template.href = `/app/gym/history/${d.data.recordingId}`;
+                                template.className = template.className.replace('hover:bg-gray-50', 'bg-[#f7edfd]! hover:bg-[#f0e0fc]');
+                            } else {
+                                const parent = d.parent?.data;
+                                const appType = parent?.domain ? 'website' : 'executable';
+                                const appInfo = {
+                                    type: appType,
+                                    name: parent?.name || '',
+                                    ...(appType === 'website' ? { url: `https://${parent?.domain}` } : {})
+                                };
+                                template.href = `/app/gym/chat?prompt=${encodeURIComponent(d.data.name)}&app=${encodeURIComponent(JSON.stringify(appInfo))}`;
+                            }
+                        }
+                        // Set border color based on completion
+                        const border = template.querySelector('[data-border]');
+                        if (border) {
+                            if (d.data.completed) {
+                                border.className = 'absolute inset-0 border-4 border-[#bc59fa] rounded-2xl transition-colors';
+                            } else {
+                                border.className = 'absolute inset-0 border-4 border-[#f7edfd] hover:border-[#bc59fa] rounded-2xl transition-colors';
+                            }
                         }
                         return template.outerHTML;
                     }
@@ -200,7 +221,7 @@
 <!-- Hidden templates for D3 to use -->
 <div class="hidden">
     <!-- App node template -->
-    <div id="app-node-template" class="relative w-[160px] h-[160px] bg-white border-4 border-black rounded-2xl p-4">
+    <div id="app-node-template" class="relative w-[160px] h-[160px] bg-white border-4 border-neutral-200 rounded-2xl p-4">
         <img class="app-icon absolute bottom-2 left-2 w-8 h-8" src="" alt="app icon">
         <div class="h-[calc(100%-2rem)] flex flex-col">
             <div class="app-name font-medium text-neutral-800 text-balance line-clamp-2 text-[min(1.25rem,4vw)]"></div>
@@ -209,9 +230,10 @@
     </div>
 
     <!-- Task node template -->
-    <a id="task-node-template" href="#" class="relative w-[140px] h-[140px] bg-white border-4 border-[#f7edfd] hover:border-[#bc59fa] rounded-2xl p-4 hover:bg-gray-50 transition-colors no-underline block">
+    <a id="task-node-template" href="#" class="relative w-[140px] h-[140px] bg-white rounded-2xl p-4 hover:bg-gray-50 transition-colors no-underline block">
         <div class="task-text font-medium text-neutral-800 text-balance line-clamp-4 text-[min(1rem,3.5vw)] h-[calc(100%-2rem)]"></div>
         <img class="app-icon absolute bottom-2 left-2 w-6 h-6" src="" alt="app icon">
+        <div class="absolute inset-0 border-4 rounded-2xl transition-colors" data-border></div>
     </a>
 </div>
 

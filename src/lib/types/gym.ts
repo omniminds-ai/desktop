@@ -8,10 +8,13 @@ export interface ForgeApp {
   categories: string[];
   tasks: {
     prompt: string;
+    completed?: boolean;
+    recordingId?: string;
   }[];
   pool_id: {
     name: string;
   };
+  seen?: boolean;
 }
 
 export type MessageRole = 'assistant' | 'user' | 'system';

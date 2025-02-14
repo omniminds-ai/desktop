@@ -1,7 +1,7 @@
 <script lang="ts">
   import Card from './Card.svelte';
   import { onMount } from 'svelte';
-  import { getApps } from '$lib/api/forge';
+  import { getAppsForGym } from '$lib/api/forge';
   import type { ForgeApp } from '$lib/types/gym';
   import GymHeader from './gym/GymHeader.svelte';
   let apps: ForgeApp[] = [];
@@ -10,7 +10,7 @@
 
   onMount(async () => {
     try {
-      apps = await getApps();
+      apps = await getAppsForGym();
       // Get unique categories across all apps
       allCategories = [...new Set(apps.flatMap(app => app.categories))].sort();
     } catch (error) {
