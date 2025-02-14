@@ -53,7 +53,10 @@
       .selectAll('.skill-tree-link')
       .data(links)
       .join('path')
-      .attr('class', 'skill-tree-link');
+      .attr('class', d => {
+        const target = d.target as d3.HierarchyNode<NodeData>;
+        return `skill-tree-link${target.data.completed ? ' completed' : ''}`;
+      });
 
     // Add nodes
     const node = mainGroup
@@ -131,7 +134,8 @@
     // Add links as div elements
     const linkElements = links.map(() => {
       const link = document.createElement('div');
-      link.className = 'skill-tree-link';
+      const target = links[i].target as d3.HierarchyNode<NodeData>;
+      link.className = `skill-tree-link${target.data.completed ? ' completed' : ''}`;
       linksContainer.appendChild(link);
       return link;
     });
@@ -284,10 +288,10 @@
         if (template instanceof HTMLAnchorElement) {
           if (d.data.completed) {
             template.href = `/app/gym/history/${d.data.recordingId}`;
-            template.className = template.className.replace(
-              'hover:bg-gray-50',
-              'bg-[#f7edfd]! hover:bg-[#f0e0fc]'
-            );
+            // template.className = template.className.replace(
+            //   'hover:bg-gray-50',
+            //   'bg-[#f7edfd]! hover:bg-[#f0e0fc]'
+            // );
           } else {
             const parent = d.parent?.data;
             const appType = parent?.domain ? 'website' : 'executable';
@@ -306,7 +310,7 @@
               'absolute inset-0 border-4 border-[#f0e0fc] hover:border-secondary-300 rounded-2xl transition-colors';
           } else {
             border.className =
-              'absolute inset-0 border-4 border-[#f7edfd] hover:border-secondary-300 rounded-2xl transition-colors';
+              'absolute inset-0 border-4 border-[#f7edfd] bg-[#f7edfd]/50! hover:border-secondary-300 hover:bg-transparent! rounded-2xl transition-colors';
           }
         }
         return template.outerHTML;
@@ -403,9 +407,13 @@
   /* Link styles for macOS (div-based) */
   :global(.macos .skill-tree-link) {
     background: #bc59fa;
-    opacity: 0.2;
+    opacity: 0.1;
     border-radius: 3px;
     transition: opacity 0.3s;
+  }
+
+  :global(.macos .skill-tree-link.completed) {
+    opacity: .1;
   }
 
   :global(.macos .skill-tree-link:hover) {
@@ -417,10 +425,14 @@
     fill: none;
     stroke: #bc59fa;
     stroke-width: 6px;
-    stroke-opacity: 0.2;
+    stroke-opacity: 0.1;
     stroke-linecap: round;
     stroke-linejoin: round;
     transition: stroke-opacity 0.3s;
+  }
+
+  :global(:not(.macos) .skill-tree-link.completed) {
+    stroke-opacity: .1;
   }
 
   :global(:not(.macos) .skill-tree-link:hover) {
