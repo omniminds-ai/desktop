@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { History, Settings, LayoutDashboard } from 'lucide-svelte';
+  import { History, Settings, LayoutDashboard, Network } from 'lucide-svelte';
   export let title: string;
 </script>
 
@@ -8,6 +8,9 @@
   <div class="flex gap-4">
     <a href="/app/gym" class="text-secondary-300 hover:scale-115 transform transition-all">
       <LayoutDashboard class="w-6 h-6" />
+    </a>
+    <a href="/app/gym/skills" class="text-secondary-300 hover:scale-115 transform transition-all">
+      <Network class="w-6 h-6" />
     </a>
     <a href="/app/gym/history" class="text-secondary-300 hover:scale-115 transform transition-all">
       <History class="w-6 h-6" />
