@@ -38,13 +38,13 @@
 
 <div class="relative mt-4 mb-6 mx-4 rounded-lg overflow-hidden bg-black">
   {#if screenshot}
-    <div 
-      class="absolute inset-0 bg-cover bg-center" 
+    <div
+      class="absolute inset-0 bg-cover bg-center"
       style="background-image: url({screenshot}); filter: blur(2px) brightness(0.25); transform: scale({$scale});"
-      in:fade={{ duration: 1000 }}
-    ></div>
+      in:fade={{ duration: 1000 }}>
+    </div>
   {/if}
-  
+
   <div class="relative p-6 bg-black/30">
     <h3 class="text-xl font-bold text-white mb-2">{title}</h3>
     <div class="mb-4">
@@ -59,19 +59,13 @@
     </div>
     {#if recordingState === 'recording'}
       <div class="flex gap-4">
-        <Button
-          variant="primary"
-          class="flex-1 bg-green-500! hover:bg-green-600! border-green-500!"
-          onclick={onComplete}>
+        <Button variant="green" class="flex-1" onclick={onComplete}>
           <div class="flex items-center justify-center gap-2">
             <Check size={20} />
             <span>Complete</span>
           </div>
         </Button>
-        <Button
-          variant="destroy"
-          class="flex-1"
-          onclick={onGiveUp}>
+        <Button variant="destroy" class="flex-1" onclick={onGiveUp}>
           <div class="flex items-center justify-center gap-2">
             <X size={20} />
             <span>Give Up</span>

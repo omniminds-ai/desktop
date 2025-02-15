@@ -387,7 +387,7 @@
   });
 </script>
 
-<div class="h-[calc(100vh-7rem)] flex flex-col pb-[65px] relative">
+<div class="h-[calc(100vh-8rem)] flex flex-col pb-[65px] relative">
   {#if showQuestPopup && currentQuest}
     <QuestPopup
       title={currentQuest.title}
@@ -419,7 +419,7 @@
   {/if}
   <div
     bind:this={chatContent}
-    class="flex-1 max-w-7xl w-7xl mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
+    class="flex-1 max-w-7xl w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
     {#each chatMessages as msg, i}
       <div
         class="flex gap-2 transition-all duration-200 {msg.role === 'user' ? 'justify-end' : ''}">

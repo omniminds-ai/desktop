@@ -32,7 +32,7 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-fn take_screenshot() -> Result<String, String> {
+async fn take_screenshot() -> Result<String, String> {
     // Get primary monitor
     let monitors = Monitor::all().map_err(|e| e.to_string())?;
     let primary = monitors
@@ -175,13 +175,13 @@ pub fn run() {
 
             if cfg!(target_os = "macos") {
                 overlay_y += 35.0;
-                overlay_x += 0.0;
+                overlay_x -= 10.0;
             }
 
             if cfg!(target_os = "linux") {
                 // do this becuase some linux distros have top bars
                 overlay_y += 25.0;
-                overlay_x += 0.0;
+                overlay_x -= 10.0;
             }
 
             // Create transparent overlay window

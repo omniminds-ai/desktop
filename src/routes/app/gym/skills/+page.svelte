@@ -53,7 +53,7 @@
       .selectAll('.skill-tree-link')
       .data(links)
       .join('path')
-      .attr('class', d => {
+      .attr('class', (d) => {
         const target = d.target as d3.HierarchyNode<NodeData>;
         return `skill-tree-link${target.data.completed ? ' completed' : ''}`;
       });
@@ -132,9 +132,9 @@
     mainGroup.node()?.appendChild(linksContainer);
 
     // Add links as div elements
-    const linkElements = links.map(() => {
+    const linkElements = links.map((l) => {
       const link = document.createElement('div');
-      const target = links[i].target as d3.HierarchyNode<NodeData>;
+      const target = l.target as d3.HierarchyNode<NodeData>;
       link.className = `skill-tree-link${target.data.completed ? ' completed' : ''}`;
       linksContainer.appendChild(link);
       return link;
@@ -413,7 +413,7 @@
   }
 
   :global(.macos .skill-tree-link.completed) {
-    opacity: .1;
+    opacity: 0.1;
   }
 
   :global(.macos .skill-tree-link:hover) {
@@ -432,7 +432,7 @@
   }
 
   :global(:not(.macos) .skill-tree-link.completed) {
-    stroke-opacity: .1;
+    stroke-opacity: 0.1;
   }
 
   :global(:not(.macos) .skill-tree-link:hover) {

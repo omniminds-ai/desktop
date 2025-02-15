@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, type Snippet } from 'svelte';
+  import { type Snippet } from 'svelte';
   import type { HTMLButtonAttributes, HTMLAnchorAttributes } from 'svelte/elements';
 
   type Props = (
@@ -31,7 +31,8 @@
           break;
         case 'green':
           classes =
-            'bg-emerald-600 text-white border-2 hover:bg-white border-emerald-600 hover:border-emerald-600';
+            'bg-emerald-600 text-white border-2 hover:bg-white hover:text-emerald-600 border-emerald-600';
+          break;
         case 'secondary':
           classes =
             'bg-gray-200 text-gray-700 border-2 hover:bg-gray-300 border-gray-200 hover:border-gray-300';
