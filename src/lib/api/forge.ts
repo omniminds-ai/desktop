@@ -181,3 +181,56 @@ export async function updatePool(input: UpdatePoolInput): Promise<TrainingPool> 
 
   return response.json();
 }
+
+export interface SubmissionStatus {
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  grade_result?: any;
+  error?: string;
+  meta: any;
+  files: Array<{ file: string; s3Key: string }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function uploadRecording(zipBlob: Blob, address: string): Promise<{ submissionId: string }> {
+  const formData = new FormData();
+  formData.append('file', zipBlob, 'recording.zip');
+
+  const response = await fetch(`${API_BASE}/upload-race`, {
+    method: 'POST',
+    headers: {
+      'x-wallet-address': address
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to upload recording');
+  }
+
+  return response.json();
+}
+
+export async function getSubmissionStatus(submissionId: string): Promise<SubmissionStatus> {
+  const response = await fetch(`${API_BASE}/submission/${submissionId}`);
+
+  if (!response.ok) {
+    throw new Error('Failed to get submission status');
+  }
+
+  return response.json();
+}
+
+export async function listSubmissions(address: string): Promise<SubmissionStatus[]> {
+  const response = await fetch(`${API_BASE}/submissions`, {
+    headers: {
+      'x-wallet-address': address
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to list submissions');
+  }
+
+  return response.json();
+}

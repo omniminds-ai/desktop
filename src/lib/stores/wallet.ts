@@ -1,6 +1,19 @@
 import { writable, get } from 'svelte/store';
 
-export const walletAddress = writable<string | null>(null);
+// Initialize from localStorage if available
+const storedAddress = typeof localStorage !== 'undefined' ? localStorage.getItem('walletAddress') : null;
+export const walletAddress = writable<string | null>(storedAddress);
+
+// Subscribe to changes and save to localStorage
+if (typeof localStorage !== 'undefined') {
+  walletAddress.subscribe(value => {
+    if (value) {
+      localStorage.setItem('walletAddress', value);
+    } else {
+      localStorage.removeItem('walletAddress');
+    }
+  });
+}
 export const isConnecting = writable(false);
 export const connectionToken = writable<string | null>(null);
 

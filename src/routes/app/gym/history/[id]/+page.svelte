@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
   import GymHeader from '$lib/components/gym/GymHeader.svelte';
@@ -10,6 +10,8 @@
   import { page } from '$app/state';
   import type { Recording } from '$lib/gym';
   import { getPlatform } from '$lib/utils';
+  import { uploadRecording, getSubmissionStatus, type SubmissionStatus } from '$lib/api/forge';
+  import { walletAddress } from '$lib/stores/wallet';
 
   let platform: Awaited<ReturnType<typeof getPlatform>> = 'windows';
 
@@ -18,6 +20,61 @@
   let recording: Recording | null = null;
   let processing = false;
   let checkingData = false;
+  let uploading = false;
+  let submission: SubmissionStatus | null = null;
+  let submissionError: string | null = null;
+
+  // Poll submission status
+  let statusInterval: number | null = null;
+  function pollSubmissionStatus(submissionId: string) {
+    statusInterval = setInterval(async () => {
+      try {
+        const status = await getSubmissionStatus(submissionId);
+        submission = status;
+        if (status.status === 'completed' || status.status === 'failed') {
+          if (statusInterval) {
+            clearInterval(statusInterval);
+            statusInterval = null;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to get submission status:', error);
+      }
+    }, 5000);
+  }
+
+  // Clean up interval on unmount
+  onDestroy(() => {
+    if (statusInterval) {
+      clearInterval(statusInterval);
+    }
+  });
+
+  async function handleUpload() {
+    if (!$walletAddress) {
+      submissionError = 'Please connect your wallet first';
+      return;
+    }
+
+    try {
+      uploading = true;
+      submissionError = null;
+      submission = null;
+      // Get zip file as bytes
+      const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
+      // Convert to Blob
+      const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
+      // Upload to server
+      const { submissionId } = await uploadRecording(zipBlob, $walletAddress);
+      // Start polling status
+      pollSubmissionStatus(submissionId);
+    } catch (error) {
+      console.error('Failed to upload recording:', error);
+      submissionError = error instanceof Error ? error.message : 'Failed to upload recording';
+    } finally {
+      uploading = false;
+    }
+  }
 
   async function checkProcessedData() {
     checkingData = true;
@@ -202,33 +259,57 @@
                 </div>
               </div>
               <div class="flex gap-2 shrink-0">
-                <Button
-                  variant="secondary"
-                  onclick={() => invoke('open_recording_folder', { recordingId })}>
-                  Open in {#if platform === 'windows'}
-                    Explorer
-                  {:else if platform === 'macos'}
-                    Finder
-                  {:else}
-                    Files
-                  {/if}
-                </Button>
-                {#if recording.status === 'completed'}
+                <div class="flex gap-2">
                   <Button
                     variant="secondary"
-                    onclick={handleProcess}
-                    disabled={processing || checkingData}>
-                    {#if processing}
-                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
-                      Processing...
-                    {:else if checkingData}
-                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
-                      Checking...
+                    onclick={() => invoke('open_recording_folder', { recordingId })}>
+                    Open in {#if platform === 'windows'}
+                      Explorer
+                    {:else if platform === 'macos'}
+                      Finder
                     {:else}
-                      Process
+                      Files
                     {/if}
                   </Button>
-                {/if}
+                  {#if recording.status === 'completed'}
+                    <Button
+                      variant="secondary"
+                      onclick={handleProcess}
+                      disabled={processing || checkingData}>
+                      {#if processing}
+                        <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                        Processing...
+                      {:else if checkingData}
+                        <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                        Checking...
+                      {:else}
+                        Process
+                      {/if}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onclick={handleUpload}
+                      disabled={uploading || !$walletAddress}>
+                      {#if uploading}
+                        <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                        Uploading...
+                      {:else if submission}
+                        {#if submission.status === 'completed'}
+                          ✓ Uploaded
+                        {:else if submission.status === 'failed'}
+                          Failed
+                        {:else}
+                          Processing...
+                        {/if}
+                      {:else}
+                        Upload
+                      {/if}
+                    </Button>
+                    {#if submissionError}
+                      <p class="text-red-500 text-sm mt-2">{submissionError}</p>
+                    {/if}
+                  {/if}
+                </div>
               </div>
             </div>
           </Card>

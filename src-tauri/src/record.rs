@@ -11,8 +11,9 @@ use chrono::Local;
 use display_info::DisplayInfo;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, create_dir_all, File};
-use std::io::{BufReader, Read};
+use std::io::{BufReader, Read, Write, Cursor};
 use std::path::PathBuf;
+use zip::{write::FileOptions, ZipWriter};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
@@ -470,6 +471,48 @@ pub async fn open_recording_folder(
         .open_path(recordings_dir.to_string_lossy().to_string(), None::<&str>)
         .map_err(|e| format!("Failed to open folder: {}", e))?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn create_recording_zip(app: tauri::AppHandle, recording_id: String) -> Result<Vec<u8>, String> {
+    let recordings_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?
+        .join("recordings")
+        .join(&recording_id);
+
+    // Create a buffer to store the zip file
+    let buf = Cursor::new(Vec::new());
+    let mut zip = ZipWriter::new(buf);
+    let options = FileOptions::default()
+        .compression_method(zip::CompressionMethod::Stored);
+
+    // Add required files to zip
+    for filename in ["input_log.jsonl", "meta.json", "recording.mp4"] {
+        let file_path = recordings_dir.join(filename);
+        if !file_path.exists() {
+            return Err(format!("File not found: {}", filename));
+        }
+
+        let mut file = File::open(&file_path)
+            .map_err(|e| format!("Failed to open {}: {}", filename, e))?;
+        let mut contents = Vec::new();
+        file.read_to_end(&mut contents)
+            .map_err(|e| format!("Failed to read {}: {}", filename, e))?;
+
+        zip.start_file(filename, options)
+            .map_err(|e| format!("Failed to add {} to zip: {}", filename, e))?;
+        zip.write_all(&contents)
+            .map_err(|e| format!("Failed to write {} to zip: {}", filename, e))?;
+    }
+
+    // Finish zip file
+    let buf = zip.finish()
+        .map_err(|e| format!("Failed to finalize zip: {}", e))?
+        .into_inner();
+
+    Ok(buf)
 }
 
 #[tauri::command]
