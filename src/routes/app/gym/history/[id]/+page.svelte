@@ -16,6 +16,49 @@
   const recordingId = page.params.id;
   let selectedView: 'raw' | 'sft' | 'grpo' = 'raw';
   let recording: Recording | null = null;
+  let processing = false;
+  let checkingData = false;
+
+  async function checkProcessedData() {
+    checkingData = true;
+    try {
+      // Check for SFT data
+      try {
+        sftHtml = await invoke<string>('get_recording_file', {
+          recordingId,
+          filename: 'sft.html'
+        });
+      } catch (error) {
+        sftHtml = null;
+      }
+
+      // Check for GRPO data
+      try {
+        grpoHtml = await invoke<string>('get_recording_file', {
+          recordingId,
+          filename: 'grpo.html'
+        });
+      } catch (error) {
+        grpoHtml = null;
+      }
+    } finally {
+      checkingData = false;
+    }
+  }
+
+  async function handleProcess() {
+    try {
+      processing = true;
+      await invoke('process_recording', { recordingId });
+      // Check for processed data after pipeline completes
+      await checkProcessedData();
+    } catch (error) {
+      console.error('Failed to process recording:', error);
+    } finally {
+      processing = false;
+    }
+  }
+
   let rawEvents: Array<{ time: number; event: string; data: any }> = [];
   let currentPage = 0;
   const itemsPerPage = 100;
@@ -107,25 +150,7 @@
         console.log('Raw events not available');
       }
 
-      // Check for SFT data
-      try {
-        sftHtml = await invoke<string>('get_recording_file', {
-          recordingId,
-          filename: 'sft.html'
-        });
-      } catch (error) {
-        console.log('SFT data not available yet');
-      }
-
-      // Check for GRPO data
-      try {
-        grpoHtml = await invoke<string>('get_recording_file', {
-          recordingId,
-          filename: 'grpo.html'
-        });
-      } catch (error) {
-        console.log('GRPO data not available yet');
-      }
+      await checkProcessedData();
     } catch (error) {
       console.error('Failed to load recording:', error);
     }
@@ -176,18 +201,35 @@
                   <div>Locale: {recording.locale}</div>
                 </div>
               </div>
-              <Button
-                variant="secondary"
-                class="shrink-0"
-                onclick={() => invoke('open_recording_folder', { recordingId })}>
-                Open in {#if platform === 'windows'}
-                  Explorer
-                {:else if platform === 'macos'}
-                  Finder
-                {:else}
-                  Files
+              <div class="flex gap-2 shrink-0">
+                <Button
+                  variant="secondary"
+                  onclick={() => invoke('open_recording_folder', { recordingId })}>
+                  Open in {#if platform === 'windows'}
+                    Explorer
+                  {:else if platform === 'macos'}
+                    Finder
+                  {:else}
+                    Files
+                  {/if}
+                </Button>
+                {#if recording.status === 'completed'}
+                  <Button
+                    variant="secondary"
+                    onclick={handleProcess}
+                    disabled={processing || checkingData}>
+                    {#if processing}
+                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                      Processing...
+                    {:else if checkingData}
+                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                      Checking...
+                    {:else}
+                      Process
+                    {/if}
+                  </Button>
                 {/if}
-              </Button>
+              </div>
             </div>
           </Card>
         </div>
@@ -206,15 +248,13 @@
                 <Button
                   variant={selectedView === 'sft' ? 'primary' : 'secondary'}
                   onclick={() => (selectedView = 'sft')}
-                  class="flex-1"
-                  disabled={!sftHtml}>
+                  class="flex-1">
                   SFT Data
                 </Button>
                 <Button
                   variant={selectedView === 'grpo' ? 'primary' : 'secondary'}
                   onclick={() => (selectedView = 'grpo')}
-                  class="flex-1"
-                  disabled={!grpoHtml}>
+                  class="flex-1">
                   GRPO Data
                 </Button>
               </div>
@@ -320,8 +360,11 @@
                   {@html sftHtml}
                 {:else}
                   <div class="text-center py-8 text-gray-500">
-                    <p>SFT data is still processing.</p>
-                    <p>Please check back soon!</p>
+                    <p>SFT data not available.</p>
+                    <p>Click the Process button to generate SFT data.</p>
+                    {#if processing}
+                      <p class="mt-4">Processing... please wait.</p>
+                    {/if}
                   </div>
                 {/if}
               {:else if selectedView === 'grpo'}
@@ -329,8 +372,11 @@
                   {@html grpoHtml}
                 {:else}
                   <div class="text-center py-8 text-gray-500">
-                    <p>GRPO data is still processing.</p>
-                    <p>Please check back soon!</p>
+                    <p>GRPO data not available.</p>
+                    <p>Click the Process button to generate GRPO data.</p>
+                    {#if processing}
+                      <p class="mt-4">Processing... please wait.</p>
+                    {/if}
                   </div>
                 {/if}
               {/if}

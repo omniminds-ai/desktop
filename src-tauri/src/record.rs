@@ -2,6 +2,7 @@ use crate::axtree;
 #[cfg(not(target_os = "macos"))]
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::input;
+use crate::pipeline;
 use crate::logger::Logger;
 #[cfg(target_os = "macos")]
 use crate::macos_screencapture::MacOSScreenRecorder;
@@ -420,6 +421,14 @@ pub async fn get_recording_file(
 
         Ok(contents)
     }
+}
+
+#[tauri::command]
+pub async fn process_recording(
+    app: tauri::AppHandle,
+    recording_id: String
+) -> Result<(), String> {
+    pipeline::process_recording(&app, &recording_id)
 }
 
 #[tauri::command]

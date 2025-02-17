@@ -39,9 +39,15 @@
     console.log('Uploading recording:', recordingId);
     // Implement upload logic here
   }
-  function handleProcess(recordingId: string) {
-    console.log('Processing recording:', recordingId);
-    // Implement process logic here
+  async function handleProcess(recordingId: string) {
+    try {
+      processing = recordingId;
+      await invoke('process_recording', { recordingId });
+    } catch (error) {
+      console.error('Failed to process recording:', error);
+    } finally {
+      processing = null;
+    }
   }
 </script>
 
@@ -95,12 +101,7 @@
             </a>
             {#if recording.status === 'completed'}
               <Button
-                onclick={() => handleUpload(recording.id)}
-                class="h-8 text-sm flex! items-center">
-                <Upload class="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                <span>Upload</span>
-              </Button>
-              <Button
+                variant="secondary"
                 onclick={() => handleProcess(recording.id)}
                 class="h-8 text-sm flex! items-center"
                 disabled={processing === recording.id}>
@@ -113,6 +114,12 @@
                   <Play class="w-3.5 h-3.5 mr-1.5 shrink-0" />
                   <span>Process</span>
                 {/if}
+              </Button>
+              <Button
+                onclick={() => handleUpload(recording.id)}
+                class="h-8 text-sm flex! items-center">
+                <Upload class="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                <span>Upload</span>
               </Button>
             {/if}
           </div>

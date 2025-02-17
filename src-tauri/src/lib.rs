@@ -17,12 +17,13 @@ mod ffmpeg;
 mod input;
 mod logger;
 mod macos_screencapture;
+mod pipeline;
 mod record;
 
 use input::request_input_perms;
 use record::{
     get_app_data_dir, get_recording_file, list_recordings, open_recording_folder,
-    request_record_perms, start_recording, stop_recording, write_file, QuestState,
+    process_recording, request_record_perms, start_recording, stop_recording, write_file, QuestState,
 };
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -128,6 +129,11 @@ pub fn run() {
         std::process::exit(1);
     }
 
+    if let Err(e) = pipeline::init_pipeline() {
+        eprintln!("Failed to initialize pipeline: {}", e);
+        std::process::exit(1);
+    }
+
     let _app = tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
@@ -146,7 +152,8 @@ pub fn run() {
             get_recording_file,
             get_app_data_dir,
             write_file,
-            open_recording_folder
+            open_recording_folder,
+            process_recording
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();

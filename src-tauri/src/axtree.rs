@@ -15,10 +15,10 @@ static POLLING_ACTIVE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.0.1-windows-x64.exe";
 
 #[cfg(target_os = "linux")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.1.0-linux-x64-arm64.js";
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.0.1-linux-x64-arm64.js";
 
 #[cfg(target_os = "macos")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.1.0-macos-arm64";
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.0.1-macos-arm64";
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
