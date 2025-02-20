@@ -1,15 +1,51 @@
 <script lang="ts">
   import Card from '$lib/components/Card.svelte';
   import { onMount } from 'svelte';
-  import { getAppsForGym } from '$lib/api/forge';
+  import { getAppsForGym, getBalance, listSubmissions } from '$lib/api/forge';
   import type { ForgeApp } from '$lib/types/gym';
   import GymHeader from '$lib/components/gym/GymHeader.svelte';
   import Button from '$lib/components/Button.svelte';
+  import { invoke } from '@tauri-apps/api/core';
+  import { walletAddress } from '$lib/stores/wallet';
+
+  function formatNumber(num: number): string {
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   let apps: ForgeApp[] = [];
   let allCategories: string[] = [];
   let selectedCategories: Set<string> = new Set();
+  let viralBalance = 0;
+  let unclaimedRewards = 0;
+
+  async function loadBalance(address: string) {
+    try {
+      viralBalance = await getBalance(address);
+      await listSubmissions(address);
+    } catch (error) {
+      console.error('Failed to load balance:', error);
+    }
+  }
+
+  async function loadUnclaimedRewards() {
+    try {
+      const recordings = await invoke<any[]>('list_recordings');
+      unclaimedRewards = recordings.reduce((total, recording) => {
+        if (recording.status === 'completed' && recording.quest?.reward?.max_reward) {
+          return total + recording.quest.reward.max_reward;
+        }
+        return total;
+      }, 0);
+    } catch (error) {
+      console.error('Failed to load recordings:', error);
+    }
+  }
 
   onMount(async () => {
+    loadUnclaimedRewards();
+    if ($walletAddress) {
+      loadBalance($walletAddress);
+    }
     try {
       apps = await getAppsForGym();
       // Get unique categories across all apps
@@ -18,6 +54,11 @@
       console.error('Failed to fetch apps:', error);
     }
   });
+
+  // Subscribe to wallet address changes
+  $: if ($walletAddress) {
+    loadBalance($walletAddress);
+  }
 
   function getFaviconUrl(domain: string) {
     return `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=64`;
@@ -49,14 +90,14 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
     <Card padding="lg" className="relative">
       <div class="flex flex-col">
-        <div class="text-2xl font-semibold mb-1">1,234 VIRAL</div>
-        <div class="text-sm text-gray-500 mb-4">+ 5,678 in other tokens</div>
+        <div class="text-2xl font-semibold mb-1">{formatNumber(viralBalance + unclaimedRewards)} VIRAL</div>
+        <div class="text-sm text-gray-500 mb-4">+ {formatNumber(unclaimedRewards)} unclaimed</div>
         <Button href="/app/gym/skills" variant="primary" behavior="none">View Skill Tree</Button>
       </div>
     </Card>
     <Card padding="lg" className="relative">
       <div class="flex flex-col">
-        <div class="text-2xl font-semibold mb-1">567 VIRAL</div>
+        <div class="text-2xl font-semibold mb-1">{formatNumber(unclaimedRewards)} VIRAL</div>
         <div class="text-sm text-gray-500 mb-4">Unclaimed Rewards</div>
         <Button href="/app/gym/history" variant="primary" behavior="none">View History</Button>
       </div>
@@ -98,7 +139,7 @@
               name: app.name,
               url: `https://${app.domain}`
             })
-          )}"
+          )}&poolId={app.pool_id._id}"
           class="block">
           <Card
             padding="lg"

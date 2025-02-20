@@ -1,8 +1,11 @@
 <script lang="ts">
-  import { page } from '$app/state';
-  import { onMount, onDestroy } from 'svelte';
-  import * as gym from '$lib/gym';
-  import type { Quest } from '$lib/types/gym';
+import { page } from '$app/state';
+import { onMount, onDestroy } from 'svelte';
+import * as gym from '$lib/gym';
+import type { Quest } from '$lib/types/gym';
+import { getReward } from '$lib/api/forge';
+import { walletAddress } from '$lib/stores/wallet';
+import { get } from 'svelte/store';
   import { Send, User, Video, Square } from 'lucide-svelte';
   import { emit } from '@tauri-apps/api/event';
   import Card from '$lib/components/Card.svelte';
@@ -17,6 +20,7 @@
 
   const prompt = page.url.searchParams.get('prompt') || '';
   const appParam = page.url.searchParams.get('app');
+  const poolId = page.url.searchParams.get('poolId');
   let app: { type: 'executable' | 'website'; name: string; path?: string; url?: string } | null =
     null;
 
@@ -193,6 +197,20 @@
           objectives: questData.objectives,
           content: questData.content || ''
         };
+
+        // If poolId is provided, get reward info
+        if (poolId) {
+          try {
+            const rewardInfo = await getReward(poolId, get(walletAddress) || '');
+            currentQuest.pool_id = poolId;
+            currentQuest.reward = {
+              time: rewardInfo.time,
+              max_reward: rewardInfo.maxReward
+            };
+          } catch (error) {
+            console.error('Failed to get reward info:', error);
+          }
+        }
         showQuestPopup = true;
       }
     } catch (error) {
@@ -392,6 +410,7 @@
     <QuestPopup
       title={currentQuest.title}
       objectives={currentQuest.objectives}
+      reward={currentQuest.reward ? { maxReward: currentQuest.reward.max_reward } : undefined}
       onAccept={async () => {
         showQuestPopup = false;
         // Send user's acceptance message

@@ -43,6 +43,16 @@ pub struct Quest {
     icon_url: String,
     objectives: Vec<String>,
     content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pool_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reward: Option<QuestReward>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct QuestReward {
+    time: i64,
+    max_reward: i64,
 }
 
 #[derive(Serialize, Deserialize)]

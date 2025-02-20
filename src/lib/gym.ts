@@ -1,5 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { join } from '@tauri-apps/api/path';
+import { getReward } from './api/forge';
+import { walletAddress } from './stores/wallet';
+import { get } from 'svelte/store';
 
 export interface MonitorInfo {
   width: number;
@@ -25,7 +28,7 @@ export interface Recording {
 
 import type { Quest } from './types/gym';
 
-export async function generateQuest(prompt: string, address: string): Promise<Quest> {
+export async function generateQuest(prompt: string, address: string, poolId?: string): Promise<Quest> {
   // Get screenshot
   // const screenshot = await invoke('take_screenshot');
 
@@ -53,11 +56,25 @@ export async function generateQuest(prompt: string, address: string): Promise<Qu
     throw new Error('Failed to generate quest');
   }
 
-  return await response.json();
+  const quest = await response.json();
+  
+  // If poolId is provided, get reward info
+  if (poolId) {
+    try {
+      const rewardInfo = await getReward(poolId, get(walletAddress) || '');
+      quest.poolId = poolId;
+      quest.reward = rewardInfo;
+    } catch (error) {
+      console.error('Failed to get reward info:', error);
+    }
+  }
+  
+  return quest;
 }
 
 export async function startRecording(quest?: Quest) {
   try {
+    // If quest has reward info, include poolId and generatedTime in meta
     await invoke('start_recording', { quest });
   } catch (error) {
     console.error('Failed to start recording:', error);

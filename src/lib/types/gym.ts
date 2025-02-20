@@ -10,8 +10,10 @@ export interface ForgeApp {
     prompt: string;
     completed?: boolean;
     recordingId?: string;
+    score?: number;
   }[];
   pool_id: {
+    _id: string;
     name: string;
   };
   seen?: boolean;
@@ -31,6 +33,11 @@ export interface Quest {
   icon_url: string;
   objectives: string[];  // List of 4 objectives, first one must be opening/navigating to the app
   content: string;
+  pool_id?: string;  // Match Rust struct field name
+  reward?: {
+    time: number;      // Unix timestamp rounded to last minute
+    max_reward: number; // Match Rust struct field name
+  };
 }
 
 export interface QuestInfo {

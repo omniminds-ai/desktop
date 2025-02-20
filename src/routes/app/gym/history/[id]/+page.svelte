@@ -12,8 +12,11 @@
   import { getPlatform } from '$lib/utils';
   import { uploadRecording, getSubmissionStatus, type SubmissionStatus } from '$lib/api/forge';
   import { walletAddress } from '$lib/stores/wallet';
+  import { listSubmissions } from '$lib/api/forge';
 
   let platform: Awaited<ReturnType<typeof getPlatform>> = 'windows';
+  let submissions: SubmissionStatus[] = [];
+  let showDetails = false;
 
   const recordingId = page.params.id;
   let selectedView: 'raw' | 'sft' | 'grpo' = 'raw';
@@ -208,10 +211,24 @@
       }
 
       await checkProcessedData();
+
+      // Load submissions if wallet connected
+      if ($walletAddress) {
+        submissions = await listSubmissions($walletAddress);
+        submission = submissions.find(s => s.meta?.id === recordingId) || null;
+      }
     } catch (error) {
       console.error('Failed to load recording:', error);
     }
   });
+
+  // Subscribe to wallet address changes
+  $: if ($walletAddress) {
+    listSubmissions($walletAddress).then(subs => {
+      submissions = subs;
+      submission = submissions.find(s => s.meta?.id === recordingId) || null;
+    });
+  }
 
   function formatJson(event: { time: number; event: string; data: any }) {
     return JSON.stringify(event, null, 2);
@@ -245,6 +262,31 @@
             </div>
           </Card>
 
+          {#if submission?.grade_result}
+            <Card padding="lg" className="mb-6">
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="text-xl font-semibold">Submission Result</div>
+                    <div class="text-lg font-medium text-secondary-300">{submission.clampedScore}%</div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    class="text-sm"
+                    onclick={() => showDetails = !showDetails}>
+                    {showDetails ? 'Hide Details' : 'Show Details'}
+                  </Button>
+                </div>
+                {#if showDetails}
+                  <div class="text-gray-600 max-h-[300px] overflow-y-auto pr-2">
+                    <div class="whitespace-pre-wrap">{submission.grade_result.summary}</div>
+                    <div class="mt-4 text-gray-500 italic">{submission.grade_result.reasoning}</div>
+                  </div>
+                {/if}
+              </div>
+            </Card>
+          {/if}
+
           <Card padding="lg">
             <div class="flex items-center justify-between gap-4">
               <div class="text-gray-700 min-w-0">
@@ -259,57 +301,55 @@
                 </div>
               </div>
               <div class="flex gap-2 shrink-0">
-                <div class="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onclick={() => invoke('open_recording_folder', { recordingId })}>
+                  Open in {#if platform === 'windows'}
+                    Explorer
+                  {:else if platform === 'macos'}
+                    Finder
+                  {:else}
+                    Files
+                  {/if}
+                </Button>
+                {#if recording.status === 'completed'}
                   <Button
                     variant="secondary"
-                    onclick={() => invoke('open_recording_folder', { recordingId })}>
-                    Open in {#if platform === 'windows'}
-                      Explorer
-                    {:else if platform === 'macos'}
-                      Finder
+                    onclick={handleProcess}
+                    disabled={processing || checkingData}>
+                    {#if processing}
+                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                      Processing...
+                    {:else if checkingData}
+                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                      Checking...
                     {:else}
-                      Files
+                      Process
                     {/if}
                   </Button>
-                  {#if recording.status === 'completed'}
-                    <Button
-                      variant="secondary"
-                      onclick={handleProcess}
-                      disabled={processing || checkingData}>
-                      {#if processing}
-                        <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                  <Button
+                    variant="secondary"
+                    onclick={handleUpload}
+                    disabled={uploading || !$walletAddress || submission?.status === 'completed' || (submission && submission.status !== 'failed')}>
+                    {#if uploading}
+                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                      Uploading...
+                    {:else if submission}
+                      {#if submission.status === 'completed'}
+                        ✓ Uploaded
+                      {:else if submission.status === 'failed'}
+                        Failed
+                      {:else}
                         Processing...
-                      {:else if checkingData}
-                        <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
-                        Checking...
-                      {:else}
-                        Process
                       {/if}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onclick={handleUpload}
-                      disabled={uploading || !$walletAddress}>
-                      {#if uploading}
-                        <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
-                        Uploading...
-                      {:else if submission}
-                        {#if submission.status === 'completed'}
-                          ✓ Uploaded
-                        {:else if submission.status === 'failed'}
-                          Failed
-                        {:else}
-                          Processing...
-                        {/if}
-                      {:else}
-                        Upload
-                      {/if}
-                    </Button>
-                    {#if submissionError}
-                      <p class="text-red-500 text-sm mt-2">{submissionError}</p>
+                    {:else}
+                      Upload
                     {/if}
+                  </Button>
+                  {#if submissionError}
+                    <p class="text-red-500 text-sm mt-2">{submissionError}</p>
                   {/if}
-                </div>
+                {/if}
               </div>
             </div>
           </Card>

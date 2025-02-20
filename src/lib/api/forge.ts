@@ -1,6 +1,8 @@
+import { walletAddress } from '$lib/stores/wallet';
 import type { TrainingPool, CreatePoolInput, UpdatePoolInput } from '$lib/types/forge';
 import type { ForgeApp } from '$lib/types/gym';
 import { invoke } from '@tauri-apps/api/core';
+import { get } from 'svelte/store';
 
 const API_BASE = 'http://localhost/api/forge';
 
@@ -41,7 +43,7 @@ export async function getAppsForHistory(): Promise<ForgeApp[]> {
           description: '',
           categories: [],
           tasks: [],
-          pool_id: { name: '' },
+          pool_id: { _id: '', name: '' },
           seen: true
         });
       }
@@ -65,8 +67,25 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
   const historyApps = await getAppsForHistory();
   const appMap = new Map<string, ForgeApp>();
 
+  // Get submissions to get scores
+  const address = get(walletAddress);
+  let submissions: SubmissionStatus[] = [];
+  if (address) {
+    submissions = await listSubmissions(address);
+  }
+
   // Add history apps to map
   historyApps.forEach((app) => {
+    // Update tasks with submission scores
+    app.tasks = app.tasks.map(task => {
+      if (task.recordingId) {
+        const submission = submissions.find(s => s.meta?.id === task.recordingId);
+        if (submission?.clampedScore) {
+          return { ...task, score: submission.clampedScore };
+        }
+      }
+      return task;
+    });
     appMap.set(app.name, app);
   });
 
@@ -126,8 +145,8 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
   // Add random unseen apps if we have any
   if (unseen.length > 0) {
     const shuffledUnseen = unseen.sort(() => Math.random() - 0.5);
-    // Add up to 3 unseen apps, but don't exceed total of 6 apps
-    const unseenToAdd = Math.min(3, Math.max(0, 6 - seen.length));
+    // Add up to 2 unseen apps, but don't exceed total of 3 apps
+    const unseenToAdd = Math.min(2, Math.max(0, 3 - seen.length));
     result = [...result, ...shuffledUnseen.slice(0, unseenToAdd)];
   }
 
@@ -184,12 +203,45 @@ export async function updatePool(input: UpdatePoolInput): Promise<TrainingPool> 
 
 export interface SubmissionStatus {
   status: 'pending' | 'processing' | 'completed' | 'failed';
-  grade_result?: any;
+  grade_result?: {
+    score: number;
+    summary: string;
+    reasoning: string;
+  };
+  reward?: number;
+  maxReward?: number;
+  clampedScore?: number;
   error?: string;
   meta: any;
   files: Array<{ file: string; s3Key: string }>;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RewardInfo {
+  time: number;      // Unix timestamp rounded to last minute
+  maxReward: number; // Value between 1-128
+}
+
+export async function getBalance(address: string): Promise<number> {
+  const response = await fetch(`${API_BASE}/balance/${address}`);
+
+  if (!response.ok) {
+    throw new Error('Failed to get balance');
+  }
+
+  const data = await response.json();
+  return data.balance;
+}
+
+export async function getReward(poolId: string, address: string): Promise<RewardInfo> {
+  const response = await fetch(`${API_BASE}/reward?poolId=${poolId}&address=${address}`);
+
+  if (!response.ok) {
+    throw new Error('Failed to get reward info');
+  }
+
+  return response.json();
 }
 
 export async function uploadRecording(zipBlob: Blob, address: string): Promise<{ submissionId: string }> {
@@ -230,6 +282,22 @@ export async function listSubmissions(address: string): Promise<SubmissionStatus
 
   if (!response.ok) {
     throw new Error('Failed to list submissions');
+  }
+
+  return response.json();
+}
+
+export async function refreshPool(poolId: string): Promise<TrainingPool> {
+  const response = await fetch(`${API_BASE}/refresh`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ id: poolId })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to refresh pool');
   }
 
   return response.json();

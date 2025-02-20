@@ -22,13 +22,13 @@
 
   const DEFAULT_ADDRESSES = {
     SOL: 'So11111111111111111111111111111111111111112',
-    VIRAL: 'ViRA1111111111111111111111111111111111111112'
+    VIRAL: 'HW7D5MyYG4Dz2C98axfjVBeLWpsEnofrqy6ZUwqwpump'
   };
 
-  const tokenOptions: { type: TokenType; symbol: string }[] = [
+  const tokenOptions: { type: TokenType; symbol: string; disabled?: boolean }[] = [
     { type: 'VIRAL', symbol: 'VIRAL' },
-    { type: 'SOL', symbol: 'SOL' },
-    { type: 'CUSTOM', symbol: 'Custom Token' }
+    { type: 'SOL', symbol: 'SOL', disabled: true },
+    { type: 'CUSTOM', symbol: 'Custom Token', disabled: true }
   ];
 
   function handleSubmit() {
@@ -53,7 +53,7 @@
   function resetForm() {
     name = '';
     skills = '';
-    selectedTokenType = 'SOL';
+    selectedTokenType = 'VIRAL';
     customTokenAddress = '';
   }
 </script>
@@ -95,13 +95,18 @@
           <span class="block text-sm font-semibold text-gray-300 mb-1">Treasury Token</span>
           <div class="space-y-2">
             {#each tokenOptions as option}
-              <label class="flex items-center gap-2 text-gray-300">
+              <label 
+                class="flex items-center gap-2 {option.disabled ? 'text-gray-500 cursor-not-allowed' : 'text-gray-300 cursor-pointer'}">
                 <input
                   type="radio"
                   bind:group={selectedTokenType}
                   value={option.type}
-                  class="text-secondary-300 focus:ring-secondary-300" />
+                  disabled={option.disabled}
+                  class="text-secondary-300 focus:ring-secondary-300 disabled:opacity-50" />
                 <span>{option.symbol}</span>
+                {#if option.disabled}
+                  <span class="text-xs text-gray-500">(coming soon)</span>
+                {/if}
               </label>
             {/each}
 

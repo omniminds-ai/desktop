@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import Card from './Card.svelte';
   import CreatePoolModal from './CreatePoolModal.svelte';
-  import { ChevronDown, ChevronRight, Train, TrainIcon } from 'lucide-svelte';
+  import { ChevronDown, ChevronRight, Train, TrainIcon, RefreshCw } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import { walletAddress } from '$lib/stores/wallet';
-  import { listPools, createPool, updatePool } from '$lib/api/forge';
+  import { listPools, createPool, updatePool, refreshPool } from '$lib/api/forge';
   import { type TrainingPool, type Token, TrainingPoolStatus } from '$lib/types/forge';
   import Button from './Button.svelte';
   import CopyButton from './CopyButton.svelte';
@@ -14,6 +15,7 @@
   let showCreateModal = false;
   let loading = true;
   let error: string | null = null;
+  let refreshingPools: Set<string> = new Set();
 
   $: if ($walletAddress) {
     loadPools();
@@ -39,9 +41,63 @@
     goto(`/app/gym/chat?preview=${encodeURIComponent(skills)}`);
   }
 
+  let refreshIntervals: { [key: string]: number } = {};
+
+  // Cleanup intervals on component destroy
+  onDestroy(() => {
+    Object.values(refreshIntervals).forEach(interval => {
+      clearInterval(interval);
+    });
+  });
+
   function togglePool(pool: TrainingPool) {
     pool.expanded = !pool.expanded;
+    
+    // Start periodic refresh if expanded
+    if (pool.expanded) {
+      // Initial refresh
+      refreshPoolData(pool._id);
+      // Set up interval for periodic refresh
+      refreshIntervals[pool._id] = window.setInterval(() => {
+        refreshPoolData(pool._id);
+      }, 300000); // Refresh every 5 minutes
+    } else {
+      // Clear interval when collapsed
+      if (refreshIntervals[pool._id]) {
+        clearInterval(refreshIntervals[pool._id]);
+        delete refreshIntervals[pool._id];
+      }
+    }
+    
     trainingPools = trainingPools;
+  }
+
+  async function refreshPoolData(poolId: string) {
+    if (refreshingPools.has(poolId)) return;
+    
+    try {
+      refreshingPools.add(poolId);
+      refreshingPools = refreshingPools; // Trigger reactivity
+      
+      // Create a promise that resolves after 1 second
+      const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Run the refresh and delay in parallel
+      const [updatedPool] = await Promise.all([
+        refreshPool(poolId),
+        minDelay
+      ]);
+      
+      // Update the pool in the list
+      trainingPools = trainingPools.map(pool => 
+        pool._id === poolId ? { ...pool, ...updatedPool, expanded: true } : pool
+      );
+    } catch (err) {
+      console.error('Failed to refresh pool:', err);
+    } finally {
+      refreshingPools.delete(poolId);
+      refreshingPools = refreshingPools; // Trigger reactivity
+    }
   }
 
   async function handleCreatePool(data: { name: string; skills: string; token: Token }) {
@@ -218,7 +274,18 @@
               </div>
 
               <div>
-                <div class="text-sm font-semibold mb-2">Deposit Address ({pool.token.symbol})</div>
+                <div class="flex justify-between items-center mb-2">
+                  <div class="text-sm font-semibold">Deposit Address ({pool.token.symbol})</div>
+                  <Button
+                    class="px-2 py-1 text-sm"
+                    variant="secondary"
+                    onclick={() => refreshPoolData(pool._id)}
+                    disabled={refreshingPools.has(pool._id)}>
+                    <RefreshCw
+                      size={14}
+                      class={refreshingPools.has(pool._id) ? 'animate-spin' : ''} />
+                  </Button>
+                </div>
                 <div class="flex gap-2 items-center">
                   <input
                     type="text"
