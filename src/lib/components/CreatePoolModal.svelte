@@ -63,30 +63,30 @@
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
     transition:fade={{ duration: 100 }}>
     <div class="bg-gray-900 rounded-xl w-full max-w-lg p-6 space-y-4">
-      <h2 class="text-xl font-bold text-white">Create Training Pool</h2>
+      <h2 class="text-xl font-bold text-white">Create AI Agent Gym</h2>
 
       <form onsubmit={handleSubmit} class="space-y-4">
         <div>
           <label for="pool-name" class="block text-sm font-semibold text-gray-300 mb-1">
-            Pool Name
+            Gym Name
           </label>
           <Input
             id="pool-name"
             type="text"
             bind:value={name}
             class="w-full p-2 bg-gray-800 rounded-lg text-white border border-gray-700 focus:border-secondary-300 focus:outline-none"
-            placeholder="Enter pool name..."
+            placeholder="Enter gym name..."
             required />
         </div>
 
         <div>
           <label for="skill-list" class="block text-sm font-semibold text-gray-300 mb-1">
-            Skills to Collect
+            Skills to Train
           </label>
           <TextArea
             id="skill-list"
             bind:value={skills}
-            placeholder="List the skills you want to collect demonstrations for..."
+            placeholder="List the skills you want to train your AI agent on (one per line)..."
             required>
           </TextArea>
         </div>
@@ -128,7 +128,7 @@
             Cancel
           </Button>
           <Button type="submit" class="hover:bg-gray-800! hover:text-white! py-2!">
-            Create Pool
+            Create Gym
           </Button>
         </div>
       </form>

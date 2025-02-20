@@ -7,6 +7,10 @@
   import Button from '$lib/components/Button.svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { walletAddress } from '$lib/stores/wallet';
+  import { page } from '$app/state';
+
+  const poolId = page.url.searchParams.get('poolId');
+  const poolName = page.url.searchParams.get('poolName');
 
   function formatNumber(num: number): string {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -30,8 +34,16 @@
   async function loadUnclaimedRewards() {
     try {
       const recordings = await invoke<any[]>('list_recordings');
+      let submissions: any[] = [];
+      if ($walletAddress) {
+        submissions = await listSubmissions($walletAddress);
+      }
+      
       unclaimedRewards = recordings.reduce((total, recording) => {
-        if (recording.status === 'completed' && recording.quest?.reward?.max_reward) {
+        // Only count if recording is completed, has a reward, and hasn't been submitted
+        if (recording.status === 'completed' && 
+            recording.quest?.reward?.max_reward && 
+            !submissions.some(s => s.meta?.id === recording.id)) {
           return total + recording.quest.reward.max_reward;
         }
         return total;
@@ -47,7 +59,7 @@
       loadBalance($walletAddress);
     }
     try {
-      apps = await getAppsForGym();
+      apps = await getAppsForGym(poolId || undefined);
       // Get unique categories across all apps
       allCategories = [...new Set(apps.flatMap((app) => app.categories))].sort();
     } catch (error) {
@@ -58,6 +70,10 @@
   // Subscribe to wallet address changes
   $: if ($walletAddress) {
     loadBalance($walletAddress);
+  } else {
+    // Reset balance and reload unclaimed rewards when wallet disconnected
+    viralBalance = 0;
+    loadUnclaimedRewards();
   }
 
   function getFaviconUrl(domain: string) {
@@ -80,12 +96,18 @@
 </script>
 
 <div class="h-full max-w-7xl mx-auto overflow-x-hidden">
+  {#if poolName}
+  <div class="mx-auto mb-8">
+    <div class="text-xl font-semibold mb-2">Viewing Forge: {poolName}</div>
+  </div>
+  {:else}
   <div class="mx-auto mb-8">
     <p class="text-gray-400">
       Share your computer skills, earn rewards, and help build the world's largest open-source
       dataset for training AI assistants.
     </p>
   </div>
+  {/if}
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
     <Card padding="lg" className="relative">

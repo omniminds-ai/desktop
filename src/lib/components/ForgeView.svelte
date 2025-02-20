@@ -31,14 +31,14 @@
       // Initialize unsavedSkills flag for each pool
       trainingPools = trainingPools.map(pool => ({ ...pool, unsavedSkills: false }));
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load training pools';
+      error = err instanceof Error ? err.message : 'Failed to load AI agent gyms';
     } finally {
       loading = false;
     }
   }
 
-  function previewQuest(skills: string) {
-    goto(`/app/gym/chat?preview=${encodeURIComponent(skills)}`);
+  function previewQuest(pool: TrainingPool) {
+    goto(`/app/gym?poolId=${encodeURIComponent(pool._id)}&poolName=${encodeURIComponent(pool.name)}`);
   }
 
   let refreshIntervals: { [key: string]: number } = {};
@@ -93,7 +93,7 @@
         pool._id === poolId ? { ...pool, ...updatedPool, expanded: true } : pool
       );
     } catch (err) {
-      console.error('Failed to refresh pool:', err);
+      console.error('Failed to refresh gym:', err);
     } finally {
       refreshingPools.delete(poolId);
       refreshingPools = refreshingPools; // Trigger reactivity
@@ -111,7 +111,7 @@
       showCreateModal = false;
       loadPools();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to create training pool';
+      error = err instanceof Error ? err.message : 'Failed to create AI agent gym';
     }
   }
 
@@ -126,7 +126,7 @@
       });
       loadPools();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to update training pool';
+      error = err instanceof Error ? err.message : 'Failed to update AI agent gym';
     }
   }
 
@@ -164,10 +164,10 @@
         class="px-4! py-2!"
         onclick={() => (showCreateModal = true)}
         disabled={$walletAddress ? false : true}>
-        New Training Pool
+        Create New Gym
       </Button>
     </div>
-    <p class="text-gray-400">Turn expert skills into AI agents with crowd-powered training</p>
+    <p class="text-gray-400">Train AI agents with crowd-powered demonstrations in specialized skill gyms</p>
   </div>
 
   {#if error}
@@ -178,13 +178,13 @@
 
   {#if !$walletAddress}
     <div class="text-center text-blac py-8">
-      Connect your wallet to view and manage training pools
+      Connect your wallet to view and manage your AI agent gyms
     </div>
   {:else if loading}
-    <div class="text-center text-gray-400 py-8">Loading training pools...</div>
+    <div class="text-center text-gray-400 py-8">Loading AI agent gyms...</div>
   {:else if trainingPools.length === 0}
     <div class="text-center text-gray-400 py-8">
-      No training pools found. Create one to get started!
+      No AI agent gyms found. Create one to get started!
     </div>
   {:else}
     <div class="space-y-4">
@@ -217,8 +217,7 @@
                 </div>
               </div>
               <div class="text-sm text-gray-500">
-                {pool.demonstrations.toLocaleString()} demonstrations • {pool.funds.toLocaleString()}
-                <b>{pool.token.symbol}</b>
+                {pool.demonstrations.toLocaleString()} demonstrations collected • {Math.floor(pool.funds / 5.82).toLocaleString()} remaining • {pool.funds.toLocaleString()} <b>{pool.token.symbol}</b>
               </div>
             </div>
             <div class="flex gap-2 items-center">
@@ -226,8 +225,8 @@
                 class="px-3 py-1.5 text-sm"
                 variant="secondary"
                 type="button"
-                onclick={() => previewQuest(pool.skills)}>
-                Preview Gym
+                onclick={() => previewQuest(pool)}>
+                View Gym
               </Button>
               <Button class="px-3 py-1.5 text-sm">Export Data</Button>
               <div class="text-gray-400 flex items-center cursor-pointer">
@@ -244,7 +243,7 @@
             <div class="mt-4 space-y-4">
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <div class="text-sm font-semibold">Skills to Collect</div>
+                  <div class="text-sm font-semibold">Skills to Train</div>
                   <div class="flex gap-2">
                     {#if pool.unsavedSkills}
                       <Button
@@ -255,11 +254,11 @@
                     {/if}
                     {#if pool.status !== TrainingPoolStatus.noFunds}
                       <Button
-                        class="px-3 py-1.5 text-sm {pool.status === TrainingPoolStatus.live
+                        class="px-3 py-1.5 text-sm bg-transparent! {pool.status === TrainingPoolStatus.live
                           ? 'border-gray-300! text-gray-700! hover:bg-gray-200!'
                           : 'border-green-500! text-green-600! hover:bg-green-100!'}"
                         onclick={() => handleStatusToggle(pool)}>
-                        {pool.status === TrainingPoolStatus.live ? 'Pause Pool' : 'Resume Pool'}
+                        {pool.status === TrainingPoolStatus.live ? 'Pause Gym' : 'Resume Gym'}
                       </Button>
                     {/if}
                   </div>
@@ -267,7 +266,7 @@
                 <TextArea
                   class="h-32"
                   variant="light"
-                  placeholder="List the skills you want to collect demonstrations for..."
+                  placeholder="List the skills you want to train your AI agent on (one per line)..."
                   bind:value={pool.skills}
                   oninput={(e) => handleSkillsChange(pool, e.currentTarget.value)}>
                 </TextArea>

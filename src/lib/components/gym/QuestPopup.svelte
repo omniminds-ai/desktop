@@ -1,6 +1,14 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import Button from '../Button.svelte';
   import AppText from './AppText.svelte';
+  import notifySound from '$lib/assets/notify.wav';
+
+  onMount(() => {
+    const audio = new Audio(notifySound);
+    audio.volume = 0.5;
+    audio.play();
+  });
 
   const { title, objectives, reward, onAccept, onDecline } = $props<{
     title: string;

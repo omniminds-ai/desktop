@@ -6,8 +6,8 @@ import { get } from 'svelte/store';
 
 const API_BASE = 'http://localhost/api/forge';
 
-export async function getAppsForGym(): Promise<ForgeApp[]> {
-  const response = await fetch(`${API_BASE}/apps`);
+export async function getAppsForGym(poolId?: string): Promise<ForgeApp[]> {
+  const response = await fetch(`${API_BASE}/apps${poolId ? `?pool_id=${poolId}` : ''}`);
 
   if (!response.ok) {
     throw new Error('Failed to fetch apps');
@@ -15,7 +15,11 @@ export async function getAppsForGym(): Promise<ForgeApp[]> {
 
   const apps: ForgeApp[] = await response.json();
 
-  // Shuffle apps and limit to 6
+  if (poolId) {
+    return apps;
+  }
+
+  // If no poolId, shuffle and limit apps
   const shuffledApps = apps.sort(() => Math.random() - 0.5).slice(0, 6);
 
   // For each app, keep only a random subset of tasks
