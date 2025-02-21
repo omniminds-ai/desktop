@@ -6,8 +6,8 @@
   const { children } = $props();
 
   onMount(async () => {
-    await invoke('request_record_perms');
-    await invoke('request_input_perms');
+    // await invoke('request_record_perms');
+    // await invoke('request_input_perms');
   });
 </script>
 

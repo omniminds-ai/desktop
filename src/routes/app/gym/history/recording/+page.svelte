@@ -2,7 +2,6 @@
   import { onMount, onDestroy } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import GymHeader from '$lib/components/gym/GymHeader.svelte';
   import EventTimestamp from '$lib/components/gym/EventTimestamp.svelte';
   import AxTreeOverlay from '$lib/components/gym/AxTreeOverlay.svelte';
   import { invoke } from '@tauri-apps/api/core';
