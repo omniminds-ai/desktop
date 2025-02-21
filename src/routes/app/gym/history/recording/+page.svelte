@@ -7,7 +7,6 @@
   import AxTreeOverlay from '$lib/components/gym/AxTreeOverlay.svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-  import { page } from '$app/state';
   import type { Recording } from '$lib/gym';
   import { getPlatform } from '$lib/utils';
   import { uploadRecording, getSubmissionStatus, type SubmissionStatus } from '$lib/api/forge';
@@ -18,7 +17,7 @@
   let submissions: SubmissionStatus[] = [];
   let showDetails = false;
 
-  const recordingId = page.params.id;
+  const recordingId = new URLSearchParams(window.location.search).get('id');
   let selectedView: 'raw' | 'sft' | 'grpo' = 'raw';
   let recording: Recording | null = null;
   let processing = false;
@@ -215,7 +214,7 @@
       // Load submissions if wallet connected
       if ($walletAddress) {
         submissions = await listSubmissions($walletAddress);
-        submission = submissions.find(s => s.meta?.id === recordingId) || null;
+        submission = submissions.find((s) => s.meta?.id === recordingId) || null;
       }
     } catch (error) {
       console.error('Failed to load recording:', error);
@@ -224,9 +223,9 @@
 
   // Subscribe to wallet address changes
   $: if ($walletAddress) {
-    listSubmissions($walletAddress).then(subs => {
+    listSubmissions($walletAddress).then((subs) => {
       submissions = subs;
-      submission = submissions.find(s => s.meta?.id === recordingId) || null;
+      submission = submissions.find((s) => s.meta?.id === recordingId) || null;
     });
   }
 
@@ -268,12 +267,14 @@
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-3">
                     <div class="text-xl font-semibold">Submission Result</div>
-                    <div class="text-lg font-medium text-secondary-300">{submission.clampedScore}%</div>
+                    <div class="text-lg font-medium text-secondary-300">
+                      {submission.clampedScore}%
+                    </div>
                   </div>
                   <Button
                     variant="secondary"
                     class="text-sm"
-                    onclick={() => showDetails = !showDetails}>
+                    onclick={() => (showDetails = !showDetails)}>
                     {showDetails ? 'Hide Details' : 'Show Details'}
                   </Button>
                 </div>
@@ -318,10 +319,12 @@
                     onclick={handleProcess}
                     disabled={processing || checkingData}>
                     {#if processing}
-                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                      <div
+                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
                       Processing...
                     {:else if checkingData}
-                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                      <div
+                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
                       Checking...
                     {:else}
                       Process
@@ -330,9 +333,13 @@
                   <Button
                     variant="secondary"
                     onclick={handleUpload}
-                    disabled={uploading || !$walletAddress || submission?.status === 'completed' || (submission && submission.status !== 'failed')}>
+                    disabled={uploading ||
+                      !$walletAddress ||
+                      submission?.status === 'completed' ||
+                      (submission && submission.status !== 'failed')}>
                     {#if uploading}
-                      <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                      <div
+                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
                       Uploading...
                     {:else if submission}
                       {#if submission.status === 'completed'}

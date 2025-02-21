@@ -21,7 +21,7 @@
 
   onDestroy(() => {
     // Clear all intervals
-    Object.values(statusIntervals).forEach(interval => {
+    Object.values(statusIntervals).forEach((interval) => {
       clearInterval(interval);
     });
   });
@@ -34,9 +34,7 @@
     statusIntervals[recordingId] = setInterval(async () => {
       try {
         const status = await getSubmissionStatus(submissionId);
-        submissions = submissions.map(s => 
-          s.meta?.id === recordingId ? status : s
-        );
+        submissions = submissions.map((s) => (s.meta?.id === recordingId ? status : s));
         if (status.status === 'completed' || status.status === 'failed') {
           clearInterval(statusIntervals[recordingId]);
           delete statusIntervals[recordingId];
@@ -66,7 +64,8 @@
       pollSubmissionStatus(recordingId, submissionId);
     } catch (error) {
       console.error('Failed to upload recording:', error);
-      submissionError[recordingId] = error instanceof Error ? error.message : 'Failed to upload recording';
+      submissionError[recordingId] =
+        error instanceof Error ? error.message : 'Failed to upload recording';
     } finally {
       uploading = null;
     }
@@ -102,8 +101,8 @@
 
   $: mergedRecordings = [
     // First include all local recordings with their submissions
-    ...recordings.map(recording => {
-      const submission = submissions.find(s => s.meta?.id === recording.id);
+    ...recordings.map((recording) => {
+      const submission = submissions.find((s) => s.meta?.id === recording.id);
       return {
         ...recording,
         submission
@@ -111,8 +110,8 @@
     }),
     // Then include submissions without local recordings
     ...submissions
-      .filter(s => !recordings.some(r => r.id === s.meta?.id))
-      .map(s => ({
+      .filter((s) => !recordings.some((r) => r.id === s.meta?.id))
+      .map((s) => ({
         id: s.meta.id,
         timestamp: s.meta.timestamp,
         duration_seconds: s.meta.duration_seconds,
@@ -146,7 +145,6 @@
       }
     });
 
-
   async function handleProcess(recordingId: string) {
     try {
       processing = recordingId;
@@ -159,7 +157,7 @@
   }
 
   function getRewardDisplay(recording: Recording & { submission?: SubmissionStatus }) {
-    console.log(recording.submission)
+    console.log(recording.submission);
     if (recording.submission?.reward && recording.submission.maxReward) {
       return `${formatNumber(recording.submission.reward)} VIRAL (${recording.submission.clampedScore}% of ${formatNumber(recording.submission.maxReward)})`;
     } else if (recording.meta?.quest?.reward?.max_reward) {
@@ -212,7 +210,7 @@
           </div>
 
           <div class="flex flex-col gap-2">
-            <a href="/app/gym/history/{recording.id}" class="block">
+            <a href="/app/gym/history/recording?id={recording.id}" class="block">
               <Button variant="secondary" class="h-8 text-sm flex! items-center w-full">
                 <Edit class="w-3.5 h-3.5 mr-1.5 shrink-0" />
                 <span>Details</span>
@@ -224,7 +222,8 @@
                 class="h-8 text-sm flex! items-center"
                 disabled={uploading === recording.id || !$walletAddress}>
                 {#if uploading === recording.id}
-                  <div class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                  <div
+                    class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
                   <span>Uploading...</span>
                 {:else}
                   <Upload class="w-3.5 h-3.5 mr-1.5 shrink-0" />

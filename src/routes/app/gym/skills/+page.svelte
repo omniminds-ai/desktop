@@ -288,7 +288,7 @@
         }
         if (template instanceof HTMLAnchorElement) {
           if (d.data.completed) {
-            template.href = `/app/gym/history/${d.data.recordingId}`;
+            template.href = `/app/gym/history/recording?id=${d.data.recordingId}`;
             const scoreEl = template.querySelector('.task-score');
             const unclaimedEl = template.querySelector('.task-unclaimed');
             if (d.data.score) {
@@ -393,7 +393,9 @@
       <div class="absolute bottom-2 left-2 flex items-center gap-2">
         <img class="app-icon w-6 h-6" src="" alt="app icon" />
         <div class="task-score text-sm font-medium text-secondary-300"></div>
-        <div class="task-unclaimed text-xs font-medium text-secondary-300 bg-[#f7edfd] px-1.5 py-0.5 rounded"></div>
+        <div
+          class="task-unclaimed text-xs font-medium text-secondary-300 bg-[#f7edfd] px-1.5 py-0.5 rounded">
+        </div>
       </div>
       <div class="absolute inset-0 border-4 rounded-2xl transition-colors" data-border></div>
     </div>
