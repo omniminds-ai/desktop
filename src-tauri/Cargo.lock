@@ -5950,6 +5950,7 @@ dependencies = [
  "app-finder",
  "base64 0.21.7",
  "chrono",
+ "core-graphics 0.24.0",
  "display-info",
  "image 0.24.9",
  "lazy_static",

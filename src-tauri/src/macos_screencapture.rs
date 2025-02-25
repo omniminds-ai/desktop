@@ -1,3 +1,4 @@
+use core_graphics::access::ScreenCaptureAccess;
 use std::path::PathBuf;
 use std::process::{Child, Command};
 use std::thread;
@@ -14,6 +15,11 @@ impl MacOSScreenRecorder {
             "[MacOS Recorder] Creating new recorder. -> {}",
             output_path.display()
         );
+        println!("[MacOS Recorder] Requesting screen recording permissions.");
+        if !ScreenCaptureAccess.preflight() {
+            println!("[MacOS Recorder] Permissions not granted. Requesting...");
+            ScreenCaptureAccess.request();
+        }
         Self {
             output_path,
             process: None,
