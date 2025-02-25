@@ -1,3 +1,4 @@
+use chrono::DateTime;
 use serde_json::{json, Value};
 use std::fs;
 use std::io::{BufRead, BufReader};
@@ -12,18 +13,124 @@ static DUMP_TREE_PATH: OnceLock<PathBuf> = OnceLock::new();
 static POLLING_ACTIVE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 
 #[cfg(target_os = "windows")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.0.1-windows-x64.exe";
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-windows-x64.exe";
 
 #[cfg(target_os = "linux")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.0.1-linux-x64-arm64.js";
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-linux-x64-arm64.js";
 
 #[cfg(target_os = "macos")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-0.0.1-macos-arm64";
+const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-macos-arm64";
+
+const GITHUB_API_URL: &str =
+    "https://api.github.com/repos/viralmind-ai/ax-tree-parsers/releases/latest";
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
     temp.push("viralmind-desktop");
     temp
+}
+
+struct BinaryMetadata {
+    version: String,
+    build_timestamp: u64,
+}
+
+impl BinaryMetadata {
+    fn new(version: String, build_timestamp: u64) -> Self {
+        Self {
+            version,
+            build_timestamp,
+        }
+    }
+
+    fn to_json(&self) -> Value {
+        json!({
+            "version": self.version,
+            "build_timestamp": self.build_timestamp,
+        })
+    }
+
+    fn from_json(json: &Value) -> Option<Self> {
+        if let (Some(version), Some(build_timestamp)) = (
+            json.get("version").and_then(Value::as_str),
+            json.get("build_timestamp").and_then(Value::as_u64),
+        ) {
+            Some(Self::new(version.to_string(), build_timestamp))
+        } else {
+            None
+        }
+    }
+}
+
+fn save_metadata(path: &Path, metadata: &BinaryMetadata) -> Result<(), String> {
+    let json = metadata.to_json();
+    let content = serde_json::to_string_pretty(&json)
+        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
+
+    fs::write(path, content).map_err(|e| format!("Failed to write metadata file: {}", e))?;
+
+    println!("[AxTree] Saved metadata to {}", path.display());
+    Ok(())
+}
+
+fn load_metadata(path: &Path) -> Result<Option<BinaryMetadata>, String> {
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let content =
+        fs::read_to_string(path).map_err(|e| format!("Failed to read metadata file: {}", e))?;
+
+    let json: Value =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
+
+    Ok(BinaryMetadata::from_json(&json))
+}
+
+fn fetch_latest_release_metadata() -> Result<BinaryMetadata, String> {
+    println!("[AxTree] Fetching latest release metadata from GitHub API");
+
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("viralmind-desktop")
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let response = client
+        .get(GITHUB_API_URL)
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .map_err(|e| format!("Failed to fetch release info: {}", e))?;
+
+    let json: Value = response
+        .json()
+        .map_err(|e| format!("Failed to parse GitHub API response: {}", e))?;
+
+    let version = json
+        .get("tag_name")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "No tag name in release".to_string())?
+        .to_string();
+
+    // Use published_at timestamp from GitHub API
+    let published_at = json
+        .get("published_at")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "No published_at in release".to_string())?;
+
+    // Convert ISO 8601 date string to Unix timestamp
+    let timestamp = {
+        let dt = DateTime::parse_from_rfc3339(published_at)
+            .map_err(|e| format!("Failed to parse published_at date: {}", e))?;
+
+        dt.timestamp() as u64
+    };
+
+    println!(
+        "[AxTree] Latest release: version={}, published_at={} ({})",
+        version, published_at, timestamp
+    );
+
+    Ok(BinaryMetadata::new(version, timestamp))
 }
 
 fn download_file(url: &str, path: &Path) -> Result<(), String> {
@@ -56,7 +163,6 @@ fn download_file(url: &str, path: &Path) -> Result<(), String> {
 }
 
 pub fn init_dump_tree() -> Result<(), String> {
-    // todo: should somehow version the scripts in case theres a new release for the ax parsing
     if DUMP_TREE_PATH.get().is_some() {
         println!("[AxTree] Already initialized");
         return Ok(());
@@ -74,34 +180,45 @@ pub fn init_dump_tree() -> Result<(), String> {
     })?;
 
     // Get the filename from the URL for proper version tracking
-    let _response = reqwest::blocking::get(DUMP_TREE_URL)
-        .map_err(|e| format!("Failed to check latest version: {}", e))?;
-
-    let url_parser =
-        Url::parse(DUMP_TREE_URL).map_err(|e| format!("Failed to parse URL: {}", e))?;
-
-    let dump_tree_filename = url_parser
-        .path_segments()
-        .and_then(|segments| segments.last())
-        .ok_or_else(|| "Invalid URL format".to_string())?;
+    let dump_tree_split: Vec<&str> = DUMP_TREE_URL.split("/").collect();
+    let dump_tree_filename = dump_tree_split[DUMP_TREE_URL.split("/").count() - 1];
 
     let dump_tree_path = temp_dir.join(dump_tree_filename);
+    let metadata_path = temp_dir.join(format!("{}.metadata.json", dump_tree_filename));
 
-    println!("{}", dump_tree_filename);
+    // Fetch latest release metadata from GitHub
+    let latest_metadata = fetch_latest_release_metadata()?;
 
+    // Check if we need to download the binary
     let should_download = if !dump_tree_path.exists() {
+        println!("[AxTree] Binary does not exist, downloading");
         true
     } else {
-        // Extract versions and compare
-        let current_version = dump_tree_path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .and_then(|name| name.split('-').nth(2))
-            .unwrap_or("0.0.0");
+        // Load existing metadata
+        let current_metadata = load_metadata(&metadata_path)?;
 
-        let new_version = dump_tree_filename.split('-').nth(2).unwrap_or("0.0.0");
-
-        current_version < new_version
+        match current_metadata {
+            Some(metadata) => {
+                // Compare build timestamps
+                if metadata.build_timestamp < latest_metadata.build_timestamp {
+                    println!(
+                        "[AxTree] New version available: current={} ({}), latest={} ({})",
+                        metadata.version,
+                        metadata.build_timestamp,
+                        latest_metadata.version,
+                        latest_metadata.build_timestamp
+                    );
+                    true
+                } else {
+                    println!("[AxTree] Binary is up to date");
+                    false
+                }
+            }
+            None => {
+                println!("[AxTree] No metadata found, downloading latest version");
+                true
+            }
+        }
     };
 
     if should_download {
@@ -114,6 +231,9 @@ pub fn init_dump_tree() -> Result<(), String> {
             fs::set_permissions(&dump_tree_path, fs::Permissions::from_mode(0o755))
                 .map_err(|e| format!("Failed to set executable permissions: {}", e))?;
         }
+
+        // Save the metadata
+        save_metadata(&metadata_path, &latest_metadata)?;
     }
 
     println!("[AxTree] Using dump-tree at {}", dump_tree_path.display());
@@ -135,7 +255,10 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
     println!("[AxTree] Starting dump-tree polling");
 
     thread::spawn(move || {
+        println!("[AxTree] Polling thread started");
         while *POLLING_ACTIVE.get().unwrap().lock().unwrap() {
+            println!("[AxTree] Starting new dump-tree process");
+
             // Run dump-tree and capture output
             let process = Command::new(&dump_tree)
                 .arg("-e")
@@ -145,47 +268,73 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
 
             match process {
                 Ok(mut child) => {
-                    let stdout = child.stdout.take();
-                    let stderr = child.stderr.take();
-                    let mut child_owned = child;
-
-                    if let Some(stderr) = stderr {
-                        let reader = BufReader::new(stderr);
-                        for line in reader.lines() {
-                            if let Ok(line) = line {
-                                println!("[AxTree] Error line: {}", line);
-                            }
-                        }
-                    }
-
-                    if let Some(stdout) = stdout {
-                        let reader = BufReader::new(stdout);
-                        for line in reader.lines() {
-                            if let Ok(line) = line {
-                                println!("[AxTree] Got line: {}", line);
-                                // Try to parse as JSON
-                                if let Ok(mut json) = serde_json::from_str::<Value>(&line) {
-                                    // Modify the event field
-                                    if let Some(obj) = json.as_object_mut() {
-                                        obj.insert("event".to_string(), json!("axtree"));
-                                        // Log the modified event
-                                        let _ = crate::record::log_input(json!(obj));
+                    // Create separate threads for handling stdout and stderr
+                    let stdout_thread = if let Some(stdout) = child.stdout.take() {
+                        let stdout_handle = thread::spawn(move || {
+                            let reader = BufReader::new(stdout);
+                            for line in reader.lines() {
+                                if let Ok(line) = line {
+                                    // println!("[AxTree] Got line: {}", line);
+                                    // Try to parse as JSON
+                                    if let Ok(mut json) = serde_json::from_str::<Value>(&line) {
+                                        // Modify the event field
+                                        if let Some(obj) = json.as_object_mut() {
+                                            obj.insert("event".to_string(), json!("axtree"));
+                                            // Log the modified event
+                                            let _ = crate::record::log_input(json!(obj));
+                                        }
                                     }
                                 }
                             }
+                        });
+                        Some(stdout_handle)
+                    } else {
+                        None
+                    };
+
+                    let stderr_thread = if let Some(stderr) = child.stderr.take() {
+                        let stderr_handle = thread::spawn(move || {
+                            let reader = BufReader::new(stderr);
+                            for line in reader.lines() {
+                                if let Ok(line) = line {
+                                    println!("[AxTree] Error line: {}", line);
+                                }
+                            }
+                        });
+                        Some(stderr_handle)
+                    } else {
+                        None
+                    };
+
+                    // Wait for process to finish
+                    match child.wait() {
+                        Ok(status) => println!("[AxTree] Process exited with status: {}", status),
+                        Err(e) => println!("[AxTree] Error waiting for process: {}", e),
+                    }
+
+                    // Wait for output processing to complete
+                    if let Some(handle) = stdout_thread {
+                        if let Err(e) = handle.join() {
+                            println!("[AxTree] Error joining stdout thread: {:?}", e);
                         }
                     }
 
-                    // Wait for process to finish
-                    let _ = child_owned.wait();
+                    if let Some(handle) = stderr_thread {
+                        if let Err(e) = handle.join() {
+                            println!("[AxTree] Error joining stderr thread: {:?}", e);
+                        }
+                    }
                 }
                 Err(e) => {
                     println!("[AxTree] Error running dump-tree: {}", e);
                 }
             }
 
-            // Sleep for 5 seconds before next poll
-            thread::sleep(Duration::from_secs(5));
+            // Only sleep if we're still supposed to be polling
+            if *POLLING_ACTIVE.get().unwrap().lock().unwrap() {
+                println!("[AxTree] Sleeping for 2 seconds before next poll");
+                thread::sleep(Duration::from_secs(2));
+            }
         }
         println!("[AxTree] Stopped dump-tree polling");
     });
@@ -200,4 +349,34 @@ pub fn stop_dump_tree_polling() -> Result<(), String> {
         *polling_active.lock().unwrap() = false;
     }
     Ok(())
+}
+
+pub fn check_for_updates() -> Result<bool, String> {
+    let temp_dir = get_temp_dir();
+    let url_parser =
+        Url::parse(DUMP_TREE_URL).map_err(|e| format!("Failed to parse URL: {}", e))?;
+
+    let dump_tree_filename = url_parser
+        .path_segments()
+        .and_then(|segments| segments.last())
+        .ok_or_else(|| "Invalid URL format".to_string())?;
+
+    let metadata_path = temp_dir.join(format!("{}.metadata.json", dump_tree_filename));
+
+    // Fetch latest release metadata
+    let latest_metadata = fetch_latest_release_metadata()?;
+
+    // Load current metadata
+    let current_metadata = load_metadata(&metadata_path)?;
+
+    match current_metadata {
+        Some(metadata) => {
+            // Return true if update is available
+            Ok(metadata.build_timestamp < latest_metadata.build_timestamp)
+        }
+        None => {
+            // No metadata found, so update is needed
+            Ok(true)
+        }
+    }
 }
