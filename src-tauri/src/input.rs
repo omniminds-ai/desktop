@@ -28,7 +28,7 @@ fn has_input_permissions() -> bool {
 fn request_input_permissions() {
     #[cfg(target_os = "macos")]
     std::process::Command::new("open")
-        .args(&["x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"])
+        .args(&["x-apple.systempreferences:com.apple.preference.security"])
         .spawn()
         .expect("Failed to open System Settings");
     //todo: save input perm status to storage
