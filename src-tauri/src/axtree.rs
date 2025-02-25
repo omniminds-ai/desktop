@@ -62,6 +62,18 @@ impl BinaryMetadata {
     }
 }
 
+pub fn has_ax_perms() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        let trusted =
+            macos_accessibility_client::accessibility::application_is_trusted_with_prompt();
+        return trusted;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    return true;
+}
+
 fn save_metadata(path: &Path, metadata: &BinaryMetadata) -> Result<(), String> {
     let json = metadata.to_json();
     let content = serde_json::to_string_pretty(&json)
@@ -242,6 +254,9 @@ pub fn init_dump_tree() -> Result<(), String> {
 }
 
 pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
+    if !has_ax_perms() {
+        println!("[AxTree] Viralmind does not have access to the accessibility tree.")
+    }
     let dump_tree = DUMP_TREE_PATH
         .get()
         .ok_or_else(|| "dump-tree not initialized".to_string())?

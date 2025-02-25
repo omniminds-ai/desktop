@@ -2755,9 +2755,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.169"
+version = "0.2.170"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5aba8db14291edd000dfcc4d620c7ebfb122c613afb886ca8803fa4e128a20a"
+checksum = "875b3680cb2f8f71bdcf9a30f38d48282f5d3c95cbf9b3fa57269bb5d5c06828"
 
 [[package]]
 name = "libdbus-sys"
@@ -2866,6 +2866,16 @@ name = "mac"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4"
+
+[[package]]
+name = "macos-accessibility-client"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edf7710fbff50c24124331760978fb9086d6de6288dcdb38b25a97f8b1bdebbb"
+dependencies = [
+ "core-foundation 0.9.4",
+ "core-foundation-sys",
+]
 
 [[package]]
 name = "malloc_buf"
@@ -5950,14 +5960,19 @@ dependencies = [
  "app-finder",
  "base64 0.21.7",
  "chrono",
+ "core-foundation 0.10.0",
+ "core-foundation-sys",
  "core-graphics 0.24.0",
  "display-info",
  "image 0.24.9",
  "lazy_static",
+ "libc",
+ "macos-accessibility-client",
  "multiinput",
  "once_cell",
  "rdev",
  "reqwest 0.11.27",
+ "security-framework",
  "serde",
  "serde_json",
  "tar",
