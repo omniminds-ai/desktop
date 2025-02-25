@@ -146,12 +146,23 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
             match process {
                 Ok(mut child) => {
                     let stdout = child.stdout.take();
+                    let stderr = child.stderr.take();
                     let mut child_owned = child;
+
+                    if let Some(stderr) = stderr {
+                        let reader = BufReader::new(stderr);
+                        for line in reader.lines() {
+                            if let Ok(line) = line {
+                                println!("[AxTree] Error line: {}", line);
+                            }
+                        }
+                    }
 
                     if let Some(stdout) = stdout {
                         let reader = BufReader::new(stdout);
                         for line in reader.lines() {
                             if let Ok(line) = line {
+                                println!("[AxTree] Got line: {}", line);
                                 // Try to parse as JSON
                                 if let Ok(mut json) = serde_json::from_str::<Value>(&line) {
                                     // Modify the event field
