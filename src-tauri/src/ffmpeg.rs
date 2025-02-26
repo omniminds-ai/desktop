@@ -11,6 +11,8 @@ use std::thread;
 #[cfg(not(target_os = "macos"))]
 use std::time::Duration;
 
+use log::info;
+
 pub static FFMPEG_PATH: OnceLock<PathBuf> = OnceLock::new();
 pub static FFPROBE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
@@ -26,28 +28,28 @@ fn get_temp_dir() -> PathBuf {
 }
 
 fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    println!(
+    info!(
         "[FFmpeg] Downloading file from {} to {}",
         url,
         path.display()
     );
     let client = reqwest::blocking::Client::new();
     let resp = client.get(url).send().map_err(|e| {
-        println!("[FFmpeg] Error: Failed to download FFmpeg: {}", e);
+        info!("[FFmpeg] Error: Failed to download FFmpeg: {}", e);
         format!("Failed to download FFmpeg: {}", e)
     })?;
 
     let bytes = resp.bytes().map_err(|e| {
-        println!("[FFmpeg] Error: Failed to get response bytes: {}", e);
+        info!("[FFmpeg] Error: Failed to get response bytes: {}", e);
         format!("Failed to get response bytes: {}", e)
     })?;
 
     fs::write(path, bytes).map_err(|e| {
-        println!("[FFmpeg] Error: Failed to write file: {}", e);
+        info!("[FFmpeg] Error: Failed to write file: {}", e);
         format!("Failed to write file: {}", e)
     })?;
 
-    println!(
+    info!(
         "[FFmpeg] Successfully downloaded file to {}",
         path.display()
     );
@@ -56,24 +58,24 @@ fn download_file(url: &str, path: &Path) -> Result<(), String> {
 
 pub fn init_ffmpeg() -> Result<(), String> {
     if FFMPEG_PATH.get().is_some() {
-        println!("[FFmpeg] Already initialized");
+        info!("[FFmpeg] Already initialized");
         return Ok(());
     }
 
-    println!("[FFmpeg] Initializing FFmpeg");
+    info!("[FFmpeg] Initializing FFmpeg");
     // First check if ffmpeg is in PATH
     if let Ok(output) = Command::new("ffmpeg").arg("-version").output() {
         if output.status.success() {
-            println!("[FFmpeg] Found FFmpeg in system PATH");
+            info!("[FFmpeg] Found FFmpeg in system PATH");
             FFMPEG_PATH.set("ffmpeg".into()).unwrap();
             return Ok(());
         }
     }
-    println!("[FFmpeg] FFmpeg not found in PATH, proceeding with download");
+    info!("[FFmpeg] FFmpeg not found in PATH, proceeding with download");
 
     let temp_dir = get_temp_dir();
     fs::create_dir_all(&temp_dir).map_err(|e| {
-        println!("[FFmpeg] Error: Failed to create temp directory: {}", e);
+        info!("[FFmpeg] Error: Failed to create temp directory: {}", e);
         format!("Failed to create temp directory: {}", e)
     })?;
 
@@ -103,7 +105,7 @@ pub fn init_ffmpeg() -> Result<(), String> {
             .unwrap_or(false);
 
         if ffmpeg_ok && ffprobe_ok {
-            println!(
+            info!(
                 "[FFmpeg] Using existing binaries at {} and {}",
                 ffmpeg_path.display(),
                 ffprobe_path.display()
@@ -114,7 +116,7 @@ pub fn init_ffmpeg() -> Result<(), String> {
         }
 
         // Remove corrupted binaries
-        println!("[FFmpeg] Warning: Existing binaries appear corrupted, removing and downloading fresh copy");
+        info!("[FFmpeg] Warning: Existing binaries appear corrupted, removing and downloading fresh copy");
         let _ = fs::remove_file(&ffmpeg_path);
         let _ = fs::remove_file(&ffprobe_path);
     }
@@ -129,55 +131,55 @@ pub fn init_ffmpeg() -> Result<(), String> {
             _ => false,
         })
         .ok_or_else(|| {
-            println!("[FFmpeg] Error: Unsupported platform");
+            info!("[FFmpeg] Error: Unsupported platform");
             "Unsupported platform".to_string()
         })?;
 
-    println!("[FFmpeg] Downloading FFmpeg for {} from {}", os, url);
+    info!("[FFmpeg] Downloading FFmpeg for {} from {}", os, url);
 
     let archive_path = temp_dir.join("ffmpeg.archive");
     download_file(url, &archive_path)?;
 
-    println!("[FFmpeg] Extracting FFmpeg from archive");
+    info!("[FFmpeg] Extracting FFmpeg from archive");
     // Extract based on archive type
     if url.ends_with(".zip") {
         let file = fs::File::open(&archive_path).map_err(|e| {
-            println!("[FFmpeg] Error: Failed to open zip: {}", e);
+            info!("[FFmpeg] Error: Failed to open zip: {}", e);
             format!("Failed to open zip: {}", e)
         })?;
         let mut archive = zip::ZipArchive::new(file).map_err(|e| {
-            println!("[FFmpeg] Error: Failed to read zip: {}", e);
+            info!("[FFmpeg] Error: Failed to read zip: {}", e);
             format!("Failed to read zip: {}", e)
         })?;
 
         let mut found = false;
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).map_err(|e| {
-                println!("[FFmpeg] Error: Failed to read zip entry: {}", e);
+                info!("[FFmpeg] Error: Failed to read zip entry: {}", e);
                 format!("Failed to read zip entry: {}", e)
             })?;
 
             let name = file.name();
             // For Windows, look for bin/ffmpeg.exe and bin/ffprobe.exe in the release essentials package
             if name.contains("/bin/ffmpeg.exe") {
-                println!("[FFmpeg] Found FFmpeg binary in zip: {}", name);
+                info!("[FFmpeg] Found FFmpeg binary in zip: {}", name);
                 let mut outfile = fs::File::create(&ffmpeg_path).map_err(|e| {
-                    println!("[FFmpeg] Error: Failed to create ffmpeg: {}", e);
+                    info!("[FFmpeg] Error: Failed to create ffmpeg: {}", e);
                     format!("Failed to create ffmpeg: {}", e)
                 })?;
                 std::io::copy(&mut file, &mut outfile).map_err(|e| {
-                    println!("[FFmpeg] Error: Failed to extract ffmpeg: {}", e);
+                    info!("[FFmpeg] Error: Failed to extract ffmpeg: {}", e);
                     format!("Failed to extract ffmpeg: {}", e)
                 })?;
                 found = true;
             } else if name.contains("/bin/ffprobe.exe") {
-                println!("[FFmpeg] Found FFprobe binary in zip: {}", name);
+                info!("[FFmpeg] Found FFprobe binary in zip: {}", name);
                 let mut outfile = fs::File::create(&ffprobe_path).map_err(|e| {
-                    println!("[FFmpeg] Error: Failed to create ffprobe: {}", e);
+                    info!("[FFmpeg] Error: Failed to create ffprobe: {}", e);
                     format!("Failed to create ffprobe: {}", e)
                 })?;
                 std::io::copy(&mut file, &mut outfile).map_err(|e| {
-                    println!("[FFmpeg] Error: Failed to extract ffprobe: {}", e);
+                    info!("[FFmpeg] Error: Failed to extract ffprobe: {}", e);
                     format!("Failed to extract ffprobe: {}", e)
                 })?;
                 found = true;
@@ -185,12 +187,12 @@ pub fn init_ffmpeg() -> Result<(), String> {
         }
 
         if !found {
-            println!("[FFmpeg] Error: Could not find ffmpeg.exe in zip archive");
+            info!("[FFmpeg] Error: Could not find ffmpeg.exe in zip archive");
             return Err("Could not find ffmpeg.exe in zip archive".to_string());
         }
     } else if url.ends_with(".tar.xz") {
         let file = fs::File::open(&archive_path).map_err(|e| {
-            println!("[FFmpeg] Error: Failed to open tar.xz: {}", e);
+            info!("[FFmpeg] Error: Failed to open tar.xz: {}", e);
             format!("Failed to open tar.xz: {}", e)
         })?;
         let tar = xz2::read::XzDecoder::new(file);
@@ -198,38 +200,38 @@ pub fn init_ffmpeg() -> Result<(), String> {
 
         let mut found = false;
         for entry in archive.entries().map_err(|e| {
-            println!("[FFmpeg] Error: Failed to read tar entries: {}", e);
+            info!("[FFmpeg] Error: Failed to read tar entries: {}", e);
             format!("Failed to read tar entries: {}", e)
         })? {
             let mut entry = entry.map_err(|e| {
-                println!("[FFmpeg] Error: Failed to read tar entry: {}", e);
+                info!("[FFmpeg] Error: Failed to read tar entry: {}", e);
                 format!("Failed to read tar entry: {}", e)
             })?;
             let path = entry.path().map_err(|e| {
-                println!("[FFmpeg] Error: Failed to get entry path: {}", e);
+                info!("[FFmpeg] Error: Failed to get entry path: {}", e);
                 format!("Failed to get entry path: {}", e)
             })?;
             let path_str = path.to_string_lossy();
 
             if path_str.contains("ffmpeg") && !path_str.contains("ffprobe") {
-                println!("[FFmpeg] Found FFmpeg binary in tar.xz");
+                info!("[FFmpeg] Found FFmpeg binary in tar.xz");
                 let mut outfile = fs::File::create(&ffmpeg_path).map_err(|e| {
-                    println!("[FFmpeg] Error: Failed to create ffmpeg: {}", e);
+                    info!("[FFmpeg] Error: Failed to create ffmpeg: {}", e);
                     format!("Failed to create ffmpeg: {}", e)
                 })?;
                 std::io::copy(&mut entry, &mut outfile).map_err(|e| {
-                    println!("[FFmpeg] Error: Failed to extract ffmpeg: {}", e);
+                    info!("[FFmpeg] Error: Failed to extract ffmpeg: {}", e);
                     format!("Failed to extract ffmpeg: {}", e)
                 })?;
                 found = true;
             } else if path_str.contains("ffprobe") {
-                println!("[FFmpeg] Found FFprobe binary in tar.xz");
+                info!("[FFmpeg] Found FFprobe binary in tar.xz");
                 let mut outfile = fs::File::create(&ffprobe_path).map_err(|e| {
-                    println!("[FFmpeg] Error: Failed to create ffprobe: {}", e);
+                    info!("[FFmpeg] Error: Failed to create ffprobe: {}", e);
                     format!("Failed to create ffprobe: {}", e)
                 })?;
                 std::io::copy(&mut entry, &mut outfile).map_err(|e| {
-                    println!("[FFmpeg] Error: Failed to extract ffprobe: {}", e);
+                    info!("[FFmpeg] Error: Failed to extract ffprobe: {}", e);
                     format!("Failed to extract ffprobe: {}", e)
                 })?;
                 found = true;
@@ -237,7 +239,7 @@ pub fn init_ffmpeg() -> Result<(), String> {
         }
 
         if !found {
-            println!("[FFmpeg] Error: Could not find ffmpeg binary in tar.xz archive");
+            info!("[FFmpeg] Error: Could not find ffmpeg binary in tar.xz archive");
             return Err("Could not find ffmpeg binary in tar.xz archive".to_string());
         }
     }
@@ -246,18 +248,18 @@ pub fn init_ffmpeg() -> Result<(), String> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        println!("[FFmpeg] Setting executable permissions");
+        info!("[FFmpeg] Setting executable permissions");
         for path in [&ffmpeg_path, &ffprobe_path] {
             fs::set_permissions(path, fs::Permissions::from_mode(0o755)).map_err(|e| {
-                println!("[FFmpeg] Error: Failed to make binary executable: {}", e);
+                info!("[FFmpeg] Error: Failed to make binary executable: {}", e);
                 format!("Failed to make binary executable: {}", e)
             })?;
         }
     }
 
-    println!("[FFmpeg] Cleaning up archive file");
+    info!("[FFmpeg] Cleaning up archive file");
     fs::remove_file(archive_path).map_err(|e| {
-        println!("[FFmpeg] Warning: Failed to cleanup archive: {}", e);
+        info!("[FFmpeg] Warning: Failed to cleanup archive: {}", e);
         format!("Failed to cleanup archive: {}", e)
     })?;
 
@@ -288,7 +290,7 @@ impl FFmpegRecorder {
         input_format: String,
         input_device: String,
     ) -> Self {
-        println!(
+        info!(
             "[FFmpeg] Creating new recorder with input format {}: {}x{} @ {} fps -> {}",
             input_format,
             width,
@@ -308,12 +310,12 @@ impl FFmpegRecorder {
     }
 
     pub fn start(&mut self) -> Result<(), String> {
-        println!(
+        info!(
             "[FFmpeg] Starting recording: {}x{} @ {} fps",
             self.width, self.height, self.fps
         );
         let ffmpeg = FFMPEG_PATH.get().ok_or_else(|| {
-            println!("[FFmpeg] Error: FFmpeg not initialized");
+            info!("[FFmpeg] Error: FFmpeg not initialized");
             "FFmpeg not initialized".to_string()
         })?;
 
@@ -385,7 +387,7 @@ impl FFmpegRecorder {
             self.output_path.to_str().unwrap().to_string(),
         ]);
 
-        println!("[FFmpeg] Command: {} {}", ffmpeg.display(), args.join(" "));
+        info!("[FFmpeg] Command: {} {}", ffmpeg.display(), args.join(" "));
 
         let mut process = Command::new(ffmpeg)
             .args(&args)
@@ -394,7 +396,7 @@ impl FFmpegRecorder {
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| {
-                println!("[FFmpeg] Error: Failed to start process: {}", e);
+                info!("[FFmpeg] Error: Failed to start process: {}", e);
                 format!("Failed to start FFmpeg: {}", e)
             })?;
 
@@ -405,7 +407,7 @@ impl FFmpegRecorder {
                 use std::io::BufRead;
                 for line in stdout_reader.lines() {
                     if let Ok(line) = line {
-                        println!("[FFmpeg] stdout: {}", line);
+                        info!("[FFmpeg] stdout: {}", line);
                         let _ = crate::record::log_ffmpeg(&line, false);
                     }
                 }
@@ -418,7 +420,7 @@ impl FFmpegRecorder {
                 use std::io::BufRead;
                 for line in stderr_reader.lines() {
                     if let Ok(line) = line {
-                        println!("[FFmpeg] stderr: {}", line);
+                        info!("[FFmpeg] stderr: {}", line);
                         let _ = crate::record::log_ffmpeg(&line, true);
                     }
                 }
@@ -457,19 +459,19 @@ impl FFmpegRecorder {
                 // Cleanup any partial output file
                 if self.output_path.exists() {
                     if let Err(e) = fs::remove_file(&self.output_path) {
-                        println!(
+                        info!(
                             "[FFmpeg] Warning: Failed to cleanup partial output file: {}",
                             e
                         );
                     }
                 }
 
-                println!("[FFmpeg] Error: {}", error_msg);
+                info!("[FFmpeg] Error: {}", error_msg);
                 return Err(error_msg);
             }
             Ok(None) => {
                 // Process is still running, which is what we want
-                println!("[FFmpeg] Process started successfully");
+                info!("[FFmpeg] Process started successfully");
 
                 // On Windows, verify we can write to the output directory
                 if cfg!(windows) {
@@ -477,7 +479,7 @@ impl FFmpegRecorder {
                         if !parent.exists() {
                             if let Err(e) = fs::create_dir_all(parent) {
                                 let error_msg = format!("Failed to create output directory: {}", e);
-                                println!("[FFmpeg] Error: {}", error_msg);
+                                info!("[FFmpeg] Error: {}", error_msg);
                                 return Err(error_msg);
                             }
                         }
@@ -486,7 +488,7 @@ impl FFmpegRecorder {
                         if let Err(e) = fs::write(&test_file, b"test") {
                             let error_msg =
                                 format!("No write permission in output directory: {}", e);
-                            println!("[FFmpeg] Error: {}", error_msg);
+                            info!("[FFmpeg] Error: {}", error_msg);
                             return Err(error_msg);
                         }
                         let _ = fs::remove_file(test_file); // Cleanup test file
@@ -497,21 +499,21 @@ impl FFmpegRecorder {
                 Ok(())
             }
             Err(e) => {
-                println!("[FFmpeg] Error: Failed to check process status: {}", e);
+                info!("[FFmpeg] Error: Failed to check process status: {}", e);
                 Err(format!("Failed to check FFmpeg process status: {}", e))
             }
         }
     }
 
     pub fn stop(&mut self) -> Result<(), String> {
-        println!("[FFmpeg] Stopping recording");
+        info!("[FFmpeg] Stopping recording");
         if let Some(mut process) = self.process.take() {
             // Send 'q' to FFmpeg to stop recording gracefully
             if let Some(mut stdin) = process.stdin.take() {
                 let _ = stdin.write_all(b"q");
             }
 
-            println!("[FFmpeg] Waiting for process to finish");
+            info!("[FFmpeg] Waiting for process to finish");
             // Give FFmpeg time to finish writing
             thread::sleep(Duration::from_secs(2));
 
@@ -521,13 +523,13 @@ impl FFmpegRecorder {
                     // Output is already handled by the reader threads
                 }
                 Err(e) => {
-                    println!("[FFmpeg] Warning: Failed to get process output: {}", e);
+                    info!("[FFmpeg] Warning: Failed to get process output: {}", e);
                 }
             }
 
             // Check if output file exists and has size
             if !self.output_path.exists() {
-                println!(
+                info!(
                     "[FFmpeg] Error: Failed to create output file at {}",
                     self.output_path.display()
                 );
@@ -536,26 +538,26 @@ impl FFmpegRecorder {
 
             let file_size = fs::metadata(&self.output_path)
                 .map_err(|e| {
-                    println!("[FFmpeg] Error: Failed to get output file metadata: {}", e);
+                    info!("[FFmpeg] Error: Failed to get output file metadata: {}", e);
                     format!("Failed to get output file metadata: {}", e)
                 })?
                 .len();
 
             if file_size == 0 {
-                println!(
+                info!(
                     "[FFmpeg] Error: Created empty output file at {}",
                     self.output_path.display()
                 );
                 return Err("FFmpeg created empty output file".to_string());
             }
 
-            println!(
+            info!(
                 "[FFmpeg] Recording saved successfully: {} ({} bytes)",
                 self.output_path.display(),
                 file_size
             );
         } else {
-            println!("[FFmpeg] No active process to stop");
+            info!("[FFmpeg] No active process to stop");
         }
         Ok(())
     }

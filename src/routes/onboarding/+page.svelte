@@ -9,7 +9,6 @@
   // State for tracking permissions
   let isMacOS = true;
   let accessibilityGranted = false;
-  let inputGranted = true;
   let screenRecordingGranted = false;
   let loading = true;
 
@@ -26,7 +25,6 @@
     }
 
     accessibilityGranted = await invoke('has_ax_perms');
-    // inputGranted = await invoke('has_input_perms');
     screenRecordingGranted = await invoke('has_record_perms');
   });
 
@@ -38,16 +36,6 @@
       accessibilityGranted = true;
     } catch (error) {
       console.error('Error requesting accessibility permissions:', error);
-    }
-  }
-
-  // Request input monitoring permissions
-  async function requestInputPermission() {
-    try {
-      await invoke('request_input_perms');
-      inputGranted = true;
-    } catch (error) {
-      console.error('Error requesting input permissions:', error);
     }
   }
 
@@ -116,30 +104,6 @@
             </Button>
           {/if}
         </div>
-
-        <!-- Input Monitoring Permission -->
-        <!-- <div
-          class={`bg-gray-100 shadow-md rounded-lg p-6 border-l-4 ${inputGranted ? 'border-emerald-500 bg-opacity-10 bg-emerald-500' : 'border-red-600'} transition-all duration-300`}>
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-xl font-title m-0">2. Input Monitoring Permission</h3>
-            {#if inputGranted}
-              <span class="text-sm font-bold py-1 px-2 rounded bg-emerald-500 text-white">
-                ✓ Pending
-              </span>
-            {:else}
-              <span class="text-sm font-bold py-1 px-2 rounded bg-red-600 text-white">Denied</span>
-            {/if}
-          </div>
-          <p class="mb-4 leading-relaxed">
-            This allows Viralmind to detect your keyboard and mouse inputs for better assistance.
-          </p>
-          {#if !inputGranted}
-            <Button variant="primary" onclick={requestInputPermission}>
-              Grant Input Permission
-            </Button>
-          {/if}
-        </div> -->
-
         <!-- Screen Recording Permission -->
         <div
           class={`bg-gray-100 shadow-md rounded-lg p-6 border-l-4 ${screenRecordingGranted ? 'border-emerald-500 bg-opacity-10 bg-emerald-500' : 'border-red-600'} transition-all duration-300`}>

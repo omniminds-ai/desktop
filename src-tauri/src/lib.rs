@@ -1,6 +1,7 @@
 use app_finder::{AppCommon, AppFinder};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use display_info::DisplayInfo;
+use log::{error, info};
 use serde_json;
 use std::{
     fmt::format,
@@ -70,7 +71,7 @@ async fn list_apps(
 
     let exists = path.exists();
     if exists {
-        println!("[App List] Using App List cache.");
+        info!("[App List] Using App List cache.");
         let app_cache = File::open(path).map_err(|e| format!("Could not open file. {}", e))?;
 
         let app_cache_reader = BufReader::new(app_cache);
@@ -79,7 +80,7 @@ async fn list_apps(
             .map_err(|e| format!("Error parsing JSON: {}", e))?;
         Ok(json)
     } else {
-        println!("[App List] No App List cache found. Gathering application data...");
+        info!("[App List] No App List cache found. Gathering application data...");
         let apps = AppFinder::list();
         let filtered: Vec<_> = apps
             .into_iter()
@@ -121,22 +122,23 @@ pub fn run() {
     // Initialize FFmpeg and dump-tree synchronously before starting Tauri on windows and linux
     if !cfg!(target_os = "macos") {
         if let Err(e) = ffmpeg::init_ffmpeg() {
-            eprintln!("Failed to initialize FFmpeg: {}", e);
+            error!("Failed to initialize FFmpeg: {}", e);
             std::process::exit(1);
         }
     }
 
     if let Err(e) = axtree::init_dump_tree() {
-        eprintln!("Failed to initialize dump-tree: {}", e);
+        error!("Failed to initialize dump-tree: {}", e);
         std::process::exit(1);
     }
 
     if let Err(e) = pipeline::init_pipeline() {
-        eprintln!("Failed to initialize pipeline: {}", e);
+        error!("Failed to initialize pipeline: {}", e);
         std::process::exit(1);
     }
 
     let _app = tauri::Builder::default()
+        .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())

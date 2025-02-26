@@ -1,4 +1,5 @@
 use core_graphics::access::ScreenCaptureAccess;
+use log::info;
 use std::path::PathBuf;
 use std::process::{Child, Command};
 use std::thread;
@@ -11,7 +12,7 @@ pub struct MacOSScreenRecorder {
 
 impl MacOSScreenRecorder {
     pub fn new(output_path: PathBuf) -> Self {
-        println!(
+        info!(
             "[MacOS Recorder] Creating new recorder. -> {}",
             output_path.display()
         );
@@ -22,7 +23,7 @@ impl MacOSScreenRecorder {
     }
 
     pub fn start(&mut self) -> Result<(), String> {
-        println!("[MacOS Recorder] Starting recording.");
+        info!("[MacOS Recorder] Starting recording.");
 
         // Ensure the path ends with .mp4
         let output_path = if self
@@ -68,13 +69,13 @@ impl MacOSScreenRecorder {
     }
 
     pub fn stop(&mut self) -> Result<(), String> {
-        println!("[MacOS Recorder] Stopping recording");
+        info!("[MacOS Recorder] Stopping recording");
         if let Some(mut process) = self.process.take() {
             // Try to write a newline to stdin to stop the recording
             if let Some(mut stdin) = process.stdin.take() {
                 use std::io::Write;
                 if let Err(e) = stdin.write_all(b"\n") {
-                    println!("[MacOS Recorder] Warning: Failed to write to stdin: {}", e);
+                    info!("[MacOS Recorder] Warning: Failed to write to stdin: {}", e);
                 }
             }
 
@@ -86,18 +87,18 @@ impl MacOSScreenRecorder {
                 Ok(None) => {
                     // Process still running, kill it
                     if let Err(e) = process.kill() {
-                        println!("[MacOS Recorder] Warning: Failed to kill process: {}", e);
+                        info!("[MacOS Recorder] Warning: Failed to kill process: {}", e);
                     }
                     // Wait for it to actually terminate
                     if let Err(e) = process.wait() {
-                        println!("[MacOS Recorder] Warning: Error waiting for process: {}", e);
+                        info!("[MacOS Recorder] Warning: Error waiting for process: {}", e);
                     }
                 }
                 Ok(Some(_)) => {
                     // Process already exited
                 }
                 Err(e) => {
-                    println!(
+                    info!(
                         "[MacOS Recorder] Warning: Error checking process status: {}",
                         e
                     );
@@ -120,7 +121,7 @@ impl MacOSScreenRecorder {
                 return Err("Created empty output file".to_string());
             }
 
-            println!(
+            info!(
                 "[MacOS Recorder] Recording saved successfully: {} ({} bytes)",
                 self.output_path.display(),
                 file_size

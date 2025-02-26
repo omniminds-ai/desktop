@@ -1,4 +1,5 @@
 use crate::record;
+use log::{error, info};
 use rdev::{listen, Event as RdevEvent, EventType as RdevEventType};
 use serde::Serialize;
 use std::{
@@ -86,7 +87,7 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
                     }),
                 );
                 // if let Err(e) = position_app_handle.emit("input-event", &input_event) {
-                //     eprintln!("Failed to emit mouse position event: {}", e);
+                //     einfo!("Failed to emit mouse position event: {}", e);
                 // }
                 // Log the mouse move event
                 let _ = record::log_input(input_event.to_log_entry());
@@ -99,7 +100,7 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
             }
             callback(event);
         }) {
-            println!("Error: {:?}", error)
+            info!("Error: {:?}", error)
         }
     });
     input_listener.threads.push(handle);
@@ -185,7 +186,7 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
 
                     if let Some(event) = input_event {
                         // if let Err(e) = windows_app_handle.emit("input-event", &event) {
-                        //     eprintln!("Failed to emit input event: {}", e);
+                        //     einfo!("Failed to emit input event: {}", e);
                         // }
                         // Log the input event
                         let _ = record::log_input(event.to_log_entry());
@@ -242,7 +243,7 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
 
                 if let Some(event) = input_event {
                     if let Err(e) = other_app_handle.emit("input-event", &event) {
-                        eprintln!("Failed to emit input event: {}", e);
+                        error!("Failed to emit input event: {}", e);
                     }
                     // Log the input event
                     let _ = record::log_input(event.to_log_entry());
@@ -255,7 +256,7 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
                 }
                 callback(event);
             }) {
-                println!("Error: {:?}", error)
+                info!("Error: {:?}", error)
             }
         });
         input_listener.threads.push(handle);
@@ -266,11 +267,11 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
 }
 
 pub fn stop_input_listener() -> Result<(), String> {
-    println!("[Input] Stopping input listener");
+    info!("[Input] Stopping input listener");
     let mut state = INPUT_LISTENER_STATE.lock().map_err(|e| e.to_string())?;
     if let Some(mut listener) = state.take() {
         listener.stop();
     }
-    println!("[Input] Input listener stopped");
+    info!("[Input] Input listener stopped");
     Ok(())
 }

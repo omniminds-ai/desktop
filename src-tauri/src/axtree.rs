@@ -1,4 +1,5 @@
 use chrono::DateTime;
+use log::info;
 use serde_json::{json, Value};
 use std::fs;
 use std::io::{BufRead, BufReader};
@@ -71,7 +72,7 @@ fn save_metadata(path: &Path, metadata: &BinaryMetadata) -> Result<(), String> {
 
     fs::write(path, content).map_err(|e| format!("Failed to write metadata file: {}", e))?;
 
-    println!("[AxTree] Saved metadata to {}", path.display());
+    info!("[AxTree] Saved metadata to {}", path.display());
     Ok(())
 }
 
@@ -90,7 +91,7 @@ fn load_metadata(path: &Path) -> Result<Option<BinaryMetadata>, String> {
 }
 
 fn fetch_latest_release_metadata() -> Result<BinaryMetadata, String> {
-    println!("[AxTree] Fetching latest release metadata from GitHub API");
+    info!("[AxTree] Fetching latest release metadata from GitHub API");
 
     let client = reqwest::blocking::Client::builder()
         .user_agent("viralmind-desktop")
@@ -127,7 +128,7 @@ fn fetch_latest_release_metadata() -> Result<BinaryMetadata, String> {
         dt.timestamp() as u64
     };
 
-    println!(
+    info!(
         "[AxTree] Latest release: version={}, published_at={} ({})",
         version, published_at, timestamp
     );
@@ -136,28 +137,28 @@ fn fetch_latest_release_metadata() -> Result<BinaryMetadata, String> {
 }
 
 fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    println!(
+    info!(
         "[AxTree] Downloading file from {} to {}",
         url,
         path.display()
     );
     let client = reqwest::blocking::Client::new();
     let resp = client.get(url).send().map_err(|e| {
-        println!("[AxTree] Error: Failed to download dump-tree: {}", e);
+        info!("[AxTree] Error: Failed to download dump-tree: {}", e);
         format!("Failed to download dump-tree: {}", e)
     })?;
 
     let bytes = resp.bytes().map_err(|e| {
-        println!("[AxTree] Error: Failed to get response bytes: {}", e);
+        info!("[AxTree] Error: Failed to get response bytes: {}", e);
         format!("Failed to get response bytes: {}", e)
     })?;
 
     fs::write(path, bytes).map_err(|e| {
-        println!("[AxTree] Error: Failed to write file: {}", e);
+        info!("[AxTree] Error: Failed to write file: {}", e);
         format!("Failed to write file: {}", e)
     })?;
 
-    println!(
+    info!(
         "[AxTree] Successfully downloaded file to {}",
         path.display()
     );
@@ -166,18 +167,18 @@ fn download_file(url: &str, path: &Path) -> Result<(), String> {
 
 pub fn init_dump_tree() -> Result<(), String> {
     if DUMP_TREE_PATH.get().is_some() {
-        println!("[AxTree] Already initialized");
+        info!("[AxTree] Already initialized");
         return Ok(());
     }
 
-    println!("[AxTree] Initializing dump-tree");
+    info!("[AxTree] Initializing dump-tree");
 
     // Initialize polling state
     POLLING_ACTIVE.get_or_init(|| Arc::new(Mutex::new(false)));
 
     let temp_dir = get_temp_dir();
     fs::create_dir_all(&temp_dir).map_err(|e| {
-        println!("[AxTree] Error: Failed to create temp directory: {}", e);
+        info!("[AxTree] Error: Failed to create temp directory: {}", e);
         format!("Failed to create temp directory: {}", e)
     })?;
 
@@ -193,7 +194,7 @@ pub fn init_dump_tree() -> Result<(), String> {
 
     // Check if we need to download the binary
     let should_download = if !dump_tree_path.exists() {
-        println!("[AxTree] Binary does not exist, downloading");
+        info!("[AxTree] Binary does not exist, downloading");
         true
     } else {
         // Load existing metadata
@@ -203,7 +204,7 @@ pub fn init_dump_tree() -> Result<(), String> {
             Some(metadata) => {
                 // Compare build timestamps
                 if metadata.build_timestamp < latest_metadata.build_timestamp {
-                    println!(
+                    info!(
                         "[AxTree] New version available: current={} ({}), latest={} ({})",
                         metadata.version,
                         metadata.build_timestamp,
@@ -212,19 +213,19 @@ pub fn init_dump_tree() -> Result<(), String> {
                     );
                     true
                 } else {
-                    println!("[AxTree] Binary is up to date");
+                    info!("[AxTree] Binary is up to date");
                     false
                 }
             }
             None => {
-                println!("[AxTree] No metadata found, downloading latest version");
+                info!("[AxTree] No metadata found, downloading latest version");
                 true
             }
         }
     };
 
     if should_download {
-        println!("[AxTree] Downloading new version: {}", dump_tree_filename);
+        info!("[AxTree] Downloading new version: {}", dump_tree_filename);
         download_file(DUMP_TREE_URL, &dump_tree_path)?;
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -238,14 +239,14 @@ pub fn init_dump_tree() -> Result<(), String> {
         save_metadata(&metadata_path, &latest_metadata)?;
     }
 
-    println!("[AxTree] Using dump-tree at {}", dump_tree_path.display());
+    info!("[AxTree] Using dump-tree at {}", dump_tree_path.display());
     DUMP_TREE_PATH.set(dump_tree_path).unwrap();
     Ok(())
 }
 
 pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
     if !has_ax_perms() {
-        println!("[AxTree] Viralmind does not have access to the accessibility tree.")
+        info!("[AxTree] Viralmind does not have access to the accessibility tree.")
     }
     let dump_tree = DUMP_TREE_PATH
         .get()
@@ -257,12 +258,12 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
         .ok_or_else(|| "Polling state not initialized".to_string())?;
     *polling_active.lock().unwrap() = true;
 
-    println!("[AxTree] Starting dump-tree polling");
+    info!("[AxTree] Starting dump-tree polling");
 
     thread::spawn(move || {
-        println!("[AxTree] Polling thread started");
+        info!("[AxTree] Polling thread started");
         while *POLLING_ACTIVE.get().unwrap().lock().unwrap() {
-            println!("[AxTree] Starting new dump-tree process");
+            info!("[AxTree] Starting new dump-tree process");
 
             // Run dump-tree and capture output
             let process = Command::new(&dump_tree)
@@ -279,7 +280,7 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
                             let reader = BufReader::new(stdout);
                             for line in reader.lines() {
                                 if let Ok(line) = line {
-                                    // println!("[AxTree] Got line: {}", line);
+                                    info!("[AxTree] STDOUT line: {}", line);
                                     // Try to parse as JSON
                                     if let Ok(mut json) = serde_json::from_str::<Value>(&line) {
                                         // Modify the event field
@@ -302,7 +303,7 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
                             let reader = BufReader::new(stderr);
                             for line in reader.lines() {
                                 if let Ok(line) = line {
-                                    println!("[AxTree] Error line: {}", line);
+                                    info!("[AxTree] STDERR line: {}", line);
                                 }
                             }
                         });
@@ -313,42 +314,42 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
 
                     // Wait for process to finish
                     match child.wait() {
-                        Ok(status) => println!("[AxTree] Process exited with status: {}", status),
-                        Err(e) => println!("[AxTree] Error waiting for process: {}", e),
+                        Ok(status) => info!("[AxTree] Process {}", status),
+                        Err(e) => info!("[AxTree] Error waiting for process: {}", e),
                     }
 
                     // Wait for output processing to complete
                     if let Some(handle) = stdout_thread {
                         if let Err(e) = handle.join() {
-                            println!("[AxTree] Error joining stdout thread: {:?}", e);
+                            info!("[AxTree] Error joining stdout thread: {:?}", e);
                         }
                     }
 
                     if let Some(handle) = stderr_thread {
                         if let Err(e) = handle.join() {
-                            println!("[AxTree] Error joining stderr thread: {:?}", e);
+                            info!("[AxTree] Error joining stderr thread: {:?}", e);
                         }
                     }
                 }
                 Err(e) => {
-                    println!("[AxTree] Error running dump-tree: {}", e);
+                    info!("[AxTree] Error running dump-tree: {}", e);
                 }
             }
 
             // Only sleep if we're still supposed to be polling
             if *POLLING_ACTIVE.get().unwrap().lock().unwrap() {
-                println!("[AxTree] Sleeping for 2 seconds before next poll");
+                info!("[AxTree] Sleeping for 2 seconds before next poll");
                 thread::sleep(Duration::from_secs(2));
             }
         }
-        println!("[AxTree] Stopped dump-tree polling");
+        info!("[AxTree] Stopped dump-tree polling");
     });
 
     Ok(())
 }
 
 pub fn stop_dump_tree_polling() -> Result<(), String> {
-    println!("[AxTree] Stopping dump-tree polling");
+    info!("[AxTree] Stopping dump-tree polling");
 
     if let Some(polling_active) = POLLING_ACTIVE.get() {
         *polling_active.lock().unwrap() = false;

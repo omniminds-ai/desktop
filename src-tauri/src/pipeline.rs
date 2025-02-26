@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
+use log::info;
 use tauri::{AppHandle, Manager, Url};
 
 static PIPELINE_PATH: OnceLock<PathBuf> = OnceLock::new();
@@ -25,28 +26,28 @@ fn get_temp_dir() -> PathBuf {
 }
 
 fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    println!(
+    info!(
         "[Pipeline] Downloading file from {} to {}",
         url,
         path.display()
     );
     let client = reqwest::blocking::Client::new();
     let resp = client.get(url).send().map_err(|e| {
-        println!("[Pipeline] Error: Failed to download pipeline: {}", e);
+        info!("[Pipeline] Error: Failed to download pipeline: {}", e);
         format!("Failed to download pipeline: {}", e)
     })?;
 
     let bytes = resp.bytes().map_err(|e| {
-        println!("[Pipeline] Error: Failed to get response bytes: {}", e);
+        info!("[Pipeline] Error: Failed to get response bytes: {}", e);
         format!("Failed to get response bytes: {}", e)
     })?;
 
     fs::write(path, bytes).map_err(|e| {
-        println!("[Pipeline] Error: Failed to write file: {}", e);
+        info!("[Pipeline] Error: Failed to write file: {}", e);
         format!("Failed to write file: {}", e)
     })?;
 
-    println!(
+    info!(
         "[Pipeline] Successfully downloaded file to {}",
         path.display()
     );
@@ -55,15 +56,15 @@ fn download_file(url: &str, path: &Path) -> Result<(), String> {
 
 pub fn init_pipeline() -> Result<(), String> {
     if PIPELINE_PATH.get().is_some() {
-        println!("[Pipeline] Already initialized");
+        info!("[Pipeline] Already initialized");
         return Ok(());
     }
 
-    println!("[Pipeline] Initializing pipeline");
+    info!("[Pipeline] Initializing pipeline");
 
     let temp_dir = get_temp_dir();
     fs::create_dir_all(&temp_dir).map_err(|e| {
-        println!("[Pipeline] Error: Failed to create temp directory: {}", e);
+        info!("[Pipeline] Error: Failed to create temp directory: {}", e);
         format!("Failed to create temp directory: {}", e)
     })?;
 
@@ -77,7 +78,7 @@ pub fn init_pipeline() -> Result<(), String> {
     let pipeline_path = temp_dir.join(pipeline_filename);
 
     if !pipeline_path.exists() {
-        println!("[Pipeline] Downloading pipeline binary");
+        info!("[Pipeline] Downloading pipeline binary");
         download_file(PIPELINE_URL, &pipeline_path)?;
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -88,7 +89,7 @@ pub fn init_pipeline() -> Result<(), String> {
         }
     }
 
-    println!("[Pipeline] Using pipeline at {}", pipeline_path.display());
+    info!("[Pipeline] Using pipeline at {}", pipeline_path.display());
     PIPELINE_PATH.set(pipeline_path).unwrap();
     Ok(())
 }
@@ -106,7 +107,7 @@ pub fn process_recording(app: &AppHandle, recording_id: &str) -> Result<(), Stri
         .join("recordings")
         .join(recording_id);
 
-    println!(
+    info!(
         "[Pipeline] Processing recording at {}",
         recordings_dir.display()
     );
@@ -127,6 +128,6 @@ pub fn process_recording(app: &AppHandle, recording_id: &str) -> Result<(), Stri
         return Err(format!("Pipeline failed: {}", error));
     }
 
-    println!("[Pipeline] Successfully processed recording");
+    info!("[Pipeline] Successfully processed recording");
     Ok(())
 }
