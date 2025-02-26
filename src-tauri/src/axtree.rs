@@ -62,6 +62,7 @@ impl BinaryMetadata {
     }
 }
 
+#[tauri::command]
 pub fn has_ax_perms() -> bool {
     #[cfg(target_os = "macos")]
     {
