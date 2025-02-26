@@ -1,6 +1,5 @@
 use core_foundation::base::Boolean;
 use core_graphics::access::ScreenCaptureAccess;
-use std::ffi::c_void;
 
 // External ApplicationServices declarations
 #[link(name = "ApplicationServices", kind = "framework")]

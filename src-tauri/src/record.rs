@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use std::fs::{self, create_dir_all, File};
 use std::io::{BufReader, Cursor, Read, Write};
 use std::path::PathBuf;
-use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
@@ -92,6 +91,7 @@ impl Recorder {
         {
             return Ok(Recorder::MacOS(MacOSScreenRecorder::new(
                 video_path.to_path_buf(),
+                primary,
             )));
         }
 
@@ -440,7 +440,7 @@ pub async fn process_recording(app: tauri::AppHandle, recording_id: String) -> R
 
 #[tauri::command]
 pub async fn write_file(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     path: String,
     content: String,
 ) -> Result<(), String> {

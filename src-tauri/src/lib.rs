@@ -4,11 +4,8 @@ use display_info::DisplayInfo;
 use log::{error, info};
 use serde_json;
 use std::{
-    fmt::format,
     fs::File,
     io::{BufReader, BufWriter, Cursor, Write},
-    path::PathBuf,
-    thread,
 };
 use tauri::{Emitter, Manager};
 use window_vibrancy::*;
@@ -138,7 +135,12 @@ pub fn run() {
     }
 
     let _app = tauri::Builder::default()
-        .plugin(tauri_plugin_log::Builder::new().build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level_for("app_finder::platform::platform", log::LevelFilter::Error)
+                .level_for("tao::platform_impl::platform", log::LevelFilter::Error)
+                .build(),
+        )
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())

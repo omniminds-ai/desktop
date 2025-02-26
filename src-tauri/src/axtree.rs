@@ -8,7 +8,6 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
-use tauri::Url;
 
 use crate::permissions::has_ax_perms;
 
@@ -355,34 +354,4 @@ pub fn stop_dump_tree_polling() -> Result<(), String> {
         *polling_active.lock().unwrap() = false;
     }
     Ok(())
-}
-
-pub fn check_for_updates() -> Result<bool, String> {
-    let temp_dir = get_temp_dir();
-    let url_parser =
-        Url::parse(DUMP_TREE_URL).map_err(|e| format!("Failed to parse URL: {}", e))?;
-
-    let dump_tree_filename = url_parser
-        .path_segments()
-        .and_then(|segments| segments.last())
-        .ok_or_else(|| "Invalid URL format".to_string())?;
-
-    let metadata_path = temp_dir.join(format!("{}.metadata.json", dump_tree_filename));
-
-    // Fetch latest release metadata
-    let latest_metadata = fetch_latest_release_metadata()?;
-
-    // Load current metadata
-    let current_metadata = load_metadata(&metadata_path)?;
-
-    match current_metadata {
-        Some(metadata) => {
-            // Return true if update is available
-            Ok(metadata.build_timestamp < latest_metadata.build_timestamp)
-        }
-        None => {
-            // No metadata found, so update is needed
-            Ok(true)
-        }
-    }
 }

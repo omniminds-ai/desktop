@@ -1,4 +1,4 @@
-use core_graphics::access::ScreenCaptureAccess;
+use display_info::DisplayInfo;
 use log::info;
 use std::path::PathBuf;
 use std::process::{Child, Command};
@@ -11,10 +11,10 @@ pub struct MacOSScreenRecorder {
 }
 
 impl MacOSScreenRecorder {
-    pub fn new(output_path: PathBuf) -> Self {
+    pub fn new(output_path: PathBuf, display: &DisplayInfo) -> Self {
         info!(
-            "[MacOS Recorder] Creating new recorder. -> {}",
-            output_path.display()
+            "[MacOS Recorder] Creating new recorder. -> {}x{}",
+            display.width, display.height
         );
         Self {
             output_path,
