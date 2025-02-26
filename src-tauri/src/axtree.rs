@@ -9,6 +9,8 @@ use std::thread;
 use std::time::Duration;
 use tauri::Url;
 
+use crate::permissions::has_ax_perms;
+
 static DUMP_TREE_PATH: OnceLock<PathBuf> = OnceLock::new();
 static POLLING_ACTIVE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 
@@ -60,19 +62,6 @@ impl BinaryMetadata {
             None
         }
     }
-}
-
-#[tauri::command]
-pub fn has_ax_perms() -> bool {
-    #[cfg(target_os = "macos")]
-    {
-        let trusted =
-            macos_accessibility_client::accessibility::application_is_trusted_with_prompt();
-        return trusted;
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    return true;
 }
 
 fn save_metadata(path: &Path, metadata: &BinaryMetadata) -> Result<(), String> {

@@ -7,13 +7,16 @@ use tauri::{AppHandle, Manager, Url};
 static PIPELINE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 #[cfg(target_os = "windows")]
-const PIPELINE_URL: &str = "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-win-x64.exe";
+const PIPELINE_URL: &str =
+    "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-win-x64.exe";
 
 #[cfg(target_os = "linux")]
-const PIPELINE_URL: &str = "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-linux-x64";
+const PIPELINE_URL: &str =
+    "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-linux-x64";
 
 #[cfg(target_os = "macos")]
-const PIPELINE_URL: &str = "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-macos-arm64";
+const PIPELINE_URL: &str =
+    "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-macos-arm64";
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
@@ -103,7 +106,10 @@ pub fn process_recording(app: &AppHandle, recording_id: &str) -> Result<(), Stri
         .join("recordings")
         .join(recording_id);
 
-    println!("[Pipeline] Processing recording at {}", recordings_dir.display());
+    println!(
+        "[Pipeline] Processing recording at {}",
+        recordings_dir.display()
+    );
 
     // Run the pipeline command from the temp directory so it can find ffmpeg/ffprobe
     let temp_dir = get_temp_dir();

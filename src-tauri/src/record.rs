@@ -2,22 +2,22 @@ use crate::axtree;
 #[cfg(not(target_os = "macos"))]
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::input;
-use crate::pipeline;
 use crate::logger::Logger;
 #[cfg(target_os = "macos")]
 use crate::macos_screencapture::MacOSScreenRecorder;
+use crate::pipeline;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use chrono::Local;
 use display_info::DisplayInfo;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, create_dir_all, File};
-use std::io::{BufReader, Read, Write, Cursor};
+use std::io::{BufReader, Cursor, Read, Write};
 use std::path::PathBuf;
-use zip::{write::FileOptions, ZipWriter};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
+use zip::{write::FileOptions, ZipWriter};
 
 #[derive(Serialize, Deserialize)]
 pub struct RecordingMeta {
@@ -203,7 +203,7 @@ pub async fn start_recording(
     ffmpeg::init_ffmpeg()?;
 
     let (session_dir, timestamp) = get_session_path(&app)?;
-    
+
     // Store the recording ID
     *quest_state.current_recording_id.lock().unwrap() = Some(timestamp.clone());
 
@@ -367,8 +367,7 @@ pub async fn stop_recording(
         .collect::<Result<_, _>>()
         .map_err(|e| format!("Failed to read directory entries: {}", e))?;
 
-    entries
-        .sort_by_key(|entry| std::cmp::Reverse(entry.metadata().unwrap().modified().unwrap()));
+    entries.sort_by_key(|entry| std::cmp::Reverse(entry.metadata().unwrap().modified().unwrap()));
 
     // Get the recording ID from state
     if let Some(recording_id) = quest_state.current_recording_id.lock().unwrap().take() {
@@ -435,10 +434,7 @@ pub async fn get_recording_file(
 }
 
 #[tauri::command]
-pub async fn process_recording(
-    app: tauri::AppHandle,
-    recording_id: String
-) -> Result<(), String> {
+pub async fn process_recording(app: tauri::AppHandle, recording_id: String) -> Result<(), String> {
     pipeline::process_recording(&app, &recording_id)
 }
 
@@ -484,7 +480,10 @@ pub async fn open_recording_folder(
 }
 
 #[tauri::command]
-pub async fn create_recording_zip(app: tauri::AppHandle, recording_id: String) -> Result<Vec<u8>, String> {
+pub async fn create_recording_zip(
+    app: tauri::AppHandle,
+    recording_id: String,
+) -> Result<Vec<u8>, String> {
     let recordings_dir = app
         .path()
         .app_local_data_dir()
@@ -495,8 +494,7 @@ pub async fn create_recording_zip(app: tauri::AppHandle, recording_id: String) -
     // Create a buffer to store the zip file
     let buf = Cursor::new(Vec::new());
     let mut zip = ZipWriter::new(buf);
-    let options = FileOptions::default()
-        .compression_method(zip::CompressionMethod::Stored);
+    let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
     // Add required files to zip
     for filename in ["input_log.jsonl", "meta.json", "recording.mp4"] {
@@ -505,8 +503,8 @@ pub async fn create_recording_zip(app: tauri::AppHandle, recording_id: String) -
             return Err(format!("File not found: {}", filename));
         }
 
-        let mut file = File::open(&file_path)
-            .map_err(|e| format!("Failed to open {}: {}", filename, e))?;
+        let mut file =
+            File::open(&file_path).map_err(|e| format!("Failed to open {}: {}", filename, e))?;
         let mut contents = Vec::new();
         file.read_to_end(&mut contents)
             .map_err(|e| format!("Failed to read {}: {}", filename, e))?;
@@ -518,7 +516,8 @@ pub async fn create_recording_zip(app: tauri::AppHandle, recording_id: String) -
     }
 
     // Finish zip file
-    let buf = zip.finish()
+    let buf = zip
+        .finish()
         .map_err(|e| format!("Failed to finalize zip: {}", e))?
         .into_inner();
 
@@ -533,32 +532,4 @@ pub async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
         .map_err(|e| format!("Failed to get app data directory: {}", e))?;
 
     Ok(path.to_string_lossy().to_string())
-}
-
-#[tauri::command]
-pub async fn request_record_perms(app: tauri::AppHandle) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        //todo: save settings.permissions.screen.requested so we don't overdo this
-        let output_path = app
-            .path()
-            .app_local_data_dir()
-            .map_err(|e| format!("Failed to get app data directory: {}", e))?
-            .join("tmp/perm");
-
-        println!(
-            "[MacOS Recorder] Creating temp file {} for recording permissions.",
-            output_path.to_str().unwrap()
-        );
-        let mut process = Command::new("screencapture");
-        process.args(["-x", output_path.to_str().unwrap()]);
-        let _ = process.spawn();
-        // remove the temp file
-        println!(
-            "[MacoOS Recorder] Removing {}. Permissions dialog triggered.",
-            output_path.to_str().unwrap()
-        );
-        let _ = fs::remove_file(output_path.to_str().unwrap());
-    }
-    Ok(())
 }

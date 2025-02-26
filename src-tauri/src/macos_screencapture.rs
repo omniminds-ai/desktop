@@ -15,11 +15,6 @@ impl MacOSScreenRecorder {
             "[MacOS Recorder] Creating new recorder. -> {}",
             output_path.display()
         );
-        println!("[MacOS Recorder] Requesting screen recording permissions.");
-        if !ScreenCaptureAccess.preflight() {
-            println!("[MacOS Recorder] Permissions not granted. Requesting...");
-            ScreenCaptureAccess.request();
-        }
         Self {
             output_path,
             process: None,

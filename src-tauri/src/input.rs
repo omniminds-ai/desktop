@@ -10,30 +10,6 @@ use std::{
 };
 use tauri::{Emitter, Runtime};
 
-fn has_input_permissions() -> bool {
-    //todo: get input perm status from storage
-    #[cfg(target_os = "macos")]
-    {
-        false
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    {
-        // On non-macOS platforms, we don't need special permissions
-        true
-    }
-}
-
-/// Requests Input Monitoring permissions by opening System Settings
-fn request_input_permissions() {
-    #[cfg(target_os = "macos")]
-    std::process::Command::new("open")
-        .args(&["x-apple.systempreferences:com.apple.preference.security"])
-        .spawn()
-        .expect("Failed to open System Settings");
-    //todo: save input perm status to storage
-}
-
 pub struct InputListener {
     running: Arc<AtomicBool>,
     threads: Vec<JoinHandle<()>>,
@@ -93,11 +69,6 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
     let mut state = INPUT_LISTENER_STATE.lock().map_err(|e| e.to_string())?;
     if state.is_some() {
         return Ok(()); // Already listening
-    }
-
-    // request input permissions
-    if !has_input_permissions() {
-        request_input_permissions();
     }
 
     let mut input_listener = InputListener::new();
@@ -301,19 +272,5 @@ pub fn stop_input_listener() -> Result<(), String> {
         listener.stop();
     }
     println!("[Input] Input listener stopped");
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn request_input_perms() -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        //todo: save settings.permissions.input.requested so we don't overdo this
-        // println!("[Input] Listening for single input event for input permissions.",);
-        // if let Err(error) = listen(|event| println!("{:#?}", event.time)) {
-        //     println!("Error Requesting Perms: {:?}", error)
-        // }
-        // println!("[Input] Input event found. Permissions dialog triggered.",);
-    }
     Ok(())
 }

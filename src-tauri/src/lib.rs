@@ -17,15 +17,15 @@ mod ffmpeg;
 mod input;
 mod logger;
 mod macos_screencapture;
+mod permissions;
 mod pipeline;
 mod record;
 
-use axtree::has_ax_perms;
-use input::request_input_perms;
+use permissions::{has_ax_perms, has_record_perms, request_ax_perms, request_record_perms};
 use record::{
     create_recording_zip, get_app_data_dir, get_recording_file, list_recordings,
-    open_recording_folder, process_recording, request_record_perms, start_recording,
-    stop_recording, write_file, QuestState,
+    open_recording_folder, process_recording, start_recording, stop_recording, write_file,
+    QuestState,
 };
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -137,6 +137,7 @@ pub fn run() {
     }
 
     let _app = tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_shell::init())
@@ -148,8 +149,10 @@ pub fn run() {
             stop_recording,
             take_screenshot,
             list_apps,
+            has_record_perms,
             request_record_perms,
-            request_input_perms,
+            has_ax_perms,
+            request_ax_perms,
             list_recordings,
             get_recording_file,
             get_app_data_dir,
@@ -157,7 +160,6 @@ pub fn run() {
             open_recording_folder,
             process_recording,
             create_recording_zip,
-            has_ax_perms
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
