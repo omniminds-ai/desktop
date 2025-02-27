@@ -9,8 +9,6 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
-use crate::permissions::has_ax_perms;
-
 static DUMP_TREE_PATH: OnceLock<PathBuf> = OnceLock::new();
 static POLLING_ACTIVE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 
@@ -244,9 +242,6 @@ pub fn init_dump_tree() -> Result<(), String> {
 }
 
 pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
-    if !has_ax_perms() {
-        info!("[AxTree] Viralmind does not have access to the accessibility tree.")
-    }
     let dump_tree = DUMP_TREE_PATH
         .get()
         .ok_or_else(|| "dump-tree not initialized".to_string())?

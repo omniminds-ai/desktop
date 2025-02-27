@@ -1,15 +1,14 @@
 use std::fs;
-#[cfg(not(target_os = "macos"))]
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-#[cfg(not(target_os = "macos"))]
-use std::process::Stdio;
 use std::sync::OnceLock;
 #[cfg(not(target_os = "macos"))]
-use std::thread;
-#[cfg(not(target_os = "macos"))]
-use std::time::Duration;
+use {
+ std::thread,
+    std::time::Duration,
+    std::process::Stdio,
+    std::io::Write
+};
 
 use log::info;
 

@@ -2,7 +2,7 @@ use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "macos")]
 use chrono::Local;
 
 pub struct Logger {

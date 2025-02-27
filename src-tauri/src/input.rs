@@ -9,6 +9,8 @@ use std::{
     },
     thread::{self, JoinHandle},
 };
+#[cfg(not(target_os = "windows"))]
+use tauri::Emitter;
 use tauri::{Emitter, Runtime};
 
 pub struct InputListener {
@@ -105,6 +107,7 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
     });
     input_listener.threads.push(handle);
 
+    let other_app_handle = app_handle.clone();
     // Platform-specific input handling
     // we use multiinput to get windows rawinput (mouse, kb, joystick)
     // rawinput is needed for capturing input on games and other apps
@@ -185,9 +188,9 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
                     };
 
                     if let Some(event) = input_event {
-                        // if let Err(e) = windows_app_handle.emit("input-event", &event) {
-                        //     einfo!("Failed to emit input event: {}", e);
-                        // }
+                        if let Err(e) = other_app_handle.emit("input-event", &event) {
+                            error!("Failed to emit input event: {}", e);
+                        }
                         // Log the input event
                         let _ = record::log_input(event.to_log_entry());
                     }
@@ -200,7 +203,6 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
     // we fallback to rdev for all other input events & operating systems
     #[cfg(not(target_os = "windows"))]
     {
-        let other_app_handle = app_handle.clone();
         let running_clone = running.clone();
         let handle = thread::spawn(move || {
             let callback = move |event: RdevEvent| {
