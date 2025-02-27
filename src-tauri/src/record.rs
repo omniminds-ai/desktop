@@ -1,4 +1,5 @@
 use crate::axtree;
+#[cfg(not(target_os = "macos"))]
 use crate::ffmpeg::{self, FFmpegRecorder};
 use crate::input;
 use crate::logger::Logger;

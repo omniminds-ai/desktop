@@ -2,9 +2,6 @@ use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 
-#[cfg(target_os = "macos")]
-use chrono::Local;
-
 pub struct Logger {
     file: File,
 }

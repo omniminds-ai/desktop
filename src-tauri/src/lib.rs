@@ -14,13 +14,12 @@ mod axtree;
 mod ffmpeg;
 mod input;
 mod logger;
+#[cfg(target_os = "macos")]
+mod macos_screencapture;
+#[cfg(target_os = "macos")]
+mod permissions;
 mod pipeline;
 mod record;
-#[cfg(target_os = "macos")]
-mod macos {
-    pub mod permissions;
-    pub mod screencapture;
-}
 
 #[cfg(target_os = "macos")]
 use permissions::{has_ax_perms, has_record_perms, request_ax_perms, request_record_perms};

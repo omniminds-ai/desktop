@@ -11,7 +11,7 @@ use std::{
 };
 #[cfg(not(target_os = "windows"))]
 use tauri::Emitter;
-use tauri::{Emitter, Runtime};
+use tauri::Runtime;
 
 pub struct InputListener {
     running: Arc<AtomicBool>,
