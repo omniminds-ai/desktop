@@ -7,15 +7,15 @@
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
-  import { getSubmissionStatus, listSubmissions, uploadRecording } from '$lib/api/forge';
+  import { getSubmissionStatus, listSubmissions } from '$lib/api/forge';
   import type { SubmissionStatus } from '$lib/api/forge';
+  import { handleUpload, uploadQueue } from '$lib/uploadManager';
 
   let searchQuery = '';
   let sortOrder: 'newest' | 'oldest' = 'newest';
   let recordings: Recording[] = [];
   let submissions: SubmissionStatus[] = [];
   let processing: string | null = null;
-  let uploading: string | null = null;
   let submissionError: { [key: string]: string } = {};
   let statusIntervals: { [key: string]: number } = {};
 
@@ -43,32 +43,6 @@
         console.error('Failed to get submission status:', error);
       }
     }, 5000);
-  }
-
-  async function handleUpload(recordingId: string) {
-    if (!$walletAddress) {
-      submissionError[recordingId] = 'Please connect your wallet first';
-      return;
-    }
-
-    try {
-      uploading = recordingId;
-      submissionError[recordingId] = '';
-      // Get zip file as bytes
-      const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
-      // Convert to Blob
-      const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
-      // Upload to server
-      const { submissionId } = await uploadRecording(zipBlob, $walletAddress);
-      // Start polling status
-      pollSubmissionStatus(recordingId, submissionId);
-    } catch (error) {
-      console.error('Failed to upload recording:', error);
-      submissionError[recordingId] =
-        error instanceof Error ? error.message : 'Failed to upload recording';
-    } finally {
-      uploading = null;
-    }
   }
 
   function formatNumber(num: number): string {
@@ -205,7 +179,17 @@
               <span>{Math.round(recording.duration_seconds / 60)} minutes</span>
               <span>Status: {recording.status}</span>
               <span>Recorded: {new Date(recording.timestamp).toLocaleString()}</span>
-              <span class="text-secondary-300">{getRewardDisplay(recording)}</span>
+            </div>
+            <div class="text-sm text-gray-500 pt-1">
+              <span class="uppercase font-semibold">Rewarded:</span>
+
+              {#if getRewardDisplay(recording)}
+                <span class="text-secondary-300">{getRewardDisplay(recording)}</span>
+              {:else}
+                <span class="text-gray-500 italic">
+                  Upload your recording to get a score and receive your $VIRAL.
+                </span>
+              {/if}
             </div>
           </div>
 
@@ -218,12 +202,13 @@
             </a>
             {#if recording.status === 'completed' && !recording.submission}
               <Button
-                onclick={() => handleUpload(recording.id)}
+                onclick={() => handleUpload(recording.id, recording.title)}
                 class="h-8 text-sm flex! items-center"
-                disabled={uploading === recording.id || !$walletAddress}>
-                {#if uploading === recording.id}
+                disabled={$uploadQueue[recording.id]?.status === 'uploading' || !$walletAddress}>
+                {#if $uploadQueue[recording.id]?.status === 'uploading'}
                   <div
-                    class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                    class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
+                  </div>
                   <span>Uploading...</span>
                 {:else}
                   <Upload class="w-3.5 h-3.5 mr-1.5 shrink-0" />

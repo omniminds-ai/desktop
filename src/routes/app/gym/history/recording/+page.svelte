@@ -8,9 +8,10 @@
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import type { Recording } from '$lib/gym';
   import { getPlatform } from '$lib/utils';
-  import { uploadRecording, getSubmissionStatus, type SubmissionStatus } from '$lib/api/forge';
+  import { getSubmissionStatus, type SubmissionStatus } from '$lib/api/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
+  import { handleUpload, uploadQueue } from '$lib/uploadManager';
 
   let platform: Awaited<ReturnType<typeof getPlatform>> = 'windows';
   let submissions: SubmissionStatus[] = [];
@@ -51,29 +52,22 @@
     }
   });
 
-  async function handleUpload() {
-    if (!$walletAddress) {
-      submissionError = 'Please connect your wallet first';
-      return;
-    }
+  // Track upload status from the uploadQueue store
+  $: {
+    const uploadStatus = $uploadQueue[recordingId || ''];
+    uploading = uploadStatus?.status === 'uploading' || uploadStatus?.status === 'processing';
 
-    try {
-      uploading = true;
+    if (uploadStatus?.status === 'failed' && uploadStatus.error) {
+      submissionError = uploadStatus.error;
+    } else if (uploadStatus?.status === 'completed') {
       submissionError = null;
-      submission = null;
-      // Get zip file as bytes
-      const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
-      // Convert to Blob
-      const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
-      // Upload to server
-      const { submissionId } = await uploadRecording(zipBlob, $walletAddress);
-      // Start polling status
-      pollSubmissionStatus(submissionId);
-    } catch (error) {
-      console.error('Failed to upload recording:', error);
-      submissionError = error instanceof Error ? error.message : 'Failed to upload recording';
-    } finally {
-      uploading = false;
+    }
+  }
+
+  // Function to handle upload button click
+  function handleUploadClick() {
+    if (recordingId) {
+      handleUpload(recordingId, recording?.title || 'Unknown');
     }
   }
 
@@ -285,6 +279,15 @@
                 {/if}
               </div>
             </Card>
+          {:else}
+            <Card padding="lg" className="mb-6">
+              <div class="flex items-center gap-2">
+                <div class="text-xl w-1/3 font-semibold">Submission Result</div>
+                <div class="italic w-2/3 text-gray-500">
+                  Get your submission grade and receive your $VIRAL by uploading this demonstration.
+                </div>
+              </div>
+            </Card>
           {/if}
 
           <Card padding="lg">
@@ -316,29 +319,34 @@
                   <Button
                     variant="secondary"
                     onclick={handleProcess}
+                    class="flex! items-center"
                     disabled={processing || checkingData}>
                     {#if processing}
                       <div
-                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
+                      </div>
                       Processing...
                     {:else if checkingData}
                       <div
-                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
+                      </div>
                       Checking...
                     {:else}
                       Process
                     {/if}
                   </Button>
                   <Button
-                    variant="secondary"
-                    onclick={handleUpload}
+                    variant="primary"
+                    onclick={handleUploadClick}
+                    class="flex! items-center"
                     disabled={uploading ||
                       !$walletAddress ||
                       submission?.status === 'completed' ||
                       (submission && submission.status !== 'failed')}>
                     {#if uploading}
                       <div
-                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
+                      </div>
                       Uploading...
                     {:else if submission}
                       {#if submission.status === 'completed'}
