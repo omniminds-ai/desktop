@@ -43,7 +43,7 @@ export async function getAppsForHistory(): Promise<ForgeApp[]> {
       if (!appMap.has(quest.app)) {
         appMap.set(quest.app, {
           name: quest.app,
-          domain: quest.icon_url.split('domain=')[1].split('&')[0],
+          domain: quest?.icon_url?.split('domain=')[1]?.split('&')[0],
           description: '',
           categories: [],
           tasks: [],
@@ -81,9 +81,9 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
   // Add history apps to map
   historyApps.forEach((app) => {
     // Update tasks with submission scores
-    app.tasks = app.tasks.map(task => {
+    app.tasks = app.tasks.map((task) => {
       if (task.recordingId) {
-        const submission = submissions.find(s => s.meta?.id === task.recordingId);
+        const submission = submissions.find((s) => s.meta?.id === task.recordingId);
         if (submission?.clampedScore) {
           return { ...task, score: submission.clampedScore };
         }
@@ -223,7 +223,7 @@ export interface SubmissionStatus {
 }
 
 export interface RewardInfo {
-  time: number;      // Unix timestamp rounded to last minute
+  time: number; // Unix timestamp rounded to last minute
   maxReward: number; // Value between 1-128
 }
 
@@ -248,7 +248,10 @@ export async function getReward(poolId: string, address: string): Promise<Reward
   return response.json();
 }
 
-export async function uploadRecording(zipBlob: Blob, address: string): Promise<{ submissionId: string }> {
+export async function uploadRecording(
+  zipBlob: Blob,
+  address: string
+): Promise<{ submissionId: string }> {
   const formData = new FormData();
   formData.append('file', zipBlob, 'recording.zip');
 
