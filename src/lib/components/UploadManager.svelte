@@ -45,6 +45,8 @@
         return 'Queued for upload';
       case 'uploading':
         return 'Uploading...';
+      case 'zipping':
+        return 'Zipping Recording...';
       case 'processing':
         return 'Processing...';
       case 'completed':

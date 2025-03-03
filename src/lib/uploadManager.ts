@@ -6,7 +6,7 @@ import { uploadRecording, getSubmissionStatus } from '$lib/api/forge';
 // Store for tracking uploads
 export const uploadQueue = writable<{
   [recordingId: string]: {
-    status: 'queued' | 'uploading' | 'processing' | 'completed' | 'failed';
+    status: 'queued' | 'uploading' | 'zipping' | 'processing' | 'completed' | 'failed';
     progress?: number;
     error?: string;
     submissionId?: string;
@@ -78,7 +78,7 @@ function pollSubmissionStatus(recordingId: string, submissionId: string) {
           queue[recordingId] = {
             ...queue[recordingId],
             status: 'processing',
-            progress: 50 // Arbitrary progress for processing state
+            progress: 80 // Arbitrary progress for processing state
           };
           return queue;
         });
@@ -121,7 +121,7 @@ export async function handleUpload(recordingId: string, name: string) {
   try {
     // Update status to uploading
     uploadQueue.update((queue) => {
-      queue[recordingId] = { status: 'uploading', name, progress: 0 };
+      queue[recordingId] = { status: 'zipping', name, progress: 0 };
       return queue;
     });
 

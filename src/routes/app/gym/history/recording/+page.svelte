@@ -291,7 +291,7 @@
           {/if}
 
           <Card padding="lg">
-            <div class="flex items-center justify-between gap-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div class="text-gray-700 min-w-0">
                 <div class="font-medium truncate">{recording.title}</div>
                 <div class="text-sm text-gray-500 grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
@@ -360,12 +360,13 @@
                       Upload
                     {/if}
                   </Button>
-                  {#if submissionError}
-                    <p class="text-red-500 text-sm mt-2">{submissionError}</p>
-                  {/if}
                 {/if}
               </div>
             </div>
+
+            {#if submissionError}
+              <p class="text-red-500 text-sm mt-2">Upload Error: {submissionError}</p>
+            {/if}
           </Card>
         </div>
 

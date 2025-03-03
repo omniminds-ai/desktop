@@ -22,19 +22,24 @@
 </script>
 
 <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-  <div class="bg-zinc-900 rounded-lg p-6 max-w-md w-full mx-4 border border-zinc-700 shadow-xl">
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold text-white/50 mb-2">New Quest Available!</h2>
-      <div class="flex justify-between items-end mb-4">
-        <h3 class="text-xl text-white">{title}</h3>
-        {#if reward}
-          <div class="flex flex-col items-end">
-            <div class="text-[10px] uppercase tracking-wider text-emerald-400/80 font-medium">Up to</div>
-            <div class="flex items-center gap-1 px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg">
-              <span class="text-sm font-bold">{reward.maxReward} VIRAL</span>
-            </div>
+  <div class="bg-zinc-900 rounded-lg p-6 max-w-lg w-full mx-4 border border-zinc-700 shadow-xl">
+    <div class="mb-2 flex w-full justify-between">
+      <h2 class="text-2xl font-bold self-start text-white/50 mb-2">New Quest Available!</h2>
+      {#if reward}
+        <div class="flex flex-col self-end items-end">
+          <div class="text-[10px] uppercase tracking-wider text-emerald-400/80 font-medium">
+            Up to
           </div>
-        {/if}
+          <div
+            class="flex flex-row items-center gap-1 px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg">
+            <span class="text-sm font-bold">{reward.maxReward} VIRAL</span>
+          </div>
+        </div>
+      {/if}
+    </div>
+    <div>
+      <div class="flex items-end mb-4">
+        <h3 class="text-xl text-white">{title}</h3>
       </div>
 
       <div class="mb-6">

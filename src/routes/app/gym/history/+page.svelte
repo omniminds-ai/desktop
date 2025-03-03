@@ -131,7 +131,6 @@
   }
 
   function getRewardDisplay(recording: Recording & { submission?: SubmissionStatus }) {
-    console.log(recording.submission);
     if (recording.submission?.reward && recording.submission.maxReward) {
       return `${formatNumber(recording.submission.reward)} VIRAL (${recording.submission.clampedScore}% of ${formatNumber(recording.submission.maxReward)})`;
     } else if (recording.meta?.quest?.reward?.max_reward) {

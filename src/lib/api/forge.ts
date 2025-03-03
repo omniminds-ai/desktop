@@ -250,24 +250,49 @@ export async function getReward(poolId: string, address: string): Promise<Reward
 
 export async function uploadRecording(
   zipBlob: Blob,
-  address: string
+  address: string,
+  onProgress?: (progress: number) => void
 ): Promise<{ submissionId: string }> {
   const formData = new FormData();
   formData.append('file', zipBlob, 'recording.zip');
 
-  const response = await fetch(`${API_BASE}/upload-race`, {
-    method: 'POST',
-    headers: {
-      'x-wallet-address': address
-    },
-    body: formData
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    
+    // Track upload progress
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable && onProgress) {
+        // Calculate percentage (0-100)
+        const progress = Math.round((event.loaded / event.total) * 100);
+        onProgress(progress);
+      }
+    });
+    
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          resolve(response);
+        } catch (error) {
+          reject(new Error('Invalid response format'));
+        }
+      } else {
+        reject(new Error(`Failed to upload recording: ${xhr.status} ${xhr.statusText}`));
+      }
+    });
+    
+    xhr.addEventListener('error', () => {
+      reject(new Error('Network error occurred during upload'));
+    });
+    
+    xhr.addEventListener('abort', () => {
+      reject(new Error('Upload was aborted'));
+    });
+    
+    xhr.open('POST', `${API_BASE}/upload-race`);
+    xhr.setRequestHeader('x-wallet-address', address);
+    xhr.send(formData);
   });
-
-  if (!response.ok) {
-    throw new Error('Failed to upload recording');
-  }
-
-  return response.json();
 }
 
 export async function getSubmissionStatus(submissionId: string): Promise<SubmissionStatus> {
