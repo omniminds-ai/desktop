@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import Card from './Card.svelte';
   import CreatePoolModal from './CreatePoolModal.svelte';
-  import { ChevronDown, ChevronRight, Train, TrainIcon, RefreshCw } from 'lucide-svelte';
+  import { ChevronDown, ChevronRight, Train, TrainIcon, RefreshCw, AlertTriangle } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import { walletAddress } from '$lib/stores/wallet';
   import { listPools, createPool, updatePool, refreshPool } from '$lib/api/forge';
@@ -218,6 +218,8 @@
                     paused
                   {:else if pool.status === TrainingPoolStatus.noFunds}
                     no funds
+                  {:else if pool.status === TrainingPoolStatus.noGas}
+                    no gas
                   {:else}
                     live
                   {/if}
@@ -262,7 +264,7 @@
                         Save Skills
                       </Button>
                     {/if}
-                    {#if pool.status !== TrainingPoolStatus.noFunds}
+                    {#if pool.status !== TrainingPoolStatus.noFunds && pool.status !== TrainingPoolStatus.noGas}
                       <Button
                         class="px-3 py-1.5 text-sm bg-transparent! {pool.status ===
                         TrainingPoolStatus.live
@@ -311,6 +313,34 @@
                   <CopyButton content={pool.depositAddress} />
                 </div>
               </div>
+
+              {#if pool.status === TrainingPoolStatus.noGas || pool.status === TrainingPoolStatus.noFunds}
+                <div class="p-4 bg-amber-50 border-l-4 border-amber-400 rounded-lg flex gap-3 shadow-sm">
+                  <div class="text-amber-500 flex-shrink-0">
+                    <AlertTriangle size={18} />
+                  </div>
+                  <div class="flex-1">
+                    {#if pool.status === TrainingPoolStatus.noGas}
+                      <p class="text-sm text-amber-900 font-semibold mb-1">
+                        Missing SOL for Gas
+                      </p>
+                      <p class="text-xs leading-relaxed text-amber-800">
+                        Your gym needs SOL to pay for on-chain transactions. Without gas, the gym cannot function on the Solana blockchain.
+                      </p>
+                    {:else if pool.status === TrainingPoolStatus.noFunds}
+                      <p class="text-sm text-amber-900 font-semibold mb-1">
+                        Missing VIRAL Tokens
+                      </p>
+                      <p class="text-xs leading-relaxed text-amber-800">
+                        Your gym needs VIRAL tokens to reward users who provide demonstrations. Without funds, users won't receive compensation.
+                      </p>
+                    {/if}
+                    <p class="text-xs text-amber-800 font-medium mt-2">
+                      Deposit {pool.status === TrainingPoolStatus.noGas ? 'SOL' : 'VIRAL'} to the address above to activate your gym and start collecting data.
+                    </p>
+                  </div>
+                </div>
+              {/if}
             </div>
           {/if}
         </Card>

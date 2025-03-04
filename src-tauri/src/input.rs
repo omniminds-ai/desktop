@@ -9,7 +9,6 @@ use std::{
     },
     thread::{self, JoinHandle},
 };
-#[cfg(not(target_os = "windows"))]
 use tauri::Emitter;
 use tauri::Runtime;
 

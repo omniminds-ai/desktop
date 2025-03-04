@@ -65,7 +65,7 @@
     <div class="bg-gray-900 rounded-xl w-full max-w-lg p-6 space-y-4">
       <h2 class="text-xl font-bold text-white">Create AI Agent Gym</h2>
 
-      <form onsubmit={handleSubmit} class="space-y-4">
+      <form onsubmit={(e) => e.preventDefault()} class="space-y-4">
         <div>
           <label for="pool-name" class="block text-sm font-semibold text-gray-300 mb-1">
             Gym Name
@@ -127,9 +127,14 @@
             onclick={handleClose}>
             Cancel
           </Button>
-          <Button type="submit" class="hover:bg-gray-800! hover:text-white! py-2!">
-            Create Gym
-          </Button>
+          <a 
+            href={`/new-gym?name=${encodeURIComponent(name)}&skills=${encodeURIComponent(skills)}&tokenType=${encodeURIComponent(selectedTokenType)}&tokenAddress=${encodeURIComponent(selectedTokenType === 'CUSTOM' ? customTokenAddress : DEFAULT_ADDRESSES[selectedTokenType])}`}
+            target="_blank"
+            class="inline-block">
+            <Button type="button" class="hover:bg-gray-800! hover:text-white! py-2!">
+              Create Gym
+            </Button>
+          </a>
         </div>
       </form>
     </div>
