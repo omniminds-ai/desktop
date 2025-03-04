@@ -15,6 +15,7 @@
     "shell:allow-execute",
     "shell:allow-open",
     "clipboard-manager:allow-write-text",
-    "log:default"
+    "log:default",
+    "deep-link:default"
   ]
 }

@@ -138,6 +138,7 @@ pub fn run() {
     }
 
     let _app = tauri::Builder::default()
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level_for("app_finder::platform::platform", log::LevelFilter::Error)
@@ -173,6 +174,12 @@ pub fn run() {
             create_recording_zip,
         ])
         .setup(|app| {
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                app.deep_link().register_all()?;
+            };
+
             let window = app.get_webview_window("main").unwrap();
 
             #[cfg(target_os = "macos")]

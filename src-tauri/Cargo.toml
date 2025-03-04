@@ -22,6 +22,9 @@ core-graphics = "0.24.0"
 core-foundation = "0.10.0"
 macos-accessibility-client = "0.0.1"
 
+[target."cfg(any(target_os = \"macos\", windows, target_os = \"linux\"))".dependencies]
+tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
+
 [target.'cfg(windows)'.dependencies]
 multiinput = "0.1.0"
 
@@ -50,3 +53,4 @@ tauri-plugin-clipboard-manager = "2"
 tauri-plugin-process = "2"
 tauri-plugin-log = "2"
 log = "0.4.26"
+tauri-plugin-deep-link = "2"
