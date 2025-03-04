@@ -1,11 +1,11 @@
 <script lang="ts">
-import { page } from '$app/state';
-import { onMount, onDestroy } from 'svelte';
-import * as gym from '$lib/gym';
-import type { Quest } from '$lib/types/gym';
-import { getReward } from '$lib/api/forge';
-import { walletAddress } from '$lib/stores/wallet';
-import { get } from 'svelte/store';
+  import { page } from '$app/state';
+  import { onMount, onDestroy } from 'svelte';
+  import * as gym from '$lib/gym';
+  import type { Quest } from '$lib/types/gym';
+  import { getReward } from '$lib/api/forge';
+  import { walletAddress } from '$lib/stores/wallet';
+  import { get } from 'svelte/store';
   import { Send, User, Video, Square } from 'lucide-svelte';
   import { emit } from '@tauri-apps/api/event';
   import Card from '$lib/components/Card.svelte';
@@ -273,13 +273,28 @@ import { get } from 'svelte/store';
     }
   }
 
+  async function removeMessage() {
+    // Remove the last message from the chatMessages array
+    if (chatMessages.length > 0) {
+      chatMessages = chatMessages.slice(0, -1);
+      scrollToBottom();
+    }
+  }
+
   async function handleComplete() {
     if (recordingState === 'recording') {
       activeQuest = null;
+      recordingLoading = true;
+      await addMessage({
+        role: 'user',
+        content: `<loading></loading>`
+      });
       const recordingId = await gym.stopRecording('done').catch(console.error);
-      recordingState = 'stopped';
       await emit('quest-overlay', { quest: null });
+      recordingLoading = false;
+      recordingState = 'stopped';
 
+      await removeMessage();
       await addMessage({
         role: 'user',
         content: `<recording>${recordingId}</recording>`
@@ -445,6 +460,15 @@ import { get } from 'svelte/store';
         {#if msg.role === 'user'}
           {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
             <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+          {:else if msg.content.startsWith('<loading>') && msg.content.endsWith('</loading>')}
+            <Card
+              variant="primary"
+              padding="sm"
+              className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white">
+              <div
+                class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
+              </div>
+            </Card>
           {:else}
             <Card
               variant="primary"
@@ -539,10 +563,11 @@ import { get } from 'svelte/store';
       <Input
         type="text"
         variant="light"
-        placeholder="Type your message..."
+        disabled
+        placeholder="Agent chat coming soon..."
         bind:value={message}
         class="flex-1 rounded-full!" />
-      <Button type="submit" class="rounded-full!">
+      <Button type="submit" disabled class="rounded-full!">
         <Send size={20} />
       </Button>
     </form>
