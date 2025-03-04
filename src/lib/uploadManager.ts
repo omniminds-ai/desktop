@@ -3,6 +3,31 @@ import { invoke } from '@tauri-apps/api/core';
 import { walletAddress } from '$lib/stores/wallet';
 import { uploadRecording, getSubmissionStatus } from '$lib/api/forge';
 
+// Store for tracking if upload confirmation is needed
+export const needsUploadConfirmation = writable<boolean>(true);
+
+// Function to check if uploads have been confirmed
+export async function checkUploadConfirmed(): Promise<boolean> {
+  try {
+    const confirmed = await invoke<boolean>('get_upload_confirmed');
+    needsUploadConfirmation.set(!confirmed);
+    return confirmed;
+  } catch (error) {
+    console.error('Failed to check upload confirmation status:', error);
+    return false;
+  }
+}
+
+// Function to save upload confirmation
+export async function saveUploadConfirmation(confirmed: boolean): Promise<void> {
+  try {
+    await invoke('set_upload_confirmed', { confirmed });
+    needsUploadConfirmation.set(!confirmed);
+  } catch (error) {
+    console.error('Failed to save upload confirmation:', error);
+  }
+}
+
 // Store for tracking uploads
 export const uploadQueue = writable<{
   [recordingId: string]: {
@@ -100,7 +125,7 @@ function pollSubmissionStatus(recordingId: string, submissionId: string) {
 }
 
 // Main upload function that will be called from other components
-export async function handleUpload(recordingId: string, name: string) {
+export async function handleUpload(recordingId: string, name: string): Promise<boolean> {
   if (!get(walletAddress)) {
     uploadQueue.update((queue) => {
       queue[recordingId] = {
@@ -109,9 +134,18 @@ export async function handleUpload(recordingId: string, name: string) {
       };
       return queue;
     });
-    return;
+    return false;
   }
 
+  // Check if upload has been confirmed
+  const isConfirmed = await checkUploadConfirmed();
+  if (!isConfirmed) {
+    // Return false to indicate that confirmation is needed
+    // The calling component should show the confirmation modal
+    return false;
+  }
+
+  // If we get here, either the user has already confirmed uploads or they just confirmed
   // Add to queue
   uploadQueue.update((queue) => {
     queue[recordingId] = { status: 'queued', name };
@@ -159,6 +193,7 @@ export async function handleUpload(recordingId: string, name: string) {
 
     // Start polling status
     pollSubmissionStatus(recordingId, submissionId);
+    return true;
   } catch (error) {
     console.error('Failed to upload recording:', error);
     uploadQueue.update((queue) => {
@@ -168,6 +203,7 @@ export async function handleUpload(recordingId: string, name: string) {
       };
       return queue;
     });
+    return false;
   }
 }
 

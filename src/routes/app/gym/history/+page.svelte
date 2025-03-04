@@ -9,7 +9,8 @@
   import { walletAddress } from '$lib/stores/wallet';
   import { getSubmissionStatus, listSubmissions } from '$lib/api/forge';
   import type { SubmissionStatus } from '$lib/api/forge';
-  import { handleUpload, uploadQueue } from '$lib/uploadManager';
+  import { handleUpload, uploadQueue, saveUploadConfirmation } from '$lib/uploadManager';
+  import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
 
   let searchQuery = '';
   let sortOrder: 'newest' | 'oldest' = 'newest';
@@ -17,6 +18,9 @@
   let submissions: SubmissionStatus[] = [];
   let processing: string | null = null;
   let submissionError: { [key: string]: string } = {};
+  let showUploadConfirmModal = false;
+  let pendingUploadId = '';
+  let pendingUploadTitle = '';
   let statusIntervals: { [key: string]: number } = {};
 
   onDestroy(() => {
@@ -201,7 +205,14 @@
             </a>
             {#if recording.status === 'completed' && !recording.submission}
               <Button
-                onclick={() => handleUpload(recording.id, recording.title)}
+                onclick={async () => {
+                  const uploadStarted = await handleUpload(recording.id, recording.title);
+                  if (!uploadStarted) {
+                    pendingUploadId = recording.id;
+                    pendingUploadTitle = recording.title;
+                    showUploadConfirmModal = true;
+                  }
+                }}
                 class="h-8 text-sm flex! items-center"
                 disabled={$uploadQueue[recording.id]?.status === 'uploading' || !$walletAddress}>
                 {#if $uploadQueue[recording.id]?.status === 'uploading'}
@@ -220,4 +231,16 @@
       </Card>
     {/each}
   </div>
+
+<UploadConfirmModal 
+  open={showUploadConfirmModal} 
+  onConfirm={() => {
+    saveUploadConfirmation(true);
+    handleUpload(pendingUploadId, pendingUploadTitle);
+    showUploadConfirmModal = false;
+  }} 
+  onCancel={() => {
+    showUploadConfirmModal = false;
+  }} 
+/>
 </div>
