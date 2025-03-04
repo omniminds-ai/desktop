@@ -15,6 +15,8 @@ export interface ForgeApp {
   pool_id: {
     _id: string;
     name: string;
+    status: string;
+    pricePerDemo: number;
   };
   seen?: boolean;
 }

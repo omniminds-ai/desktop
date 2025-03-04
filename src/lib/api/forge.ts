@@ -47,7 +47,7 @@ export async function getAppsForHistory(): Promise<ForgeApp[]> {
           description: '',
           categories: [],
           tasks: [],
-          pool_id: { _id: '', name: '' },
+          pool_id: { _id: '', name: '', status: 'completed', pricePerDemo: 0 },
           seen: true
         });
       }

@@ -223,7 +223,7 @@
       </Button>
     </div>
     <p class="text-gray-400">
-      Train AI agents with crowd-powered demonstrations in specialized skill gyms
+      Train AI agents with crowd-powered demonstrations
     </p>
   </div>
 
@@ -281,11 +281,12 @@
                   {/if}
                 </div>
               </div>
-              <div class="text-sm text-gray-500">
-                {pool.demonstrations.toLocaleString()} demonstrations collected • {Math.floor(
-                  pool.funds / 5.82
-                ).toLocaleString()} remaining • {pool.funds.toLocaleString()}
-                <b>{pool.token.symbol}</b>
+              <div class="text-sm text-gray-500 flex items-center gap-3">
+                <span>{pool.demonstrations.toLocaleString()} demos</span>
+                <span class="text-gray-300">·</span>
+                <span>{pool.pricePerDemo || 1} <b>{pool.token.symbol}</b>/demo</span>
+                <span class="text-gray-300">·</span>
+                <span>{pool.funds.toLocaleString()} <b>{pool.token.symbol}</b> balance</span>
               </div>
             </div>
             <div class="flex gap-2 items-center">

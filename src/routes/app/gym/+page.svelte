@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { slide } from 'svelte/transition';
   import Card from '$lib/components/Card.svelte';
   import { onMount } from 'svelte';
   import { getAppsForGym, getBalance, listSubmissions } from '$lib/api/forge';
@@ -8,6 +9,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { walletAddress } from '$lib/stores/wallet';
   import { page } from '$app/state';
+  import PriceRangeSlider from '$lib/components/gym/PriceRangeSlider.svelte';
 
   const poolId = page.url.searchParams.get('poolId');
   const poolName = page.url.searchParams.get('poolName');
@@ -19,9 +21,13 @@
   let apps: ForgeApp[] = [];
   let allCategories: string[] = [];
   let selectedCategories: Set<string> = new Set();
+  let minPrice = 1;
+  let maxPrice = 10;
+  let globalMinPrice = 1;
+  let globalMaxPrice = 10;
   let viralBalance = 0;
   let unclaimedRewards = 0;
-
+  let showFilters = false;
   async function loadBalance(address: string) {
     try {
       viralBalance = await getBalance(address);
@@ -89,10 +95,26 @@
     selectedCategories = selectedCategories; // Trigger reactivity
   }
 
-  $: filteredApps =
-    selectedCategories.size === 0
-      ? apps
-      : apps.filter((app) => app.categories.some((cat) => selectedCategories.has(cat)));
+  // Update price range when apps change
+  $: if (apps.length > 0) {
+    const prices = apps.map(app => app.pool_id.pricePerDemo);
+    globalMinPrice = 1;
+    globalMaxPrice = Math.max(10, Math.ceil(Math.max(...prices)));
+    
+    // Initialize price range if not set
+    if (minPrice === 1 && maxPrice === 10) {
+      minPrice = globalMinPrice;
+      maxPrice = Math.min(10, globalMaxPrice);
+    }
+  }
+
+  $: filteredApps = apps.filter(app => {
+    const matchesCategories = selectedCategories.size === 0 || 
+      app.categories.some(cat => selectedCategories.has(cat));
+    const matchesPrice = app.pool_id.pricePerDemo >= minPrice && 
+      app.pool_id.pricePerDemo <= maxPrice;
+    return matchesCategories && matchesPrice;
+  });
 </script>
 
 <div class="h-full max-w-7xl mx-auto overflow-x-hidden">
@@ -126,29 +148,80 @@
     </Card>
   </div>
 
-  <div class="mb-6">
-    <div class="flex flex-wrap gap-2">
+  <!-- Filter toggle -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-2">
       <button
-        class="px-4 cursor-pointer py-1.5 rounded-full text-sm font-medium transition-colors {selectedCategories.size ===
-        0
-          ? 'bg-secondary-300 text-white'
-          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
-        onclick={() => (selectedCategories = new Set())}>
-        All
+        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+        onclick={() => showFilters = !showFilters}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform" class:rotate-180={showFilters} viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+        Filters
       </button>
-      {#each allCategories as category}
-        <button
-          class="px-4 cursor-pointer py-1.5 rounded-full text-sm font-medium transition-colors {selectedCategories.has(
-            category
-          )
-            ? 'bg-secondary-300 text-white'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
-          onclick={() => toggleCategory(category)}>
-          {category}
-        </button>
-      {/each}
+      {#if selectedCategories.size > 0 || minPrice > globalMinPrice || maxPrice < globalMaxPrice}
+        <div class="flex items-center gap-1 text-xs text-gray-500">
+          <span>•</span>
+          <span>{filteredApps.length} task{filteredApps.length === 1 ? '' : 's'}</span>
+          <button 
+            class="text-secondary-500 hover:text-secondary-600 transition-colors"
+            onclick={() => {
+              selectedCategories = new Set();
+              minPrice = globalMinPrice;
+              maxPrice = globalMaxPrice;
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      {/if}
     </div>
   </div>
+
+  {#if showFilters}
+    <div transition:slide>
+      <Card padding="lg" className="mb-6">
+        <div class="flex flex-col gap-6">
+          <!-- Price filter -->
+          <div>
+            <div class="text-sm font-medium text-gray-700 mb-2">Filter by reward</div>
+            <PriceRangeSlider
+              bind:minPrice
+              bind:maxPrice
+              globalMin={globalMinPrice}
+              globalMax={globalMaxPrice}
+            />
+          </div>
+          
+          <!-- Categories -->
+          <div>
+            <div class="text-sm font-medium text-gray-700 mb-2">Filter by category</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.size === 0
+                  ? 'bg-secondary-300 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+                onclick={() => (selectedCategories = new Set())}>
+                All
+              </button>
+              {#each allCategories as category}
+                <button
+                  class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.has(
+                    category
+                  )
+                    ? 'bg-secondary-300 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+                  onclick={() => toggleCategory(category)}>
+                  {category}
+                </button>
+              {/each}
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  {/if}
 
   <div
     class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr w-full">
@@ -169,9 +242,14 @@
             <div class="text-md text-neutral-800 font-medium break-words mb-8">
               {task.prompt}
             </div>
-            <div class="absolute bottom-2 left-2 right-2 flex items-center gap-2">
-              <img src={getFaviconUrl(app.domain)} alt={`${app.name} icon`} class="w-6 h-6" />
-              <span class="text-sm text-gray-500 truncate">{app.name}</span>
+            <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <img src={getFaviconUrl(app.domain)} alt={`${app.name} icon`} class="w-6 h-6" />
+                <span class="text-sm text-gray-500 truncate">{app.name}</span>
+              </div>
+              <div class="text-sm font-medium text-secondary-600">
+                {app.pool_id.pricePerDemo} VIRAL
+              </div>
             </div>
           </Card>
         </a>
