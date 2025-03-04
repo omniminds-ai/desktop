@@ -164,11 +164,11 @@ fn download_file(url: &str, path: &Path) -> Result<(), String> {
 
 pub fn init_dump_tree() -> Result<(), String> {
     if DUMP_TREE_PATH.get().is_some() {
-        info!("[AxTree] Already initialized");
+        println!("[AxTree] Already initialized");
         return Ok(());
     }
 
-    info!("[AxTree] Initializing dump-tree");
+    println!("[AxTree] Initializing dump-tree");
 
     // Initialize polling state
     POLLING_ACTIVE.get_or_init(|| Arc::new(Mutex::new(false)));
@@ -191,7 +191,7 @@ pub fn init_dump_tree() -> Result<(), String> {
 
     // Check if we need to download the binary
     let should_download = if !dump_tree_path.exists() {
-        info!("[AxTree] Binary does not exist, downloading");
+        println!("[AxTree] Binary does not exist, downloading");
         true
     } else {
         // Load existing metadata
@@ -201,7 +201,7 @@ pub fn init_dump_tree() -> Result<(), String> {
             Some(metadata) => {
                 // Compare build timestamps
                 if metadata.build_timestamp < latest_metadata.build_timestamp {
-                    info!(
+                    println!(
                         "[AxTree] New version available: current={} ({}), latest={} ({})",
                         metadata.version,
                         metadata.build_timestamp,
@@ -210,19 +210,19 @@ pub fn init_dump_tree() -> Result<(), String> {
                     );
                     true
                 } else {
-                    info!("[AxTree] Binary is up to date");
+                    println!("[AxTree] Binary is up to date");
                     false
                 }
             }
             None => {
-                info!("[AxTree] No metadata found, downloading latest version");
+                println!("[AxTree] No metadata found, downloading latest version");
                 true
             }
         }
     };
 
     if should_download {
-        info!("[AxTree] Downloading new version: {}", dump_tree_filename);
+        println!("[AxTree] Downloading new version: {}", dump_tree_filename);
         download_file(DUMP_TREE_URL, &dump_tree_path)?;
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -236,7 +236,7 @@ pub fn init_dump_tree() -> Result<(), String> {
         save_metadata(&metadata_path, &latest_metadata)?;
     }
 
-    info!("[AxTree] Using dump-tree at {}", dump_tree_path.display());
+    println!("[AxTree] Using dump-tree at {}", dump_tree_path.display());
     DUMP_TREE_PATH.set(dump_tree_path).unwrap();
     Ok(())
 }
