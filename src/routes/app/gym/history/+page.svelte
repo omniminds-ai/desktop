@@ -2,8 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import { Search, Upload, Edit, Play } from 'lucide-svelte';
-  import GymHeader from '$lib/components/gym/GymHeader.svelte';
+  import { Search, Upload, Edit } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
@@ -11,16 +10,18 @@
   import type { SubmissionStatus } from '$lib/api/forge';
   import { handleUpload, uploadQueue, saveUploadConfirmation } from '$lib/uploadManager';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
+  import { fly } from 'svelte/transition';
+  import { open } from '@tauri-apps/plugin-shell';
 
   let searchQuery = '';
+  let exporting = false;
   let sortOrder: 'newest' | 'oldest' = 'newest';
   let recordings: Recording[] = [];
   let submissions: SubmissionStatus[] = [];
-  let processing: string | null = null;
-  let submissionError: { [key: string]: string } = {};
   let showUploadConfirmModal = false;
   let pendingUploadId = '';
   let pendingUploadTitle = '';
+  let dataExported = '';
   let statusIntervals: { [key: string]: number } = {};
 
   onDestroy(() => {
@@ -123,15 +124,12 @@
       }
     });
 
-  async function handleProcess(recordingId: string) {
-    try {
-      processing = recordingId;
-      await invoke('process_recording', { recordingId });
-    } catch (error) {
-      console.error('Failed to process recording:', error);
-    } finally {
-      processing = null;
-    }
+  async function handleExport() {
+    exporting = true;
+    const res = (await invoke('export_recordings')) as string;
+    exporting = false;
+    dataExported = res;
+    setTimeout(() => (dataExported = ''), 5000);
   }
 
   function getRewardDisplay(recording: Recording & { submission?: SubmissionStatus }) {
@@ -146,6 +144,18 @@
 
 <div class="h-full max-w-7xl mx-auto">
   <div class="">
+    {#if dataExported !== ''}
+      <div
+        transition:fly={{ x: 0, y: 200 }}
+        class="absolute right-10 top-10 bg-gray-700 rounded-lg p-5 z-50">
+        <p class="text-emerald-500 font-semibold">Data Export Complete!</p>
+        <button
+          onclick={() => open(dataExported.substring(0, dataExported.lastIndexOf('/') + 1))}
+          class="text-sm text-gray-300 hover:underline cursor-pointer hover:text-white">
+          {dataExported}
+        </button>
+      </div>
+    {/if}
     <button
       onclick={() => invoke('open_recording_folder', { recordingId: '' })}
       class="text-secondary-300 text-sm cursor-pointer mb-2 -mt-2 hover:underline">
@@ -168,6 +178,22 @@
         <option value="newest">Newest First</option>
         <option value="oldest">Oldest First</option>
       </select>
+      <Button
+        behavior="none"
+        variant="primary"
+        disabled={exporting}
+        onclick={handleExport}
+        class="px-4! flex! gap-2 items-center justify-items-center"
+        title="Export all your demonstration data.">
+        {#if !exporting}
+          Export Data
+        {:else}
+          <div
+            class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
+          </div>
+          Exporting...
+        {/if}
+      </Button>
     </div>
   </div>
 
@@ -232,15 +258,14 @@
     {/each}
   </div>
 
-<UploadConfirmModal 
-  open={showUploadConfirmModal} 
-  onConfirm={() => {
-    saveUploadConfirmation(true);
-    handleUpload(pendingUploadId, pendingUploadTitle);
-    showUploadConfirmModal = false;
-  }} 
-  onCancel={() => {
-    showUploadConfirmModal = false;
-  }} 
-/>
+  <UploadConfirmModal
+    open={showUploadConfirmModal}
+    onConfirm={() => {
+      saveUploadConfirmation(true);
+      handleUpload(pendingUploadId, pendingUploadTitle);
+      showUploadConfirmModal = false;
+    }}
+    onCancel={() => {
+      showUploadConfirmModal = false;
+    }} />
 </div>
