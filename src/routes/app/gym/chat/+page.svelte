@@ -42,6 +42,7 @@
   let recordingLoading = $state(false);
   let showUploadConfirmModal = $state(false);
   let currentRecordingId = $state<string | null>(null);
+  let isUploading = $state(false);
 
   type Message = {
     role: 'user' | 'assistant';
@@ -334,11 +335,13 @@
 
   // Function to handle upload button click
   async function handleUploadClick() {
-    if (currentRecordingId) {
+    if (currentRecordingId && !isUploading) {
+      isUploading = true;
       const uploadStarted = await handleUpload(currentRecordingId, activeQuest?.title || 'Unknown');
       if (!uploadStarted) {
         // If upload didn't start, show confirmation modal
         showUploadConfirmModal = true;
+        isUploading = false;
       } else {
         // Upload started successfully
         await addMessage({
@@ -354,20 +357,26 @@
   }
 
   // Handle confirmation modal actions
-  function handleConfirmUpload() {
+  async function handleConfirmUpload() {
     showUploadConfirmModal = false;
     saveUploadConfirmation(true);
     if (currentRecordingId) {
-      handleUpload(currentRecordingId, activeQuest?.title || 'Unknown');
+      isUploading = true;
+      const uploadStarted = await handleUpload(currentRecordingId, activeQuest?.title || 'Unknown');
 
-      // Add message about upload
-      addMessage({
-        role: 'assistant',
-        content: 'Your demonstration is being uploaded and processed. This may take a few minutes.'
-      });
+      if (uploadStarted) {
+        // Add message about upload
+        await addMessage({
+          role: 'assistant',
+          content:
+            'Your demonstration is being uploaded and processed. This may take a few minutes.'
+        });
 
-      // Start polling for submission status
-      pollSubmissionStatus(currentRecordingId);
+        // Start polling for submission status
+        pollSubmissionStatus(currentRecordingId);
+      } else {
+        isUploading = false;
+      }
     }
   }
 
@@ -382,44 +391,83 @@
       clearInterval(statusInterval);
     }
 
-    statusInterval = setInterval(async () => {
-      try {
-        const status = await getSubmissionStatus(recordingId);
+    console.log('Starting to poll submission status for recording:', recordingId);
 
-        if (status.status === 'completed') {
-          if (statusInterval) {
-            clearInterval(statusInterval);
-            statusInterval = undefined;
-          }
+    // First check immediately
+    checkSubmissionStatus(recordingId);
 
-          // Add message with results
-          await addMessage({
+    // Then set up interval for subsequent checks
+    statusInterval = setInterval(() => {
+      checkSubmissionStatus(recordingId);
+    }, 5000);
+  }
+
+  // Function to check submission status
+  async function checkSubmissionStatus(recordingId: string) {
+    try {
+      console.log('Checking submission status for recording:', recordingId);
+      const status = await getSubmissionStatus(recordingId);
+      console.log('Submission status:', status);
+
+      if (status.status === 'completed') {
+        // Clear the interval first
+        if (statusInterval) {
+          clearInterval(statusInterval);
+          statusInterval = undefined;
+        }
+
+        // Reset uploading state immediately
+        isUploading = false;
+
+        // Force UI update by adding messages synchronously
+        chatMessages = [
+          ...chatMessages,
+          {
             role: 'assistant',
-            content: `Your demonstration has been processed! You scored ${status.clampedScore}% on this task.`
-          });
+            content: 'Your demonstration was successfully uploaded!'
+          }
+        ];
 
-          if (status.grade_result) {
-            await addMessage({
+        // Add score message
+        chatMessages = [
+          ...chatMessages,
+          {
+            role: 'assistant',
+            content: `You scored ${status.clampedScore}% on this task.`
+          }
+        ];
+
+        // Add feedback if available
+        if (status.grade_result) {
+          chatMessages = [
+            ...chatMessages,
+            {
               role: 'assistant',
               content: `Feedback: ${status.grade_result.summary}`
-            });
-          }
-        } else if (status.status === 'failed') {
-          if (statusInterval) {
-            clearInterval(statusInterval);
-            statusInterval = undefined;
-          }
-
-          // Add error message
-          await addMessage({
-            role: 'assistant',
-            content: `There was an error processing your demonstration: ${status.error || 'Unknown error'}`
-          });
+            }
+          ];
         }
-      } catch (error) {
-        console.error('Failed to get submission status:', error);
+
+        // Ensure scroll to bottom
+        setTimeout(scrollToBottom, 100);
+      } else if (status.status === 'failed') {
+        if (statusInterval) {
+          clearInterval(statusInterval);
+          statusInterval = undefined;
+        }
+
+        // Reset uploading state
+        isUploading = false;
+
+        // Add error message
+        await addMessage({
+          role: 'assistant',
+          content: `There was an error processing your demonstration: ${status.error || 'Unknown error'}`
+        });
       }
-    }, 5000);
+    } catch (error) {
+      console.error('Failed to get submission status:', error);
+    }
   }
 
   // Clean up interval on unmount
@@ -617,15 +665,21 @@
               variant="secondary"
               padding="sm"
               className="w-auto! shadow-sm space-y-4 relative bg-black/5">
-              <div class="flex flex-col items-center gap-2">
+              <div class="flex flex-col items-start gap-2">
+                <div class="text-sm font-medium mb-1">Ready to submit your demonstration?</div>
                 <Button
                   variant="primary"
                   onclick={handleUploadClick}
-                  class="flex! items-center gap-1">
-                  <Upload size={16} />
-                  Upload Demonstration
+                  disabled={isUploading}
+                  class="flex! items-center gap-1 w-full justify-center">
+                  {#if isUploading}
+                    Uploading...
+                  {:else}
+                    <Upload size={16} />
+                    Upload Demonstration
+                  {/if}
                 </Button>
-                <p class="text-sm text-gray-500">Get scored and earn $VIRAL</p>
+                <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
               </div>
             </Card>
           {:else}
