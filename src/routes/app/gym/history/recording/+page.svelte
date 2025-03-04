@@ -11,7 +11,8 @@
   import { getSubmissionStatus, type SubmissionStatus } from '$lib/api/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
-  import { handleUpload, uploadQueue } from '$lib/uploadManager';
+  import { handleUpload, uploadQueue, saveUploadConfirmation } from '$lib/uploadManager';
+  import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
 
   let platform: Awaited<ReturnType<typeof getPlatform>> = 'windows';
   let submissions: SubmissionStatus[] = [];
@@ -25,6 +26,7 @@
   let uploading = false;
   let submission: SubmissionStatus | null = null;
   let submissionError: string | null = null;
+  let showUploadConfirmModal = false;
 
   // Poll submission status
   let statusInterval: number | null = null;
@@ -65,10 +67,26 @@
   }
 
   // Function to handle upload button click
-  function handleUploadClick() {
+  async function handleUploadClick() {
+    if (recordingId) {
+      const uploadStarted = await handleUpload(recordingId, recording?.title || 'Unknown');
+      if (!uploadStarted) {
+        // If upload didn't start, show confirmation modal
+        showUploadConfirmModal = true;
+      }
+    }
+  }
+
+  // Handle confirmation modal actions
+  function handleConfirmUpload() {
+    saveUploadConfirmation(true);
     if (recordingId) {
       handleUpload(recordingId, recording?.title || 'Unknown');
     }
+  }
+
+  function handleCancelUpload() {
+    // Do nothing, just close the modal
   }
 
   async function checkProcessedData() {
@@ -525,3 +543,9 @@
     {/if}
   </div>
 </div>
+
+<UploadConfirmModal 
+  open={showUploadConfirmModal} 
+  onConfirm={handleConfirmUpload} 
+  onCancel={handleCancelUpload} 
+/>

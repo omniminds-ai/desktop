@@ -1,8 +1,8 @@
+use log::info;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
-use log::info;
 use tauri::{AppHandle, Manager, Url};
 
 static PIPELINE_PATH: OnceLock<PathBuf> = OnceLock::new();

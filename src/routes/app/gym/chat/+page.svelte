@@ -1,12 +1,12 @@
 <script lang="ts">
-import { page } from '$app/state';
-import { onMount, onDestroy } from 'svelte';
-import * as gym from '$lib/gym';
-import type { Quest } from '$lib/types/gym';
-import { getReward } from '$lib/api/forge';
-import { walletAddress } from '$lib/stores/wallet';
-import { get } from 'svelte/store';
-  import { Send, User, Video, Square } from 'lucide-svelte';
+  import { page } from '$app/state';
+  import { onMount, onDestroy } from 'svelte';
+  import * as gym from '$lib/gym';
+  import type { Quest } from '$lib/types/gym';
+  import { getReward, getSubmissionStatus } from '$lib/api/forge';
+  import { walletAddress } from '$lib/stores/wallet';
+  import { get } from 'svelte/store';
+  import { Send, User, Video, Square, Upload } from 'lucide-svelte';
   import { emit } from '@tauri-apps/api/event';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
@@ -17,6 +17,8 @@ import { get } from 'svelte/store';
   import QuestPanel from '$lib/components/gym/QuestPanel.svelte';
   import RecordingPanel from '$lib/components/gym/RecordingPanel.svelte';
   import QuestPopup from '$lib/components/gym/QuestPopup.svelte';
+  import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
+  import { handleUpload, saveUploadConfirmation } from '$lib/uploadManager';
 
   const prompt = page.url.searchParams.get('prompt') || '';
   const appParam = page.url.searchParams.get('app');
@@ -38,6 +40,9 @@ import { get } from 'svelte/store';
   let activeQuest = $state<Quest | null>(null);
   let recordingState = $state<'recording' | 'stopping' | 'stopped'>('stopped');
   let recordingLoading = $state(false);
+  let showUploadConfirmModal = $state(false);
+  let currentRecordingId = $state<string | null>(null);
+  let isUploading = $state(false);
 
   type Message = {
     role: 'user' | 'assistant';
@@ -273,13 +278,31 @@ import { get } from 'svelte/store';
     }
   }
 
+  async function removeMessage() {
+    // Remove the last message from the chatMessages array
+    if (chatMessages.length > 0) {
+      chatMessages = chatMessages.slice(0, -1);
+      scrollToBottom();
+    }
+  }
+
   async function handleComplete() {
     if (recordingState === 'recording') {
       activeQuest = null;
-      const recordingId = await gym.stopRecording('done').catch(console.error);
-      recordingState = 'stopped';
+      recordingLoading = true;
+      await addMessage({
+        role: 'user',
+        content: `<loading></loading>`
+      });
+      const recordingId = await gym.stopRecording('done').catch((error) => {
+        console.error(error);
+        return null;
+      });
       await emit('quest-overlay', { quest: null });
+      recordingLoading = false;
+      recordingState = 'stopped';
 
+      await removeMessage();
       await addMessage({
         role: 'user',
         content: `<recording>${recordingId}</recording>`
@@ -292,13 +315,176 @@ import { get } from 'svelte/store';
         role: 'assistant',
         content: 'Great job completing the task!'
       });
+
+      // Store the recording ID for upload
+      currentRecordingId = recordingId;
+
+      await addMessage({
+        role: 'assistant',
+        content:
+          'You can upload your demonstration to get scored now, or upload it later from the history page.'
+      });
+
+      // Add upload button message
+      await addMessage({
+        role: 'assistant',
+        content: `<upload-button></upload-button>`
+      });
     }
   }
+
+  // Function to handle upload button click
+  async function handleUploadClick() {
+    if (currentRecordingId && !isUploading) {
+      isUploading = true;
+      const uploadStarted = await handleUpload(currentRecordingId, activeQuest?.title || 'Unknown');
+      if (!uploadStarted) {
+        // If upload didn't start, show confirmation modal
+        showUploadConfirmModal = true;
+        isUploading = false;
+      } else {
+        // Upload started successfully
+        await addMessage({
+          role: 'assistant',
+          content:
+            'Your demonstration is being uploaded and processed. This may take a few minutes.'
+        });
+
+        // Start polling for submission status
+        pollSubmissionStatus(currentRecordingId);
+      }
+    }
+  }
+
+  // Handle confirmation modal actions
+  async function handleConfirmUpload() {
+    showUploadConfirmModal = false;
+    saveUploadConfirmation(true);
+    if (currentRecordingId) {
+      isUploading = true;
+      const uploadStarted = await handleUpload(currentRecordingId, activeQuest?.title || 'Unknown');
+
+      if (uploadStarted) {
+        // Add message about upload
+        await addMessage({
+          role: 'assistant',
+          content:
+            'Your demonstration is being uploaded and processed. This may take a few minutes.'
+        });
+
+        // Start polling for submission status
+        pollSubmissionStatus(currentRecordingId);
+      } else {
+        isUploading = false;
+      }
+    }
+  }
+
+  function handleCancelUpload() {
+    showUploadConfirmModal = false;
+  }
+
+  // Poll submission status
+  let statusInterval: number | undefined = undefined;
+  function pollSubmissionStatus(recordingId: string) {
+    if (statusInterval) {
+      clearInterval(statusInterval);
+    }
+
+    console.log('Starting to poll submission status for recording:', recordingId);
+
+    // First check immediately
+    checkSubmissionStatus(recordingId);
+
+    // Then set up interval for subsequent checks
+    statusInterval = setInterval(() => {
+      checkSubmissionStatus(recordingId);
+    }, 5000);
+  }
+
+  // Function to check submission status
+  async function checkSubmissionStatus(recordingId: string) {
+    try {
+      console.log('Checking submission status for recording:', recordingId);
+      const status = await getSubmissionStatus(recordingId);
+      console.log('Submission status:', status);
+
+      if (status.status === 'completed') {
+        // Clear the interval first
+        if (statusInterval) {
+          clearInterval(statusInterval);
+          statusInterval = undefined;
+        }
+
+        // Reset uploading state immediately
+        isUploading = false;
+
+        // Force UI update by adding messages synchronously
+        chatMessages = [
+          ...chatMessages,
+          {
+            role: 'assistant',
+            content: 'Your demonstration was successfully uploaded!'
+          }
+        ];
+
+        // Add score message
+        chatMessages = [
+          ...chatMessages,
+          {
+            role: 'assistant',
+            content: `You scored ${status.clampedScore}% on this task.`
+          }
+        ];
+
+        // Add feedback if available
+        if (status.grade_result) {
+          chatMessages = [
+            ...chatMessages,
+            {
+              role: 'assistant',
+              content: `Feedback: ${status.grade_result.summary}`
+            }
+          ];
+        }
+
+        // Ensure scroll to bottom
+        setTimeout(scrollToBottom, 100);
+      } else if (status.status === 'failed') {
+        if (statusInterval) {
+          clearInterval(statusInterval);
+          statusInterval = undefined;
+        }
+
+        // Reset uploading state
+        isUploading = false;
+
+        // Add error message
+        await addMessage({
+          role: 'assistant',
+          content: `There was an error processing your demonstration: ${status.error || 'Unknown error'}`
+        });
+      }
+    } catch (error) {
+      console.error('Failed to get submission status:', error);
+    }
+  }
+
+  // Clean up interval on unmount
+  onDestroy(() => {
+    if (statusInterval) {
+      clearInterval(statusInterval);
+      statusInterval = undefined;
+    }
+  });
 
   async function handleGiveUp() {
     if (recordingState === 'recording') {
       activeQuest = null;
-      const recordingId = await gym.stopRecording('fail').catch(console.error);
+      const recordingId = await gym.stopRecording('fail').catch((error) => {
+        console.error(error);
+        return null;
+      });
       recordingState = 'stopped';
       await emit('quest-overlay', { quest: null });
 
@@ -445,6 +631,15 @@ import { get } from 'svelte/store';
         {#if msg.role === 'user'}
           {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
             <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+          {:else if msg.content.startsWith('<loading>') && msg.content.endsWith('</loading>')}
+            <Card
+              variant="primary"
+              padding="sm"
+              className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white">
+              <div
+                class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
+              </div>
+            </Card>
           {:else}
             <Card
               variant="primary"
@@ -465,6 +660,28 @@ import { get } from 'svelte/store';
           </div>
           {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
             <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+          {:else if msg.content === '<upload-button></upload-button>'}
+            <Card
+              variant="secondary"
+              padding="sm"
+              className="w-auto! shadow-sm space-y-4 relative bg-black/5">
+              <div class="flex flex-col items-start gap-2">
+                <div class="text-sm font-medium mb-1">Ready to submit your demonstration?</div>
+                <Button
+                  variant="primary"
+                  onclick={handleUploadClick}
+                  disabled={isUploading}
+                  class="flex! items-center gap-1 w-full justify-center">
+                  {#if isUploading}
+                    Uploading...
+                  {:else}
+                    <Upload size={16} />
+                    Upload Demonstration
+                  {/if}
+                </Button>
+                <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+              </div>
+            </Card>
           {:else}
             <Card
               variant="secondary"
@@ -539,12 +756,18 @@ import { get } from 'svelte/store';
       <Input
         type="text"
         variant="light"
-        placeholder="Type your message..."
+        disabled
+        placeholder="Agent chat coming soon..."
         bind:value={message}
         class="flex-1 rounded-full!" />
-      <Button type="submit" class="rounded-full!">
+      <Button type="submit" disabled class="rounded-full!">
         <Send size={20} />
       </Button>
     </form>
   </div>
 </div>
+
+<UploadConfirmModal
+  open={showUploadConfirmModal}
+  onConfirm={handleConfirmUpload}
+  onCancel={handleCancelUpload} />

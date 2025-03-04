@@ -3,12 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
 #[cfg(not(target_os = "macos"))]
-use {
- std::thread,
-    std::time::Duration,
-    std::process::Stdio,
-    std::io::Write
-};
+use {std::io::Write, std::process::Stdio, std::thread, std::time::Duration};
 
 use log::info;
 

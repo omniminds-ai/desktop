@@ -20,6 +20,7 @@ mod macos_screencapture;
 mod permissions;
 mod pipeline;
 mod record;
+mod settings;
 
 #[cfg(target_os = "macos")]
 use permissions::{has_ax_perms, has_record_perms, request_ax_perms, request_record_perms};
@@ -28,6 +29,7 @@ use record::{
     open_recording_folder, process_recording, start_recording, stop_recording, write_file,
     QuestState,
 };
+use settings::{get_upload_confirmed, set_upload_confirmed};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -138,6 +140,7 @@ pub fn run() {
     }
 
     let _app = tauri::Builder::default()
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level_for("app_finder::platform::platform", log::LevelFilter::Error)
@@ -171,8 +174,16 @@ pub fn run() {
             open_recording_folder,
             process_recording,
             create_recording_zip,
+            get_upload_confirmed,
+            set_upload_confirmed,
         ])
         .setup(|app| {
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                app.deep_link().register_all()?;
+            };
+
             let window = app.get_webview_window("main").unwrap();
 
             #[cfg(target_os = "macos")]
