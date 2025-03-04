@@ -3,10 +3,10 @@
   import { onMount, onDestroy } from 'svelte';
   import * as gym from '$lib/gym';
   import type { Quest } from '$lib/types/gym';
-  import { getReward } from '$lib/api/forge';
+  import { getReward, getSubmissionStatus } from '$lib/api/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { get } from 'svelte/store';
-  import { Send, User, Video, Square } from 'lucide-svelte';
+  import { Send, User, Video, Square, Upload } from 'lucide-svelte';
   import { emit } from '@tauri-apps/api/event';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
@@ -17,6 +17,8 @@
   import QuestPanel from '$lib/components/gym/QuestPanel.svelte';
   import RecordingPanel from '$lib/components/gym/RecordingPanel.svelte';
   import QuestPopup from '$lib/components/gym/QuestPopup.svelte';
+  import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
+  import { handleUpload, saveUploadConfirmation } from '$lib/uploadManager';
 
   const prompt = page.url.searchParams.get('prompt') || '';
   const appParam = page.url.searchParams.get('app');
@@ -38,6 +40,8 @@
   let activeQuest = $state<Quest | null>(null);
   let recordingState = $state<'recording' | 'stopping' | 'stopped'>('stopped');
   let recordingLoading = $state(false);
+  let showUploadConfirmModal = $state(false);
+  let currentRecordingId = $state<string | null>(null);
 
   type Message = {
     role: 'user' | 'assistant';
@@ -289,7 +293,10 @@
         role: 'user',
         content: `<loading></loading>`
       });
-      const recordingId = await gym.stopRecording('done').catch(console.error);
+      const recordingId = await gym.stopRecording('done').catch((error) => {
+        console.error(error);
+        return null;
+      });
       await emit('quest-overlay', { quest: null });
       recordingLoading = false;
       recordingState = 'stopped';
@@ -307,13 +314,129 @@
         role: 'assistant',
         content: 'Great job completing the task!'
       });
+
+      // Store the recording ID for upload
+      currentRecordingId = recordingId;
+
+      await addMessage({
+        role: 'assistant',
+        content:
+          'You can upload your demonstration to get scored now, or upload it later from the history page.'
+      });
+
+      // Add upload button message
+      await addMessage({
+        role: 'assistant',
+        content: `<upload-button></upload-button>`
+      });
     }
   }
+
+  // Function to handle upload button click
+  async function handleUploadClick() {
+    if (currentRecordingId) {
+      const uploadStarted = await handleUpload(currentRecordingId, activeQuest?.title || 'Unknown');
+      if (!uploadStarted) {
+        // If upload didn't start, show confirmation modal
+        showUploadConfirmModal = true;
+      } else {
+        // Upload started successfully
+        await addMessage({
+          role: 'assistant',
+          content:
+            'Your demonstration is being uploaded and processed. This may take a few minutes.'
+        });
+
+        // Start polling for submission status
+        pollSubmissionStatus(currentRecordingId);
+      }
+    }
+  }
+
+  // Handle confirmation modal actions
+  function handleConfirmUpload() {
+    showUploadConfirmModal = false;
+    saveUploadConfirmation(true);
+    if (currentRecordingId) {
+      handleUpload(currentRecordingId, activeQuest?.title || 'Unknown');
+
+      // Add message about upload
+      addMessage({
+        role: 'assistant',
+        content: 'Your demonstration is being uploaded and processed. This may take a few minutes.'
+      });
+
+      // Start polling for submission status
+      pollSubmissionStatus(currentRecordingId);
+    }
+  }
+
+  function handleCancelUpload() {
+    showUploadConfirmModal = false;
+  }
+
+  // Poll submission status
+  let statusInterval: number | undefined = undefined;
+  function pollSubmissionStatus(recordingId: string) {
+    if (statusInterval) {
+      clearInterval(statusInterval);
+    }
+
+    statusInterval = setInterval(async () => {
+      try {
+        const status = await getSubmissionStatus(recordingId);
+
+        if (status.status === 'completed') {
+          if (statusInterval) {
+            clearInterval(statusInterval);
+            statusInterval = undefined;
+          }
+
+          // Add message with results
+          await addMessage({
+            role: 'assistant',
+            content: `Your demonstration has been processed! You scored ${status.clampedScore}% on this task.`
+          });
+
+          if (status.grade_result) {
+            await addMessage({
+              role: 'assistant',
+              content: `Feedback: ${status.grade_result.summary}`
+            });
+          }
+        } else if (status.status === 'failed') {
+          if (statusInterval) {
+            clearInterval(statusInterval);
+            statusInterval = undefined;
+          }
+
+          // Add error message
+          await addMessage({
+            role: 'assistant',
+            content: `There was an error processing your demonstration: ${status.error || 'Unknown error'}`
+          });
+        }
+      } catch (error) {
+        console.error('Failed to get submission status:', error);
+      }
+    }, 5000);
+  }
+
+  // Clean up interval on unmount
+  onDestroy(() => {
+    if (statusInterval) {
+      clearInterval(statusInterval);
+      statusInterval = undefined;
+    }
+  });
 
   async function handleGiveUp() {
     if (recordingState === 'recording') {
       activeQuest = null;
-      const recordingId = await gym.stopRecording('fail').catch(console.error);
+      const recordingId = await gym.stopRecording('fail').catch((error) => {
+        console.error(error);
+        return null;
+      });
       recordingState = 'stopped';
       await emit('quest-overlay', { quest: null });
 
@@ -489,6 +612,22 @@
           </div>
           {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
             <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+          {:else if msg.content === '<upload-button></upload-button>'}
+            <Card
+              variant="secondary"
+              padding="sm"
+              className="w-auto! shadow-sm space-y-4 relative bg-black/5">
+              <div class="flex flex-col items-center gap-2">
+                <Button
+                  variant="primary"
+                  onclick={handleUploadClick}
+                  class="flex! items-center gap-1">
+                  <Upload size={16} />
+                  Upload Demonstration
+                </Button>
+                <p class="text-sm text-gray-500">Get scored and earn $VIRAL</p>
+              </div>
+            </Card>
           {:else}
             <Card
               variant="secondary"
@@ -573,3 +712,8 @@
     </form>
   </div>
 </div>
+
+<UploadConfirmModal
+  open={showUploadConfirmModal}
+  onConfirm={handleConfirmUpload}
+  onCancel={handleCancelUpload} />
