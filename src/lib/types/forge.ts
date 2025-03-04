@@ -25,6 +25,8 @@ export interface TrainingPool {
   depositAddress: string;
   expanded?: boolean;
   unsavedSkills?: boolean;
+  pricePerDemo?: number;
+  unsavedPrice?: boolean;
 }
 
 export interface CreatePoolInput {
@@ -38,4 +40,5 @@ export interface UpdatePoolInput {
   id: string;
   status?: TrainingPoolStatus.live | TrainingPoolStatus.paused;
   skills?: string;
+  pricePerDemo?: number;
 }
