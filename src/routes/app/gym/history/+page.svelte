@@ -2,7 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import { Search, Upload, MonitorPlay, Copy, ExternalLink, AlertTriangle, MoreVertical } from 'lucide-svelte';
+  import { Search, Upload, MonitorPlay, Copy, ExternalLink, AlertTriangle, MoreVertical, Clock, Calendar } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
@@ -53,6 +53,26 @@
   function formatNumber(num: number): string {
     if (num === undefined || num === null) return "0.00";
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatDuration(seconds: number): string {
+    if (!seconds) return "0:00";
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    
+    // Format as m:ss with leading zeros for seconds when needed
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
+  function formatDate(timestamp: string): string {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString();
+  }
+
+  function formatTime(timestamp: string): string {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   async function loadSubmissions(address: string) {
@@ -247,13 +267,20 @@
             </div>
           {/if}
 
-          <!-- Title and Time -->
+          <!-- Title and Metadata -->
           <div class="flex-grow min-w-0">
             <a href="/app/gym/history/recording?id={recording.id}" class="hover:underline">
               <h3 class="text-base font-title truncate" title={recording.title}>{recording.title}</h3>
             </a>
-            <div class="text-xs text-gray-500">
-              {new Date(recording.timestamp).toLocaleString()}
+            <div class="flex items-center gap-3 mt-1">
+              <div class="flex items-center text-xs text-gray-500">
+                <Clock class="w-3 h-3 mr-1 opacity-75" />
+                <span>{formatDuration(recording.duration_seconds)}</span>
+              </div>
+              <div class="flex items-center text-xs text-gray-500">
+                <Calendar class="w-3 h-3 mr-1 opacity-75" />
+                <span>{formatDate(recording.timestamp)} {formatTime(recording.timestamp)}</span>
+              </div>
             </div>
           </div>
 
