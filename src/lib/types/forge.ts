@@ -42,3 +42,68 @@ export interface UpdatePoolInput {
   skills?: string;
   pricePerDemo?: number;
 }
+
+export interface TreasuryTransfer {
+  tokenAddress: string;
+  treasuryWallet: string;
+  amount: number;
+  timestamp: number;
+  txHash: string;
+  _id: string;
+}
+
+export interface GradeResult {
+  summary: string;
+  score: number;
+  reasoning: string;
+  _id: string;
+}
+
+export interface SubmissionMeta {
+  id: string;
+  timestamp: string;
+  duration_seconds: number;
+  status: string;
+  reason: string;
+  title: string;
+  description: string;
+  platform: string;
+  arch: string;
+  version: string;
+  locale: string;
+  primary_monitor: {
+    width: number;
+    height: number;
+  };
+  quest: {
+    title: string;
+    app: string;
+    icon_url: string;
+    objectives: string[];
+    content: string;
+    pool_id: string;
+    reward: {
+      time: number;
+      max_reward: number;
+    };
+  };
+}
+
+export interface SubmissionStatus {
+  _id: string;
+  address: string;
+  meta: SubmissionMeta;
+  status: string;
+  files: Array<{
+    file: string;
+    s3Key: string;
+    _id: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+  clampedScore: number;
+  grade_result: GradeResult;
+  maxReward: number;
+  reward: number;
+  treasuryTransfer?: TreasuryTransfer;
+}

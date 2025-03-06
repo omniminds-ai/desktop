@@ -2,7 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import { Search, Upload, Edit } from 'lucide-svelte';
+  import { Search, Upload, Edit, Copy, ExternalLink } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
@@ -132,6 +132,14 @@
     setTimeout(() => (dataExported = ''), 5000);
   }
 
+  function truncateHash(hash: string): string {
+    return `${hash.slice(0, 4)}...${hash.slice(-4)}`;
+  }
+
+  function getSolscanUrl(txHash: string): string {
+    return `https://solscan.io/tx/${txHash}`;
+  }
+
   function getRewardDisplay(recording: Recording & { submission?: SubmissionStatus }) {
     if (recording.submission?.reward && recording.submission.maxReward) {
       return `${formatNumber(recording.submission.reward)} VIRAL (${recording.submission.clampedScore}% of ${formatNumber(recording.submission.maxReward)})`;
@@ -214,6 +222,31 @@
 
               {#if getRewardDisplay(recording)}
                 <span class="text-secondary-300">{getRewardDisplay(recording)}</span>
+                {#if recording.submission?.treasuryTransfer?.txHash}
+                  <div class="mt-1 flex items-center gap-2">
+                    <span class="text-gray-500">TX:</span>
+                    <span class="text-gray-400 font-mono text-xs">
+                      {truncateHash(recording.submission?.treasuryTransfer?.txHash || '')}
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <button 
+                        class="text-gray-400 hover:text-secondary-300 transition-colors"
+                        onclick={() => {
+                          const txHash = recording.submission?.treasuryTransfer?.txHash;
+                          if (txHash) navigator.clipboard.writeText(txHash);
+                        }}>
+                        <Copy class="w-3.5 h-3.5" />
+                      </button>
+                      <a
+                        href={getSolscanUrl(recording.submission?.treasuryTransfer?.txHash || '')}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-gray-400 hover:text-secondary-300 transition-colors">
+                        <ExternalLink class="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                {/if}
               {:else}
                 <span class="text-gray-500 italic">
                   Upload your recording to get a score and receive your $VIRAL.

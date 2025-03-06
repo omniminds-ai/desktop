@@ -4,11 +4,13 @@
   import Button from '$lib/components/Button.svelte';
   import EventTimestamp from '$lib/components/gym/EventTimestamp.svelte';
   import AxTreeOverlay from '$lib/components/gym/AxTreeOverlay.svelte';
+  import { Copy, ExternalLink, Asterisk, Equal } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import type { Recording } from '$lib/gym';
   import { getPlatform } from '$lib/utils';
-  import { getSubmissionStatus, type SubmissionStatus } from '$lib/api/forge';
+  import { getSubmissionStatus } from '$lib/api/forge';
+  import type { SubmissionStatus } from '$lib/types/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
   import { handleUpload, uploadQueue, saveUploadConfirmation } from '$lib/uploadManager';
@@ -239,6 +241,26 @@
       submission = submissions.find((s) => s.meta?.id === recordingId) || null;
     });
   }
+  
+  function getLetterGrade(score: number): string {
+    if (score >= 90) return 'A';
+    if (score >= 80) return 'B';
+    if (score >= 70) return 'C';
+    if (score >= 60) return 'D';
+    return 'F';
+  }
+
+  function truncateHash(hash: string): string {
+    return `${hash.slice(0, 4)}...${hash.slice(-4)}`;
+  }
+
+  function getSolscanUrl(txHash: string): string {
+    return `https://solscan.io/tx/${txHash}`;
+  }
+
+  function formatNumber(num: number): string {
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
 
   function formatJson(event: { time: number; event: string; data: any }) {
     return JSON.stringify(event, null, 2);
@@ -274,28 +296,85 @@
 
           {#if submission?.grade_result}
             <Card padding="lg" className="mb-6">
-              <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <div class="text-xl font-semibold">Submission Result</div>
-                    <div class="text-lg font-medium text-secondary-300">
-                      {submission.clampedScore}%
+                <div class="flex flex-col gap-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="text-xl font-semibold">Submission Result</div>
+                      {#if submission?.clampedScore}
+                        <div class="text-lg font-medium" class:text-red-500={submission.clampedScore < 50} class:text-secondary-300={submission.clampedScore >= 50}>
+                          ({getLetterGrade(submission.clampedScore)})
+                        </div>
+                      {/if}
+                    </div>
+                    <div class="flex items-center gap-2">
+                      {#if submission?.treasuryTransfer?.txHash}
+                        <a
+                          href={getSolscanUrl(submission.treasuryTransfer.txHash)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-gray-400 hover:text-secondary-300 transition-colors">
+                          <Button variant="secondary" class="text-sm flex! items-center gap-1">
+                            <ExternalLink class="w-3.5 h-3.5" />
+                            Solscan
+                          </Button>
+                        </a>
+                      {/if}
+                      <Button
+                        variant="secondary"
+                        class="text-sm"
+                        onclick={() => (showDetails = !showDetails)}>
+                        {showDetails ? 'Hide Details' : 'Show Details'}
+                      </Button>
                     </div>
                   </div>
-                  <Button
-                    variant="secondary"
-                    class="text-sm"
-                    onclick={() => (showDetails = !showDetails)}>
-                    {showDetails ? 'Hide Details' : 'Show Details'}
-                  </Button>
-                </div>
-                {#if showDetails}
-                  <div class="text-gray-600 max-h-[300px] overflow-y-auto pr-2">
-                    <div class="whitespace-pre-wrap">{submission.grade_result.summary}</div>
-                    <div class="mt-4 text-gray-500 italic">{submission.grade_result.reasoning}</div>
+
+                  <div class="text-gray-500 italic">{submission.grade_result.reasoning}</div>
+
+                  <div class="flex flex-wrap items-center gap-3 mt-4">
+                    {#if submission?.maxReward}
+                      <div class="bg-gray-100 rounded-lg px-3 py-2">
+                        <div class="text-sm text-gray-500">Price per Demo</div>
+                        <div class="text-secondary-300 font-medium">{formatNumber(submission.maxReward)} VIRAL</div>
+                      </div>
+                    {/if}
+                    <Asterisk class="w-4 h-4 text-gray-400" />
+                    {#if submission?.clampedScore}
+                      <div class="bg-gray-100 rounded-lg px-3 py-2">
+                        <div class="text-sm text-gray-500">Quality Score</div>
+                        <div class="text-secondary-300 font-medium">{submission.clampedScore}%</div>
+                      </div>
+                    {/if}
+                    <Equal class="w-4 h-4 text-gray-400" />
+                    {#if submission?.reward}
+                      <div class="bg-gray-100 rounded-lg px-3 py-2">
+                        <div class="text-sm text-gray-500">Earned</div>
+                        <div class="text-secondary-300 font-medium">{formatNumber(submission.reward)} VIRAL</div>
+                      </div>
+                    {/if}
                   </div>
-                {/if}
-              </div>
+
+                  {#if showDetails}
+                    <div class="text-gray-600 max-h-[300px] overflow-y-auto pr-2 mt-4">
+                      {#if submission.treasuryTransfer?.txHash}
+                        <div class="flex items-center gap-2 mb-4">
+                          <span class="text-gray-500">TX:</span>
+                          <span class="text-gray-400 font-mono text-xs">
+                            {submission.treasuryTransfer.txHash}
+                          </span>
+                          <button 
+                            class="text-gray-400 hover:text-secondary-300 transition-colors"
+                            onclick={() => {
+                              const txHash = submission?.treasuryTransfer?.txHash;
+                              if (txHash) navigator.clipboard.writeText(txHash);
+                            }}>
+                            <Copy class="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      {/if}
+                      <div class="whitespace-pre-wrap">{submission.grade_result.summary}</div>
+                    </div>
+                  {/if}
+                </div>
             </Card>
           {:else}
             <Card padding="lg" className="mb-6">

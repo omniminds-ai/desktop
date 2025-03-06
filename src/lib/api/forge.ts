@@ -205,23 +205,6 @@ export async function updatePool(input: UpdatePoolInput): Promise<TrainingPool> 
   return response.json();
 }
 
-export interface SubmissionStatus {
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  grade_result?: {
-    score: number;
-    summary: string;
-    reasoning: string;
-  };
-  reward?: number;
-  maxReward?: number;
-  clampedScore?: number;
-  error?: string;
-  meta: any;
-  files: Array<{ file: string; s3Key: string }>;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface RewardInfo {
   time: number; // Unix timestamp rounded to last minute
   maxReward: number; // Value between 1-128
