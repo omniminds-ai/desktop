@@ -1,12 +1,14 @@
+import { API_URL } from '$lib/utils';
 import { writable, get } from 'svelte/store';
 
 // Initialize from localStorage if available
-const storedAddress = typeof localStorage !== 'undefined' ? localStorage.getItem('walletAddress') : null;
+const storedAddress =
+  typeof localStorage !== 'undefined' ? localStorage.getItem('walletAddress') : null;
 export const walletAddress = writable<string | null>(storedAddress);
 
 // Subscribe to changes and save to localStorage
 if (typeof localStorage !== 'undefined') {
-  walletAddress.subscribe(value => {
+  walletAddress.subscribe((value) => {
     if (value) {
       localStorage.setItem('walletAddress', value);
     } else {
@@ -27,7 +29,7 @@ export function getConnectionUrl() {
     token = generateToken();
     connectionToken.set(token);
   }
-  return `http://localhost/connect?token=${token}`;
+  return `${API_URL}/connect?token=${token}`;
 }
 
 let currentInterval: number | null = null;
@@ -42,18 +44,18 @@ export function startPolling() {
   }
 
   isConnecting.set(true);
-  
+
   // Reset "Connecting..." text after 5 seconds
   setTimeout(() => {
     isConnecting.set(false);
   }, 5000);
-  
+
   // Poll for connection status
   currentInterval = setInterval(async () => {
     try {
-      const response = await fetch(`http://localhost/api/forge/check-connection?token=${token}`);
+      const response = await fetch(`${API_URL}/api/forge/check-connection?token=${token}`);
       const data = await response.json();
-      
+
       if (data.connected) {
         walletAddress.set(data.address);
         connectionToken.set(null);

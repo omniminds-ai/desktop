@@ -1,10 +1,11 @@
 import { walletAddress } from '$lib/stores/wallet';
 import type { TrainingPool, CreatePoolInput, UpdatePoolInput } from '$lib/types/forge';
 import type { ForgeApp } from '$lib/types/gym';
+import { API_URL } from '$lib/utils';
 import { invoke } from '@tauri-apps/api/core';
 import { get } from 'svelte/store';
 
-const API_BASE = 'http://localhost/api/forge';
+const API_BASE = `${API_URL}/api/forge`;
 
 export async function getAppsForGym(poolId?: string): Promise<ForgeApp[]> {
   const response = await fetch(`${API_BASE}/apps${poolId ? `?pool_id=${poolId}` : ''}`);
@@ -258,7 +259,7 @@ export async function uploadRecording(
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    
+
     // Track upload progress
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable && onProgress) {
@@ -267,7 +268,7 @@ export async function uploadRecording(
         onProgress(progress);
       }
     });
-    
+
     xhr.addEventListener('load', () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
@@ -280,15 +281,15 @@ export async function uploadRecording(
         reject(new Error(`Failed to upload recording: ${xhr.status} ${xhr.statusText}`));
       }
     });
-    
+
     xhr.addEventListener('error', () => {
       reject(new Error('Network error occurred during upload'));
     });
-    
+
     xhr.addEventListener('abort', () => {
       reject(new Error('Upload was aborted'));
     });
-    
+
     xhr.open('POST', `${API_BASE}/upload-race`);
     xhr.setRequestHeader('x-wallet-address', address);
     xhr.send(formData);
