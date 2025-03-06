@@ -57,6 +57,7 @@
   async function loadSubmissions(address: string) {
     try {
       submissions = await listSubmissions(address);
+      console.log(submissions);
     } catch (error) {
       console.error('Failed to fetch submissions:', error);
     }
@@ -220,7 +221,7 @@
               <span>Recorded: {new Date(recording.timestamp).toLocaleString()}</span>
             </div>
             <div class="text-sm text-gray-500 pt-1">
-              <span class="uppercase font-semibold">Rewarded:</span>
+              <span class="uppercase font-semibold">Reward:</span>
 
               {#if getRewardDisplay(recording)}
                 <span class="text-secondary-300">{getRewardDisplay(recording)}</span>
@@ -231,7 +232,7 @@
                       {truncateHash(recording.submission?.treasuryTransfer?.txHash || '')}
                     </span>
                     <div class="flex items-center gap-2">
-                      <button 
+                      <button
                         class="text-gray-400 hover:text-secondary-300 transition-colors"
                         onclick={() => {
                           const txHash = recording.submission?.treasuryTransfer?.txHash;
