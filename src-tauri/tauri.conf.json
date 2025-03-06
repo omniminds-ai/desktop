@@ -10,6 +10,12 @@
     "frontendDist": "../build"
   },
   "plugins": {
+    "updater": {
+      "pubkey": "CONTENT FROM PUBLICKEY.PEM",
+      "endpoints": [
+        "https://github.com/user/repo/releases/latest/download/latest.json"
+      ]
+    },
     "deep-link": {
       "desktop": {
         "schemes": [
@@ -34,6 +40,7 @@
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "macOS": {
       "dmg": {
         "appPosition": {
