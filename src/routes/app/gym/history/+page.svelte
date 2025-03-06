@@ -7,7 +7,7 @@
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
   import { getSubmissionStatus, listSubmissions } from '$lib/api/forge';
-  import type { SubmissionStatus } from '$lib/api/forge';
+  import type { SubmissionStatus } from '$lib/types/forge';
   import { handleUpload, uploadQueue, saveUploadConfirmation } from '$lib/uploadManager';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
   import { fly } from 'svelte/transition';

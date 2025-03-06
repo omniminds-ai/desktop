@@ -1,5 +1,10 @@
 import { walletAddress } from '$lib/stores/wallet';
-import type { TrainingPool, CreatePoolInput, UpdatePoolInput } from '$lib/types/forge';
+import type {
+  TrainingPool,
+  CreatePoolInput,
+  UpdatePoolInput,
+  SubmissionStatus
+} from '$lib/types/forge';
 import type { ForgeApp } from '$lib/types/gym';
 import { API_URL } from '$lib/utils';
 import { invoke } from '@tauri-apps/api/core';

@@ -8,14 +8,9 @@
   import { invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import type { Recording } from '$lib/gym';
-<<<<<<< HEAD
   import { getPlatform } from '$lib/utils';
   import { getSubmissionStatus } from '$lib/api/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
-=======
-  import { API_URL, getPlatform } from '$lib/utils';
-  import { getSubmissionStatus, type SubmissionStatus } from '$lib/api/forge';
->>>>>>> f440301 (small ui changes)
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
   import { handleUpload, uploadQueue, saveUploadConfirmation } from '$lib/uploadManager';
