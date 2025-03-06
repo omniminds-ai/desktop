@@ -27,8 +27,13 @@ export interface Recording {
 }
 
 import type { Quest } from './types/gym';
+import { API_URL } from './utils';
 
-export async function generateQuest(prompt: string, address: string, poolId?: string): Promise<Quest> {
+export async function generateQuest(
+  prompt: string,
+  address: string,
+  poolId?: string
+): Promise<Quest> {
   // Get screenshot
   // const screenshot = await invoke('take_screenshot');
 
@@ -39,7 +44,7 @@ export async function generateQuest(prompt: string, address: string, poolId?: st
     .join('\n');
 
   // Call quest endpoint
-  const response = await fetch('http://localhost/api/gym/quest', {
+  const response = await fetch(`${API_URL}/api/gym/quest`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -57,7 +62,7 @@ export async function generateQuest(prompt: string, address: string, poolId?: st
   }
 
   const quest = await response.json();
-  
+
   // If poolId is provided, get reward info
   if (poolId) {
     try {
@@ -68,7 +73,7 @@ export async function generateQuest(prompt: string, address: string, poolId?: st
       console.error('Failed to get reward info:', error);
     }
   }
-  
+
   return quest;
 }
 
@@ -104,7 +109,7 @@ export async function checkQuestProgress(
     }
 
     // Call progress endpoint
-    const response = await fetch('http://localhost/api/gym/progress', {
+    const response = await fetch(`${API_URL}/api/gym/progress`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

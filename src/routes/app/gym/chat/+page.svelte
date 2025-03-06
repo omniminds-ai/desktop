@@ -19,6 +19,7 @@
   import QuestPopup from '$lib/components/gym/QuestPopup.svelte';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
   import { handleUpload, saveUploadConfirmation } from '$lib/uploadManager';
+  import { API_URL } from '$lib/utils';
 
   const prompt = page.url.searchParams.get('prompt') || '';
   const appParam = page.url.searchParams.get('app');
@@ -143,7 +144,7 @@
 
     isWaitingForResponse = true;
     try {
-      const response = await fetch('http://localhost/api/forge/chat', {
+      const response = await fetch(`${API_URL}/api/forge/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -528,7 +529,7 @@
   async function getInitialMessage() {
     isWaitingForResponse = true;
     try {
-      const response = await fetch('http://localhost/api/forge/chat', {
+      const response = await fetch(`${API_URL}/api/forge/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

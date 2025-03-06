@@ -1,3 +1,4 @@
+import { dev } from '$app/environment';
 import { platform } from '@tauri-apps/plugin-os';
 
 export function formatTime(seconds: number): string {
@@ -18,3 +19,6 @@ export function svgToCssTransform(svgTransform: string): string {
     .replace(/translate\(([-\d.,]+),([-\d.,]+)\)/, (_, x, y) => `translate(${x}px, ${y}px)`)
     .replace(/scale\(([-\d.,]+)\)/, (_, s) => `scale(${s})`);
 }
+
+export const API_URL = dev ? 'http://localhost' : 'https://viralmind.ai';
+console.log(API_URL);
