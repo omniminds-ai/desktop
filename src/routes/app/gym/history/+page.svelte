@@ -74,9 +74,11 @@
   });
 
   // Subscribe to wallet address changes
-  $: if ($walletAddress) {
-    loadSubmissions($walletAddress);
-  }
+  walletAddress.subscribe((val) => {
+    if (val !== $walletAddress && val) {
+      loadSubmissions(val);
+    }
+  });
 
   $: mergedRecordings = [
     // First include all local recordings with their submissions
