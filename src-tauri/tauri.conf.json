@@ -11,9 +11,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "CONTENT FROM PUBLICKEY.PEM",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFCNTRFQzczQUY2QTcxRDYKUldUV2NXcXZjK3hVRzZ6U3Yzb2JyaTVZb0Q0ZG8xbmxMWkpXZ28va1NTa1hxWEg4ZUFYWWoxc1oK",
       "endpoints": [
-        "https://github.com/user/repo/releases/latest/download/latest.json"
+        "https://github.com/viralmind-ai/desktop/releases/latest/download/latest.json"
       ]
     },
     "deep-link": {
@@ -56,7 +56,7 @@
           "width": 660
         }
       },
-      "entitlements": "entitlements.plist"
+      "entitlements": "Entitlements.plist"
     },
     "homepage": "https://viralmind.ai",
     "active": true,
