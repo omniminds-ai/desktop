@@ -125,7 +125,7 @@
   {:else}
   <div class="mx-auto mb-8">
     <p class="text-gray-400">
-      Share your computer skills, earn rewards, and help build the world's largest open-source
+      Choose a task, record a demonstration on your desktop, earn rewards. Help build the world's largest open-source
       dataset for training AI assistants.
     </p>
   </div>

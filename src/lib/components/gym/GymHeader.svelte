@@ -8,7 +8,7 @@
     if (path?.includes('history/')) path = '/app/gym/history/id';
     switch (path) {
       case '/app/gym':
-        return 'Train AI and Earn';
+        return 'Training Gym';
       case '/app/gym/chat':
         return 'Training Session';
       case '/app/gym/skills':
@@ -17,7 +17,7 @@
         return 'Recording History';
       case '/app/gym/history/id':
         return 'Recording Details';
-      case '/app/gym/settings':
+      case '/app/gymF/settings':
         return 'Settings';
       default:
         return 'Recording Details';

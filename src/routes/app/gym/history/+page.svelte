@@ -2,12 +2,12 @@
   import { onDestroy, onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import { Search, Upload, Edit, Copy, ExternalLink } from 'lucide-svelte';
+  import { Search, Upload, MonitorPlay, Copy, ExternalLink, AlertTriangle, MoreVertical } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
   import { getSubmissionStatus, listSubmissions } from '$lib/api/forge';
-  import type { SubmissionStatus } from '$lib/api/forge';
+  import type { SubmissionStatus } from '$lib/types/forge';
   import { handleUpload, uploadQueue, saveUploadConfirmation } from '$lib/uploadManager';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
   import { fly } from 'svelte/transition';
@@ -51,6 +51,7 @@
   }
 
   function formatNumber(num: number): string {
+    if (num === undefined || num === null) return "0.00";
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
@@ -95,6 +96,7 @@
         timestamp: s.meta.timestamp,
         duration_seconds: s.meta.duration_seconds,
         status: s.meta.status,
+        reason: s.meta.reason,
         title: s.meta.title,
         description: s.meta.description,
         platform: s.meta.platform,
@@ -148,6 +150,26 @@
     }
     return null;
   }
+
+  function handleImageError(event: Event) {
+    const img = event.target as HTMLImageElement;
+    img.src = 'https://placehold.co/40x40/gray/white?text=App';
+  }
+
+  function getMaxReward(recording: Recording & { submission?: SubmissionStatus, quest?: any }): number {
+    if((recording.meta?.quest?.reward?.max_reward || 
+           recording.submission?.meta?.quest?.reward?.max_reward || 
+           recording.quest?.maxReward || 
+           0) == 0) console.log(recording)
+    return recording.meta?.quest?.reward?.max_reward || 
+           recording.submission?.meta?.quest?.reward?.max_reward || 
+           recording.quest?.reward?.max_reward || 
+           0;
+  }
+
+  function isUploaded(recording: Recording & { submission?: SubmissionStatus }): boolean {
+    return !!recording.submission;
+  }
 </script>
 
 <div class="h-full max-w-7xl mx-auto">
@@ -158,14 +180,14 @@
         class="absolute right-10 top-10 bg-gray-700 rounded-lg p-5 z-50">
         <p class="text-emerald-500 font-semibold">Data Export Complete!</p>
         <button
-          onclick={() => open(dataExported.substring(0, dataExported.lastIndexOf('/') + 1))}
+          on:click={() => open(dataExported.substring(0, dataExported.lastIndexOf('/') + 1))}
           class="text-sm text-gray-300 hover:underline cursor-pointer hover:text-white">
           {dataExported}
         </button>
       </div>
     {/if}
     <button
-      onclick={() => invoke('open_recording_folder', { recordingId: '' })}
+      on:click={() => invoke('open_recording_folder', { recordingId: '' })}
       class="text-secondary-300 text-sm cursor-pointer mb-2 -mt-2 hover:underline">
       Open Recordings Folder
     </button>
@@ -205,63 +227,65 @@
     </div>
   </div>
 
-  <div class="grid gap-4 pb-4">
+  <div class="grid gap-2 pb-4">
     {#each filteredRecordings as recording}
-      <Card padding="lg" className="border-2">
-        <div class="flex flex-col sm:flex-row gap-4">
-          <div class="grow">
-            <h3 class="text-xl font-title mb-2">{recording.title}</h3>
-            <p class="text-gray-700 mb-3">{recording.description || 'No description'}</p>
-            <div class="flex flex-wrap gap-4 text-sm text-gray-600">
-              <span>{Math.round(recording.duration_seconds / 60)} minutes</span>
-              <span>Status: {recording.status}</span>
-              <span>Recorded: {new Date(recording.timestamp).toLocaleString()}</span>
+      <Card 
+        padding="sm" 
+        className={`hover:border-secondary-300 transition-colors ${isUploaded(recording) ? 'opacity-50 hover:opacity-75 bg-gray-100 border border-gray-300' : 'font-semibold bg-white shadow-md border-l-4 border-secondary-300'}`}>
+        <div class="flex items-center gap-3">
+          <!-- Icon -->
+          {#if recording.meta?.quest?.icon_url || recording.submission?.meta?.quest?.icon_url}
+            <img 
+              src={recording.meta?.quest?.icon_url || recording.submission?.meta?.quest?.icon_url} 
+              alt="App icon" 
+              class="w-8 h-8 rounded-md object-contain"
+              on:error={handleImageError}
+            />
+          {:else}
+            <div class="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center text-gray-500">
+              <span class="text-xs">App</span>
             </div>
-            <div class="text-sm text-gray-500 pt-1">
-              <span class="uppercase font-semibold">Rewarded:</span>
+          {/if}
 
-              {#if getRewardDisplay(recording)}
-                <span class="text-secondary-300">{getRewardDisplay(recording)}</span>
-                {#if recording.submission?.treasuryTransfer?.txHash}
-                  <div class="mt-1 flex items-center gap-2">
-                    <span class="text-gray-500">TX:</span>
-                    <span class="text-gray-400 font-mono text-xs">
-                      {truncateHash(recording.submission?.treasuryTransfer?.txHash || '')}
-                    </span>
-                    <div class="flex items-center gap-2">
-                      <button 
-                        class="text-gray-400 hover:text-secondary-300 transition-colors"
-                        onclick={() => {
-                          const txHash = recording.submission?.treasuryTransfer?.txHash;
-                          if (txHash) navigator.clipboard.writeText(txHash);
-                        }}>
-                        <Copy class="w-3.5 h-3.5" />
-                      </button>
-                      <a
-                        href={getSolscanUrl(recording.submission?.treasuryTransfer?.txHash || '')}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-gray-400 hover:text-secondary-300 transition-colors">
-                        <ExternalLink class="w-3.5 h-3.5" />
-                      </a>
-                    </div>
-                  </div>
-                {/if}
-              {:else}
-                <span class="text-gray-500 italic">
-                  Upload your recording to get a score and receive your $VIRAL.
-                </span>
-              {/if}
+          <!-- Title and Time -->
+          <div class="flex-grow min-w-0">
+            <a href="/app/gym/history/recording?id={recording.id}" class="hover:underline">
+              <h3 class="text-base font-title truncate" title={recording.title}>{recording.title}</h3>
+            </a>
+            <div class="text-xs text-gray-500">
+              {new Date(recording.timestamp).toLocaleString()}
             </div>
           </div>
 
-          <div class="flex flex-col gap-2">
-            <a href="/app/gym/history/recording?id={recording.id}" class="block">
-              <Button variant="secondary" class="h-8 text-sm flex! items-center w-full">
-                <Edit class="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                <span>Details</span>
-              </Button>
-            </a>
+          <!-- Failed Status -->
+          {#if recording.submission?.status === 'failed'}
+            <div class="text-center px-2">
+              <div class="text-red-500 flex items-center gap-1">
+                <AlertTriangle class="w-4 h-4" />
+                <span class="text-sm font-semibold">Failed</span>
+              </div>
+            </div>
+          {/if}
+
+          <!-- Rating (if claimed) -->
+          {#if recording.submission?.clampedScore !== undefined}
+            <div class="text-center px-2">
+              <div class="text-lg font-bold text-secondary-300">{recording.submission.clampedScore}%</div>
+              <div class="text-xs text-gray-500">Rating</div>
+            </div>
+          {/if}
+
+          <!-- Reward -->
+          {#if recording.submission?.reward}
+          <div class="text-right min-w-[120px]">
+            <div class="text-sm font-semibold text-secondary-300">
+              {formatNumber(recording.submission.reward)} VIRAL
+            </div>
+          </div>
+          {/if}
+
+          <!-- Action Buttons -->
+          <div class="flex gap-2 items-center">
             {#if recording.status === 'completed' && !recording.submission}
               <Button
                 onclick={async () => {
@@ -272,19 +296,33 @@
                     showUploadConfirmModal = true;
                   }
                 }}
-                class="h-8 text-sm flex! items-center"
+                class="h-8 flex! items-center gap-1.5 px-2! text-sm font-semibold"
+                title="Upload Recording to earn VIRAL tokens"
                 disabled={$uploadQueue[recording.id]?.status === 'uploading' || !$walletAddress}>
                 {#if $uploadQueue[recording.id]?.status === 'uploading'}
                   <div
-                    class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
+                    class="w-3.5 h-3.5 border-2 border-t-transparent border-white rounded-full animate-spin">
                   </div>
                   <span>Uploading...</span>
                 {:else}
-                  <Upload class="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                  <span>Upload</span>
+                  <Upload class="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {#if getMaxReward(recording) > 0}
+                      Upload for up to {formatNumber(getMaxReward(recording))} VIRAL
+                    {:else}
+                      Upload Recording
+                    {/if}
+                  </span>
                 {/if}
               </Button>
             {/if}
+            
+            <!-- Play/Details Button -->
+            <a href="/app/gym/history/recording?id={recording.id}" class="block">
+              <Button variant="secondary" class="h-8 w-8 p-0! flex! items-center justify-center bg-transparent shadow-transparent border-transparent" title="View Recording">
+                <MoreVertical class="w-4 h-4 shrink-0" />
+              </Button>
+            </a>
           </div>
         </div>
       </Card>

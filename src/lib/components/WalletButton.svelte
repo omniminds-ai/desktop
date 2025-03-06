@@ -10,32 +10,26 @@
 </script>
 
 {#if $walletAddress}
-  <div class="w-full py-2 px-4 flex items-center gap-2 rounded-lg bg-white/5">
+  <div class="w-full py-2 flex justify-center rounded-lg bg-white/5 relative group">
     <Wallet size={16} class="text-gray-400" />
-    <div class="flex-1 truncate text-sm text-gray-300">
+    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute -top-10 left-full ml-2 w-36 p-2 bg-black/80 text-gray-300 text-xs rounded-lg whitespace-nowrap text-center z-50">
       {$walletAddress.slice(0, 4)}...{$walletAddress.slice(-4)}
-    </div>
-    <div class="group relative flex">
       <button
-        class="text-gray-400 relative cursor-pointer hover:text-white transition-colors"
+        class="ml-2 text-gray-400 cursor-pointer hover:text-white transition-colors"
         on:click={disconnectWallet}>
-        <LogOut class="group" size={16} />
+        <LogOut size={12} />
       </button>
-      <span
-        class="invisible text-center border border-gray-300/40 group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute -top-13 -left-12 -translate-x-1/2 w-36 p-2 bg-black/10 text-gray-300 text-sm rounded-lg whitespace-nowrap">
-        Disconnect Wallet
-      </span>
     </div>
   </div>
 {:else}
   <a
     href={getConnectionUrl()}
     target="_blank"
-    class="w-full py-2 px-4 flex items-center justify-center gap-2 rounded-lg bg-black text-white hover:bg-neutral-800 transition-colors"
+    class="w-full py-2 flex justify-center rounded-lg bg-black text-white hover:bg-neutral-800 transition-colors relative group"
     on:click={() => startPolling()}>
     <Wallet size={16} />
-    <span class="font-['Poppins'] font-bold">
+    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute -top-8 left-full ml-2 w-24 p-1 bg-black/80 text-gray-300 text-xs rounded-lg whitespace-nowrap text-center z-50">
       {$isConnecting ? 'Connecting...' : 'Connect'}
-    </span>
+    </div>
   </a>
 {/if}

@@ -223,7 +223,7 @@
       </Button>
     </div>
     <p class="text-gray-400">
-      Train AI agents with crowd-powered demonstrations
+      Collect crowd-powered demonstrations, perfect for training AI agents.
     </p>
   </div>
 

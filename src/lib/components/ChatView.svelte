@@ -48,9 +48,9 @@
   }
 </script>
 
-<!-- TEMPORARY DISABLED COVER -->
 <div class="relative h-full flex flex-col">
-  <div class="absolute h-full w-full z-50 flex items-center align-middle">
+  <!-- TEMPORARY DISABLED COVER -->
+  <!-- <div class="absolute h-full w-full z-50 flex items-center align-middle">
     <div class="mx-auto text-center w-full">
       <p class="font-semibold text-lg">Viralmind chat is coming soon!</p>
       <p class="text-slate-600">Stay tuned by following us on X.</p>
@@ -61,9 +61,9 @@
         <span>@viralmindai</span>
       </a>
     </div>
-  </div>
+  </div> -->
 
-  <div class="blur-xs h-full flex flex-col">
+  <div class="h-full flex flex-col">
     <div class="flex-1 p-6 space-y-6 overflow-y-auto">
       <div class="flex gap-4">
         <div
@@ -98,6 +98,7 @@
       </div>
     {/if}
   </div>
+  
   <div>
     <div class="p-4 bg-white border-t border-gray-200">
       <div class="flex gap-3 items-center max-w-4xl mx-auto">
@@ -106,10 +107,9 @@
             type="text"
             variant="light"
             placeholder="Type your message..."
-            disabled
             bind:value={name}
-            class="hover:cursor-not-allowed! flex-1 px-6 py-3 rounded-full! transition-colors" />
-          <Button disabled type="submit" class="rounded-full">
+            class="flex-1 px-6 py-3 rounded-full! transition-colors" />
+          <Button type="submit" class="rounded-full">
             <Send size={20} />
           </Button>
         </form>
