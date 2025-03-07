@@ -220,23 +220,23 @@ let globalMaxPrice = 99;
     <Card padding="none" className="relative overflow-hidden border-0 shadow-md col-span-2 h-full">
       <div class="bg-gradient-to-br from-gray-700 to-gray-900 text-white h-full flex flex-col">
         <div class="p-4 flex flex-col h-full">
-          <div class="mb-4">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-300" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
-                </svg>
-                <h3 class="text-lg font-bold">You have pending rewards!</h3>
-              </div>
-              
-              <div class="flex items-baseline gap-1.5">
-                <div class="text-lg font-bold text-yellow-300">+{formatNumber(unclaimedRewards)}</div>
-                <div class="text-xs font-medium opacity-75">$VIRAL</div>
+          {#if pendingRecordings.length > 0}
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-300" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
+                  </svg>
+                  <h3 class="text-lg font-bold">You have pending rewards!</h3>
+                </div>
+                
+                <div class="flex items-baseline gap-1.5">
+                  <div class="text-lg font-bold text-yellow-300">+{formatNumber(unclaimedRewards)}</div>
+                  <div class="text-xs font-medium opacity-75">$VIRAL</div>
+                </div>
               </div>
             </div>
-          </div>
-          
-          {#if pendingRecordings.length > 0}
+
             <!-- Gamified Bubble Grid -->
             <div class="flex-grow">
               <div class="grid grid-cols-5 sm:grid-cols-6 gap-1.5">
@@ -293,19 +293,25 @@ let globalMaxPrice = 99;
               </Button>
             </div>
           {:else}
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-300" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
+                  </svg>
+                  <h3 class="text-lg font-bold">Payouts</h3>
+                </div>
+              </div>
+            </div>
             <!-- Empty State -->
-            <div class="flex flex-col items-center justify-center py-10 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 text-indigo-300 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <div class="flex flex-col items-center justify-center p-1 text-center gap-2 pb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M12 8v4"></path>
                 <path d="M12 16h.01"></path>
               </svg>
-              <h3 class="text-xl font-bold mb-2">No Pending Rewards</h3>
-              <p class="text-indigo-200 mb-6 max-w-xs mx-auto">Why not start some tasks and earn some sweet VIRAL tokens?</p>
-              
-              <Button href="/app/gym" variant="primary" behavior="none" class="justify-center bg-white text-indigo-700 hover:bg-indigo-50 border-0 px-6">
-                Find Tasks
-              </Button>
+              <h3 class="text-xl font-bold">No Pending Rewards</h3>
+              <p class="text-indigo-200 max-w-xs mx-auto">Why not start some tasks and earn some sweet $VIRAL tokens?</p>
             </div>
           {/if}
         </div>
