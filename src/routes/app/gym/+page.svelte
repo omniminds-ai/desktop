@@ -164,8 +164,8 @@ let globalMaxPrice = 99;
   {:else}
   <div class="mx-auto mb-8">
     <p class="text-gray-400">
-      Choose a task, record a demonstration on your desktop, earn rewards. Help build the world's largest open-source
-      dataset for training AI assistants.
+      Choose a task, record a demonstration on your desktop, earn rewards. Your data helps us build the largest open-source
+      dataset for training sophisticated AI assistants.
     </p>
   </div>
   {/if}
