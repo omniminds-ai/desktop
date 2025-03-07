@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { History, Settings, LayoutDashboard, Network, HomeIcon } from 'lucide-svelte';
+  import { History, Settings, LayoutDashboard, Network, HomeIcon, House, Home, Zap } from 'lucide-svelte';
   let title = $derived.by(() => {
     let path = page.route.id;
     // handle dynamic history routes
@@ -17,7 +17,7 @@
         return 'Recording History';
       case '/app/gym/history/id':
         return 'Recording Details';
-      case '/app/gymF/settings':
+      case '/app/gym/settings':
         return 'Settings';
       default:
         return 'Recording Details';
@@ -28,31 +28,27 @@
 <div class=" max-w-7xl mx-auto mb-6">
   <div class="flex justify-between items-center">
     <h2 class="text-2xl font-title text-secondary-300">{title}</h2>
-    <div class="flex gap-4">
-      <a href="/app/gym" class="text-secondary-300 hover:scale-115 transform transition-all">
-        <LayoutDashboard class="w-6 h-6" />
+    <div class="flex gap-3">
+      <a 
+        href="/app/gym" 
+        class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id === '/app/gym' ? 'bg-secondary-100/20 rounded-md' : ''}">
+        <Home class="w-6 h-6" />
       </a>
-      <a href="/app/gym/skills" class="text-secondary-300 hover:scale-115 transform transition-all">
-        <Network class="w-6 h-6" />
+      <a 
+        href="/app/gym/skills" 
+        class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id === '/app/gym/skills' ? 'bg-secondary-100/20 rounded-md' : ''}">
+        <Zap class="w-6 h-6" />
       </a>
       <a
         href="/app/gym/history"
-        class="text-secondary-300 hover:scale-115 transform transition-all">
+        class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id?.includes('/app/gym/history') ? 'bg-secondary-100/20 rounded-md' : ''}">
         <History class="w-6 h-6" />
       </a>
       <a
         href="/app/gym/settings"
-        class="text-secondary-300 hover:scale-115 transform transition-all">
+        class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id === '/app/gym/settings' ? 'bg-secondary-100/20 rounded-md' : ''}">
         <Settings class="w-6 h-6" />
       </a>
     </div>
   </div>
-
-  {#if page.route.id !== '/app/gym'}
-    <button
-      onclick={() => goto('/app/gym/')}
-      class="text-gray-800 text-sm cursor-pointer mb-2 flex gap-2 items-center border-b border-transparent hover:border-gray-800">
-      <HomeIcon size={15} /> Gym Home
-    </button>
-  {/if}
 </div>
