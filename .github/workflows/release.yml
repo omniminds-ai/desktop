@@ -67,20 +67,10 @@ jobs:
       - name: verify certificate
         if: matrix.platform == 'macos-latest'
         run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain)
-          echo "Available certificates:"
-          echo "$CERT_INFO"
-
-          # Try to find any Apple certificate, not just Development
-          APPLE_CERT=$(echo "$CERT_INFO" | grep -i "Apple")
-          if [ -n "$APPLE_CERT" ]; then
-            CERT_ID=$(echo "$APPLE_CERT" | head -1 | awk -F'"' '{print $2}')
-            echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
-            echo "Certificate found and imported."
-          else
-            echo "No Apple certificate found in the keychain."
-            exit 1
-          fi
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Development")
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
+          echo "Certificate imported."
 
       - name: create Apple API key file
         if: matrix.platform == 'macos-latest'
