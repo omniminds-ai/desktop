@@ -177,7 +177,7 @@ let globalMaxPrice = 99;
         <div class="p-4 flex-grow">
           <div class="flex items-center gap-2 mb-2">
             <Wallet size={14} />
-            <span class="text-xs font-medium">Total Balance</span>
+            <span class="text-xs font-medium">Your Balance</span>
           </div>
           <div class="flex items-baseline gap-2 mb-3 flex-wrap">
             <div class="text-2xl font-bold">{formatNumber(viralBalance + unclaimedRewards)}</div>
@@ -304,7 +304,7 @@ let globalMaxPrice = 99;
               </div>
             </div>
             <!-- Empty State -->
-            <div class="flex flex-col items-center justify-center p-1 text-center gap-2 pb-3">
+            <div class="flex flex-col items-center justify-center p-1 text-center gap-2 pb-3 opacity-75">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M12 8v4"></path>
