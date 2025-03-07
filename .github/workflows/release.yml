@@ -32,6 +32,9 @@ jobs:
         with:
           node-version: lts/*
 
+      - name: setup bun
+        uses: oven-sh/setup-bun@v2
+
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -47,7 +50,7 @@ jobs:
       - name: install frontend dependencies
         run: bun install # change this to npm, pnpm or bun depending on which one you use.
 
-      - name: Import Apple Developer Certificate
+      - name: import Apple developer certificate
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -67,10 +70,10 @@ jobs:
           echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
           echo "Certificate imported."
 
-      - name: Create Apple API Key File
+      - name: create Apple API key file
         run: echo "${{ secrets.APPLE_API_KEY_FILE }}" > apple_api.p8
 
-      - name: Import Windows Certificate
+      - name: import Windows certificate
         if: matrix.platform == 'windows-latest' && false
         env:
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
