@@ -1,13 +1,39 @@
 <script lang="ts">
-  export let minPrice = 1;
-  export let maxPrice = 10;
-  export let globalMin = 1;
-  export let globalMax = 10;
+  // Default values
+  const DEFAULT_MIN = 0;
+  const DEFAULT_MAX = 99;
+
+  export let minPrice = DEFAULT_MIN;
+  export let maxPrice = DEFAULT_MAX;
+  export let globalMin = DEFAULT_MIN;
+  export let globalMax = DEFAULT_MAX;
 
   let sliderContainer: HTMLDivElement;
   let isDraggingMin = false;
   let isDraggingMax = false;
   let touchId: number | null = null;
+
+  // Normalize price values to handle NaN or invalid values
+  function normalize(value: number, defaultValue: number): number {
+    return isNaN(value) || !isFinite(value) ? defaultValue : value;
+  }
+
+  // Get safe values for calculations
+  function safeMinPrice(): number {
+    return normalize(minPrice, DEFAULT_MIN);
+  }
+
+  function safeMaxPrice(): number {
+    return normalize(maxPrice, DEFAULT_MAX);
+  }
+
+  function safeGlobalMin(): number {
+    return normalize(globalMin, DEFAULT_MIN);
+  }
+
+  function safeGlobalMax(): number {
+    return normalize(globalMax, DEFAULT_MAX);
+  }
 
   function getClientX(event: MouseEvent | TouchEvent): number {
     if (event instanceof MouseEvent) {
@@ -24,15 +50,20 @@
     const rect = sliderContainer.getBoundingClientRect();
     // Account for padding in percentage calculation
     const padding = 16; // 4rem = 16px
-    const percentage = Math.max(0, Math.min(1, (clientX - rect.left - padding) / (rect.width - padding * 2)));
-    const range = globalMax - globalMin;
-    const rawValue = globalMin + range * percentage;
+    const width = Math.max(1, rect.width - padding * 2); // Ensure positive width
+    const percentage = Math.max(0, Math.min(1, (clientX - rect.left - padding) / width));
+    
+    const min = safeGlobalMin();
+    const max = safeGlobalMax();
+    const range = Math.max(1, max - min); // Ensure positive range
+    
+    const rawValue = min + range * percentage;
     const value = Math.round(rawValue);
 
     if (isMin) {
-      minPrice = Math.max(globalMin, Math.min(value, maxPrice - 1));
+      minPrice = Math.max(min, Math.min(value, safeMaxPrice() - 1));
     } else {
-      maxPrice = Math.max(minPrice + 1, Math.min(value, globalMax));
+      maxPrice = Math.max(safeMinPrice() + 1, Math.min(value, max));
     }
   }
 
@@ -66,18 +97,51 @@
 
   function handleInput(event: Event, isMin: boolean) {
     const input = event.target as HTMLInputElement;
-    const value = parseInt(input.value) || (isMin ? globalMin : globalMax);
+    let value = parseInt(input.value);
+    
+    // Handle NaN
+    if (isNaN(value)) {
+      value = isMin ? safeGlobalMin() : safeGlobalMax();
+    }
+    
     if (isMin) {
-      minPrice = Math.max(globalMin, Math.min(value, maxPrice - 1));
+      minPrice = Math.max(safeGlobalMin(), Math.min(value, safeMaxPrice() - 1));
     } else {
-      maxPrice = Math.max(minPrice + 1, Math.min(value, globalMax));
+      maxPrice = Math.max(safeMinPrice() + 1, Math.min(value, safeGlobalMax()));
     }
   }
 
-  // Ensure min/max prices stay within bounds
+  // Ensure min/max prices stay within bounds and handle NaN
   $: {
-    minPrice = Math.max(globalMin, Math.min(minPrice, maxPrice - 1));
-    maxPrice = Math.max(minPrice + 1, Math.min(maxPrice, globalMax));
+    const sMin = safeGlobalMin();
+    const sMax = safeGlobalMax();
+    const sMinPrice = safeMinPrice();
+    const sMaxPrice = safeMaxPrice();
+    
+    // Make sure minPrice is valid
+    minPrice = Math.max(sMin, Math.min(sMinPrice, sMaxPrice - 1));
+    
+    // Make sure maxPrice is valid
+    maxPrice = Math.max(minPrice + 1, Math.min(sMaxPrice, sMax));
+  }
+  
+  // Calculate safe percentage values for the UI
+  function getMinPercent(): number {
+    const min = safeGlobalMin();
+    const max = safeGlobalMax();
+    const range = max - min;
+    return range <= 0 ? 0 : ((safeMinPrice() - min) / range) * 100;
+  }
+  
+  function getMaxPercent(): number {
+    const min = safeGlobalMin();
+    const max = safeGlobalMax();
+    const range = max - min;
+    return range <= 0 ? 100 : ((safeMaxPrice() - min) / range) * 100;
+  }
+  
+  function getRangeWidth(): number {
+    return Math.max(0, getMaxPercent() - getMinPercent());
   }
 </script>
 
@@ -96,19 +160,19 @@
   <div class="flex items-center gap-2">
     <input
       type="number"
-      min={globalMin}
-      max={maxPrice - 1}
+      min={globalMin || 0}
+      max={(maxPrice - 1) || 98}
       class="w-16 px-2 py-1 text-sm border rounded hover:border-gray-400 focus:outline-none focus:border-secondary-300 focus:ring-1 focus:ring-secondary-300/30 bg-white transition-colors"
-      value={minPrice}
+      value={(minPrice) || 0}
       on:input={(e) => handleInput(e, true)}
     />
     <span class="text-sm text-gray-500">to</span>
     <input
       type="number"
-      min={minPrice + 1}
-      max={globalMax}
+      min={(minPrice + 1) || 1}
+      max={globalMax || 99}
       class="w-16 px-2 py-1 text-sm border rounded hover:border-gray-400 focus:outline-none focus:border-secondary-300 focus:ring-1 focus:ring-secondary-300/30 bg-white transition-colors"
-      value={maxPrice}
+      value={(maxPrice) || 99}
       on:input={(e) => handleInput(e, false)}
     />
     <span class="text-sm text-gray-500">VIRAL per task</span>
@@ -127,27 +191,27 @@
       <!-- Selected range -->
       <div 
         class="absolute h-1.5 bg-secondary-300 rounded-full"
-        style="left: calc({((minPrice - globalMin) / (globalMax - globalMin)) * 100}% + 0px); width: calc({((maxPrice - minPrice) / (globalMax - globalMin)) * 100}%)"
+        style="left: {getMinPercent()}%; width: {getRangeWidth()}%"
       ></div>
     </div>
 
     <!-- Slider handles -->
     <div class="absolute top-1/2 -translate-y-1/2 w-6 h-6 -translate-x-1/2 cursor-pointer touch-none z-10 group"
-      style="left: calc(16px + ({((minPrice - globalMin) / (globalMax - globalMin))} * (100% - 32px)))"
+      style="left: calc(16px + ({getMinPercent() / 100} * (100% - 32px)))"
       on:mousedown={(e) => handleStart(e, true)}
       on:touchstart={(e) => handleStart(e, true)}>
       <div class="absolute inset-0 bg-white border-2 border-secondary-300 rounded-full hover:scale-110 active:scale-95 transition-transform shadow-sm"></div>
       <div class="absolute -top-7 left-1/2 -translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-xs rounded px-1.5 py-0.5 whitespace-nowrap shadow-sm pointer-events-none">
-        {minPrice} VIRAL
+        {safeMinPrice()} VIRAL
       </div>
     </div>
     <div class="absolute top-1/2 -translate-y-1/2 w-6 h-6 -translate-x-1/2 cursor-pointer touch-none z-10 group"
-      style="left: calc(16px + ({((maxPrice - globalMin) / (globalMax - globalMin))} * (100% - 32px)))"
+      style="left: calc(16px + ({getMaxPercent() / 100} * (100% - 32px)))"
       on:mousedown={(e) => handleStart(e, false)}
       on:touchstart={(e) => handleStart(e, false)}>
       <div class="absolute inset-0 bg-white border-2 border-secondary-300 rounded-full hover:scale-110 active:scale-95 transition-transform shadow-sm"></div>
       <div class="absolute -top-7 right-1/2 translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-xs rounded px-1.5 py-0.5 whitespace-nowrap shadow-sm pointer-events-none">
-        {maxPrice} VIRAL
+        {safeMaxPrice()} VIRAL
       </div>
     </div>
   </div>

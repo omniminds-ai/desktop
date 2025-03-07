@@ -22,10 +22,11 @@
   let apps: ForgeApp[] = [];
   let allCategories: string[] = [];
   let selectedCategories: Set<string> = new Set();
-  let minPrice = 1;
-  let maxPrice = 10;
-  let globalMinPrice = 1;
-  let globalMaxPrice = 10;
+// Initialize with localStorage values or defaults
+let minPrice = parseInt(localStorage.getItem('gymMinPrice') || '0', 10);
+let maxPrice = parseInt(localStorage.getItem('gymMaxPrice') || '99', 10);
+let globalMinPrice = 0;
+let globalMaxPrice = 99;
   let viralBalance = 0;
   let unclaimedRewards = 0;
   let showFilters = false;
@@ -122,13 +123,22 @@
   // Update price range when apps change
   $: if (apps.length > 0) {
     const prices = apps.map((app) => app.pool_id.pricePerDemo);
-    globalMinPrice = 1;
-    globalMaxPrice = Math.max(10, Math.ceil(Math.max(...prices)));
+    globalMinPrice = 0;
+    globalMaxPrice = Math.max(99, Math.ceil(Math.max(...prices)));
 
-    // Initialize price range if not set
-    if (minPrice === 1 && maxPrice === 10) {
-      minPrice = globalMinPrice;
-      maxPrice = Math.min(10, globalMaxPrice);
+    // Initialize price range if not set or if default values
+    if (minPrice === 0 && maxPrice === 99) {
+      // Use persisted values or defaults for the first time
+      minPrice = parseInt(localStorage.getItem('gymMinPrice') || '0', 10);
+      maxPrice = parseInt(localStorage.getItem('gymMaxPrice') || '99', 10);
+    }
+  }
+  
+  // Save min/max price to localStorage whenever they change
+  $: {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('gymMinPrice', minPrice.toString());
+      localStorage.setItem('gymMaxPrice', maxPrice.toString());
     }
   }
 
@@ -307,12 +317,27 @@
   <div class="flex items-center justify-between mb-4 mt-6">
     <div class="flex items-center gap-2">
       <h2 class="text-xl font-bold text-gray-800">Available Tasks</h2>
-      <div class="bg-secondary-600 text-white px-2 py-0.5 rounded-full text-xs font-medium">
+      <div class="bg-secondary-200 text-white px-2 py-0.5 rounded-full text-xs font-medium">
         {filteredApps.reduce((count, app) => count + app.tasks.length, 0)} Available
       </div>
     </div>
     
     <div class="flex items-center gap-2">
+      {#if selectedCategories.size > 0 || minPrice > globalMinPrice || maxPrice < globalMaxPrice}
+        <div class="flex items-center gap-1 text-xs text-gray-500">
+          <button
+            class="text-secondary-500 hover:text-secondary-600 transition-colors hover:underline"
+            onclick={() => {
+              selectedCategories = new Set();
+              minPrice = globalMinPrice;
+              maxPrice = globalMaxPrice;
+              localStorage.removeItem('gymMinPrice');
+              localStorage.removeItem('gymMaxPrice');
+            }}>
+            Reset Filters
+          </button>
+        </div>
+      {/if}
       <button
         class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
         onclick={() => (showFilters = !showFilters)}>
@@ -329,21 +354,6 @@
         </svg>
         Filters
       </button>
-      {#if selectedCategories.size > 0 || minPrice > globalMinPrice || maxPrice < globalMaxPrice}
-        <div class="flex items-center gap-1 text-xs text-gray-500">
-          <span>•</span>
-          <span>{filteredApps.length} task{filteredApps.length === 1 ? '' : 's'}</span>
-          <button
-            class="text-secondary-500 hover:text-secondary-600 transition-colors"
-            onclick={() => {
-              selectedCategories = new Set();
-              minPrice = globalMinPrice;
-              maxPrice = globalMaxPrice;
-            }}>
-            Clear
-          </button>
-        </div>
-      {/if}
     </div>
   </div>
 
@@ -413,7 +423,7 @@
                 <img src={getFaviconUrl(app.domain)} alt={`${app.name} icon`} class="w-5 h-5" />
                 <span class="text-sm font-medium text-gray-700 truncate">{app.name}</span>
               </div>
-              <div class="bg-secondary-600 text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
+              <div class="bg-secondary-300 text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
                 <Loader size={12} />
                 <span>Task</span>
               </div>
@@ -428,8 +438,8 @@
             
             <!-- Task Footer -->
             <div class="bg-gray-50 px-4 py-2 border-t border-gray-200 flex justify-between items-center mt-auto">
-              <div class="text-xs text-gray-500">
-                Click to start
+              <div class="text-xs text-black font-black">
+                Click to begin
               </div>
               <div class="text-sm font-semibold text-secondary-600 flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
