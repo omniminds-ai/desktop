@@ -3,12 +3,12 @@ use display_info::DisplayInfo;
 use log::{error, info};
 use serde_json;
 use std::{
-    fs::File,
-    io::{BufReader, BufWriter, Cursor, Write},
+    io::{Cursor, Write},
     path::Path,
 };
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use window_vibrancy::*;
 use xcap::{image::ImageFormat, Monitor};
 use zip::{write::FileOptions, ZipWriter};
@@ -71,6 +71,11 @@ async fn list_apps(
 ) -> Result<Vec<serde_json::Value>, String> {
     #[cfg(not(target_os = "linux"))]
     {
+        use std::{
+            fs::File,
+            io::{BufReader, BufWriter},
+        };
+
         let path = app
             .path()
             .app_local_data_dir()
@@ -123,6 +128,12 @@ async fn list_apps(
                 .map_err(|e| format!("Failed to flush buffer: {}", e))?;
             Ok(results)
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // Return empty list for Linux
+        Ok(Vec::new())
     }
 }
 
