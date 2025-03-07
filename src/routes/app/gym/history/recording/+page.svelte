@@ -187,6 +187,7 @@
         });
       } catch (error) {
         console.error('Failed to load video:', error);
+        //todo: handle this error when data isn't around
       }
 
       // Load raw events
@@ -235,13 +236,15 @@
   });
 
   // Subscribe to wallet address changes
-  $: if ($walletAddress) {
-    listSubmissions($walletAddress).then((subs) => {
-      submissions = subs;
-      submission = submissions.find((s) => s.meta?.id === recordingId) || null;
-    });
-  }
-  
+  walletAddress.subscribe((val) => {
+    if (val !== $walletAddress && val) {
+      listSubmissions(val).then((subs) => {
+        submissions = subs;
+        submission = submissions.find((s) => s.meta?.id === recordingId) || null;
+      });
+    }
+  });
+
   function getLetterGrade(score: number): string {
     if (score >= 90) return 'A';
     if (score >= 80) return 'B';
@@ -296,85 +299,92 @@
 
           {#if submission?.grade_result}
             <Card padding="lg" className="mb-6">
-                <div class="flex flex-col gap-4">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <div class="text-xl font-semibold">Submission Result</div>
-                      {#if submission?.clampedScore}
-                        <div class="text-lg font-medium" class:text-red-500={submission.clampedScore < 50} class:text-secondary-300={submission.clampedScore >= 50}>
-                          ({getLetterGrade(submission.clampedScore)})
-                        </div>
-                      {/if}
-                    </div>
-                    <div class="flex items-center gap-2">
-                      {#if submission?.treasuryTransfer?.txHash}
-                        <a
-                          href={getSolscanUrl(submission.treasuryTransfer.txHash)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="text-gray-400 hover:text-secondary-300 transition-colors">
-                          <Button variant="secondary" class="text-sm flex! items-center gap-1">
-                            <ExternalLink class="w-3.5 h-3.5" />
-                            Solscan
-                          </Button>
-                        </a>
-                      {/if}
-                      <Button
-                        variant="secondary"
-                        class="text-sm"
-                        onclick={() => (showDetails = !showDetails)}>
-                        {showDetails ? 'Hide Details' : 'Show Details'}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div class="text-gray-500 italic">{submission.grade_result.reasoning}</div>
-
-                  <div class="flex flex-wrap items-center gap-3 mt-4">
-                    {#if submission?.maxReward}
-                      <div class="bg-gray-100 rounded-lg px-3 py-2">
-                        <div class="text-sm text-gray-500">Price per Demo</div>
-                        <div class="text-secondary-300 font-medium">{formatNumber(submission.maxReward)} VIRAL</div>
-                      </div>
-                    {/if}
-                    <Asterisk class="w-4 h-4 text-gray-400" />
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="text-xl font-semibold">Submission Result</div>
                     {#if submission?.clampedScore}
-                      <div class="bg-gray-100 rounded-lg px-3 py-2">
-                        <div class="text-sm text-gray-500">Quality Score</div>
-                        <div class="text-secondary-300 font-medium">{submission.clampedScore}%</div>
-                      </div>
-                    {/if}
-                    <Equal class="w-4 h-4 text-gray-400" />
-                    {#if submission?.reward}
-                      <div class="bg-gray-100 rounded-lg px-3 py-2">
-                        <div class="text-sm text-gray-500">Earned</div>
-                        <div class="text-secondary-300 font-medium">{formatNumber(submission.reward)} VIRAL</div>
+                      <div
+                        class="text-lg font-medium"
+                        class:text-red-500={submission.clampedScore < 50}
+                        class:text-secondary-300={submission.clampedScore >= 50}>
+                        ({getLetterGrade(submission.clampedScore || submission.grade_result.score)})
                       </div>
                     {/if}
                   </div>
+                  <div class="flex items-center gap-2">
+                    {#if submission?.treasuryTransfer?.txHash}
+                      <a
+                        href={getSolscanUrl(submission.treasuryTransfer.txHash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-gray-400 hover:text-secondary-300 transition-colors">
+                        <Button variant="secondary" class="text-sm flex! items-center gap-1">
+                          <ExternalLink class="w-3.5 h-3.5" />
+                          Solscan
+                        </Button>
+                      </a>
+                    {/if}
+                    <Button
+                      variant="secondary"
+                      class="text-sm"
+                      onclick={() => (showDetails = !showDetails)}>
+                      {showDetails ? 'Hide Details' : 'Show Details'}
+                    </Button>
+                  </div>
+                </div>
 
-                  {#if showDetails}
-                    <div class="text-gray-600 max-h-[300px] overflow-y-auto pr-2 mt-4">
-                      {#if submission.treasuryTransfer?.txHash}
-                        <div class="flex items-center gap-2 mb-4">
-                          <span class="text-gray-500">TX:</span>
-                          <span class="text-gray-400 font-mono text-xs">
-                            {submission.treasuryTransfer.txHash}
-                          </span>
-                          <button 
-                            class="text-gray-400 hover:text-secondary-300 transition-colors"
-                            onclick={() => {
-                              const txHash = submission?.treasuryTransfer?.txHash;
-                              if (txHash) navigator.clipboard.writeText(txHash);
-                            }}>
-                            <Copy class="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      {/if}
-                      <div class="whitespace-pre-wrap">{submission.grade_result.summary}</div>
+                <div class="text-gray-500 italic">{submission.grade_result.reasoning}</div>
+
+                <div class="flex flex-wrap items-center gap-3 mt-4">
+                  {#if submission?.maxReward}
+                    <div class="bg-gray-100 rounded-lg px-3 py-2">
+                      <div class="text-sm text-gray-500">Price per Demo</div>
+                      <div class="text-secondary-300 font-medium">
+                        {formatNumber(submission.maxReward)} VIRAL
+                      </div>
+                    </div>
+                  {/if}
+                  <Asterisk class="w-4 h-4 text-gray-400" />
+                  {#if submission?.clampedScore}
+                    <div class="bg-gray-100 rounded-lg px-3 py-2">
+                      <div class="text-sm text-gray-500">Quality Score</div>
+                      <div class="text-secondary-300 font-medium">{submission.clampedScore}%</div>
+                    </div>
+                  {/if}
+                  <Equal class="w-4 h-4 text-gray-400" />
+                  {#if submission?.reward}
+                    <div class="bg-gray-100 rounded-lg px-3 py-2">
+                      <div class="text-sm text-gray-500">Earned</div>
+                      <div class="text-secondary-300 font-medium">
+                        {formatNumber(submission.reward)} VIRAL
+                      </div>
                     </div>
                   {/if}
                 </div>
+
+                {#if showDetails}
+                  <div class="text-gray-600 max-h-[300px] overflow-y-auto pr-2 mt-4">
+                    {#if submission.treasuryTransfer?.txHash}
+                      <div class="flex items-center gap-2 mb-4">
+                        <span class="text-gray-500">TX:</span>
+                        <span class="text-gray-400 font-mono text-xs">
+                          {submission.treasuryTransfer.txHash}
+                        </span>
+                        <button
+                          class="text-gray-400 hover:text-secondary-300 transition-colors"
+                          onclick={() => {
+                            const txHash = submission?.treasuryTransfer?.txHash;
+                            if (txHash) navigator.clipboard.writeText(txHash);
+                          }}>
+                          <Copy class="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    {/if}
+                    <div class="whitespace-pre-wrap">{submission.grade_result.summary}</div>
+                  </div>
+                {/if}
+              </div>
             </Card>
           {:else}
             <Card padding="lg" className="mb-6">
@@ -623,8 +633,7 @@
   </div>
 </div>
 
-<UploadConfirmModal 
-  open={showUploadConfirmModal} 
-  onConfirm={handleConfirmUpload} 
-  onCancel={handleCancelUpload} 
-/>
+<UploadConfirmModal
+  open={showUploadConfirmModal}
+  onConfirm={handleConfirmUpload}
+  onCancel={handleCancelUpload} />

@@ -44,12 +44,14 @@
       if ($walletAddress) {
         submissions = await listSubmissions($walletAddress);
       }
-      
+
       unclaimedRewards = recordings.reduce((total, recording) => {
         // Only count if recording is completed, has a reward, and hasn't been submitted
-        if (recording.status === 'completed' && 
-            recording.quest?.reward?.max_reward && 
-            !submissions.some(s => s.meta?.id === recording.id)) {
+        if (
+          recording.status === 'completed' &&
+          recording.quest?.reward?.max_reward &&
+          !submissions.some((s) => s.meta?.id === recording.id)
+        ) {
           return total + recording.quest.reward.max_reward;
         }
         return total;
@@ -74,13 +76,15 @@
   });
 
   // Subscribe to wallet address changes
-  $: if ($walletAddress) {
-    loadBalance($walletAddress);
-  } else {
-    // Reset balance and reload unclaimed rewards when wallet disconnected
-    viralBalance = 0;
-    loadUnclaimedRewards();
-  }
+  walletAddress.subscribe((val) => {
+    if (!$walletAddress || !val) {
+      // Reset balance and reload unclaimed rewards when wallet disconnected
+      viralBalance = 0;
+      loadUnclaimedRewards();
+    } else if (val !== $walletAddress) {
+      loadBalance(val);
+    }
+  });
 
   function getFaviconUrl(domain: string) {
     return `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=64`;
@@ -97,10 +101,10 @@
 
   // Update price range when apps change
   $: if (apps.length > 0) {
-    const prices = apps.map(app => app.pool_id.pricePerDemo);
+    const prices = apps.map((app) => app.pool_id.pricePerDemo);
     globalMinPrice = 1;
     globalMaxPrice = Math.max(10, Math.ceil(Math.max(...prices)));
-    
+
     // Initialize price range if not set
     if (minPrice === 1 && maxPrice === 10) {
       minPrice = globalMinPrice;
@@ -108,20 +112,20 @@
     }
   }
 
-  $: filteredApps = apps.filter(app => {
-    const matchesCategories = selectedCategories.size === 0 || 
-      app.categories.some(cat => selectedCategories.has(cat));
-    const matchesPrice = app.pool_id.pricePerDemo >= minPrice && 
-      app.pool_id.pricePerDemo <= maxPrice;
+  $: filteredApps = apps.filter((app) => {
+    const matchesCategories =
+      selectedCategories.size === 0 || app.categories.some((cat) => selectedCategories.has(cat));
+    const matchesPrice =
+      app.pool_id.pricePerDemo >= minPrice && app.pool_id.pricePerDemo <= maxPrice;
     return matchesCategories && matchesPrice;
   });
 </script>
 
 <div class="h-full max-w-7xl mx-auto overflow-x-hidden">
   {#if poolName}
-  <div class="mx-auto mb-8">
-    <div class="text-xl font-semibold mb-2">Viewing Forge: {poolName}</div>
-  </div>
+    <div class="mx-auto mb-8">
+      <div class="text-xl font-semibold mb-2">Viewing Forge: {poolName}</div>
+    </div>
   {:else}
   <div class="mx-auto mb-8">
     <p class="text-gray-400">
@@ -134,7 +138,9 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
     <Card padding="lg" className="relative">
       <div class="flex flex-col">
-        <div class="text-2xl font-semibold mb-1">{formatNumber(viralBalance + unclaimedRewards)} VIRAL</div>
+        <div class="text-2xl font-semibold mb-1">
+          {formatNumber(viralBalance + unclaimedRewards)} VIRAL
+        </div>
         <div class="text-sm text-gray-500 mb-4">+ {formatNumber(unclaimedRewards)} unclaimed</div>
         <Button href="/app/gym/skills" variant="primary" behavior="none">View Skill Tree</Button>
       </div>
@@ -153,10 +159,17 @@
     <div class="flex items-center gap-2">
       <button
         class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-        onclick={() => showFilters = !showFilters}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform" class:rotate-180={showFilters} viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        onclick={() => (showFilters = !showFilters)}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-4 h-4 transition-transform"
+          class:rotate-180={showFilters}
+          viewBox="0 0 20 20"
+          fill="currentColor">
+          <path
+            fill-rule="evenodd"
+            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+            clip-rule="evenodd" />
         </svg>
         Filters
       </button>
@@ -164,14 +177,13 @@
         <div class="flex items-center gap-1 text-xs text-gray-500">
           <span>•</span>
           <span>{filteredApps.length} task{filteredApps.length === 1 ? '' : 's'}</span>
-          <button 
+          <button
             class="text-secondary-500 hover:text-secondary-600 transition-colors"
             onclick={() => {
               selectedCategories = new Set();
               minPrice = globalMinPrice;
               maxPrice = globalMaxPrice;
-            }}
-          >
+            }}>
             Clear
           </button>
         </div>
@@ -190,16 +202,16 @@
               bind:minPrice
               bind:maxPrice
               globalMin={globalMinPrice}
-              globalMax={globalMaxPrice}
-            />
+              globalMax={globalMaxPrice} />
           </div>
-          
+
           <!-- Categories -->
           <div>
             <div class="text-sm font-medium text-gray-700 mb-2">Filter by category</div>
             <div class="flex flex-wrap gap-1.5">
               <button
-                class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.size === 0
+                class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.size ===
+                0
                   ? 'bg-secondary-300 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
                 onclick={() => (selectedCategories = new Set())}>
