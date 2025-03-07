@@ -55,8 +55,7 @@
           "height": 400,
           "width": 660
         }
-      },
-      "entitlements": "Entitlements.plist"
+      }
     },
     "homepage": "https://viralmind.ai",
     "active": true,
