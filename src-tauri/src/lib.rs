@@ -33,7 +33,7 @@ use record::{
     open_recording_folder, process_recording, start_recording, stop_recording, write_file,
     QuestState,
 };
-use settings::{get_upload_confirmed, set_upload_confirmed};
+use settings::{get_upload_data_allowed, set_upload_confirmed};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -194,7 +194,7 @@ pub fn run() {
             open_recording_folder,
             process_recording,
             create_recording_zip,
-            get_upload_confirmed,
+            get_upload_data_allowed,
             set_upload_confirmed,
             export_recordings
         ])

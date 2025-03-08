@@ -1,11 +1,14 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { Upload, X, Check, AlertCircle } from 'lucide-svelte';
-  import { uploadQueue, removeFromQueue, cleanupIntervals } from '$lib/uploadManager';
+  import { UploadManager } from '$lib/uploadManager';
+  import { get } from 'svelte/store';
+  import { walletAddress } from '$lib/stores/wallet';
+  import { uploadManager } from '$lib/stores/misc';
 
   // Clean up intervals when component is destroyed
   onDestroy(() => {
-    cleanupIntervals();
+    $uploadManager.cleanupIntervals();
   });
 
   // Get the status icon based on status
@@ -58,36 +61,42 @@
     }
   }
 
-  $: queue = $uploadQueue;
-  $: queueItems = Object.entries(queue).map(([id, item]) => ({ id, ...item }));
+  const queueItems = $derived(
+    Object.entries($uploadManager.getUploadQueue).map(([id, item]) => ({ id, ...item }))
+  );
 </script>
 
-{#if Object.keys(queue).length > 0}
+{#if queueItems.length > 0}
   <div class="w-full flex justify-center relative group">
     <!-- Icon with badge -->
     <div class="relative">
-      <div class="p-2 rounded-full hover:bg-white/10 transition-colors flex justify-center items-center">
+      <div
+        class="p-2 rounded-full hover:bg-white/10 transition-colors flex justify-center items-center">
         <Upload size={16} class="text-white" />
       </div>
-      
+
       <!-- Status badge -->
-      <div class="absolute -top-1 -right-1 w-3 h-3 rounded-full 
-        {queueItems.some(item => item.status === 'failed') 
-          ? 'bg-red-500' 
-          : queueItems.some(item => ['uploading', 'processing', 'zipping'].includes(item.status)) 
-            ? 'bg-yellow-500' 
-            : queueItems.every(item => item.status === 'completed') 
-              ? 'bg-green-500' 
+      <div
+        class="absolute -top-1 -right-1 w-3 h-3 rounded-full
+        {queueItems.some((item) => item.status === 'failed')
+          ? 'bg-red-500'
+          : queueItems.some((item) => ['uploading', 'processing', 'zipping'].includes(item.status))
+            ? 'bg-yellow-500'
+            : queueItems.every((item) => item.status === 'completed')
+              ? 'bg-green-500'
               : 'bg-secondary-300'}">
       </div>
     </div>
 
     <!-- Expanded view on hover -->
-    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute bottom-0 left-full ml-2 z-50 w-64 bg-gray-800 rounded-lg shadow-lg">
+    <div
+      class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute bottom-0 left-full ml-2 z-50 w-64 bg-gray-800 rounded-lg shadow-lg">
       <div class="bg-gray-700 px-4 py-2 rounded-t-lg flex justify-between items-center">
         <div class="text-white font-medium flex gap-2">
           <span class="text-sm">Upload Manager</span>
-          <span class="text-xs text-gray-300 self-center">({Object.keys(queue).length})</span>
+          <span class="text-xs text-gray-300 self-center">
+            ({queueItems.length})
+          </span>
         </div>
       </div>
       <div class="max-h-60 overflow-y-auto">
@@ -101,7 +110,7 @@
               </div>
               <button
                 class="text-gray-400 hover:text-white self-center"
-                on:click={() => removeFromQueue(item.id)}>
+                onclick={() => $uploadManager.removeFromQueue(item.id)}>
                 <X size={14} />
               </button>
             </div>

@@ -13,8 +13,8 @@
   import type { SubmissionStatus } from '$lib/types/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
-  import { handleUpload, uploadQueue, saveUploadConfirmation } from '$lib/uploadManager';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
+  import { uploadManager } from '$lib/stores/misc';
 
   let platform: Awaited<ReturnType<typeof getPlatform>> = 'windows';
   let submissions: SubmissionStatus[] = [];
@@ -58,7 +58,7 @@
 
   // Track upload status from the uploadQueue store
   $: {
-    const uploadStatus = $uploadQueue[recordingId || ''];
+    const uploadStatus = $uploadManager.getUploadQueue[recordingId || ''];
     uploading = uploadStatus?.status === 'uploading' || uploadStatus?.status === 'processing';
 
     if (uploadStatus?.status === 'failed' && uploadStatus.error) {
@@ -71,24 +71,15 @@
   // Function to handle upload button click
   async function handleUploadClick() {
     if (recordingId) {
-      const uploadStarted = await handleUpload(recordingId, recording?.title || 'Unknown');
+      const uploadStarted = await $uploadManager.handleUpload(
+        recordingId,
+        recording?.title || 'Unknown'
+      );
       if (!uploadStarted) {
         // If upload didn't start, show confirmation modal
         showUploadConfirmModal = true;
       }
     }
-  }
-
-  // Handle confirmation modal actions
-  function handleConfirmUpload() {
-    saveUploadConfirmation(true);
-    if (recordingId) {
-      handleUpload(recordingId, recording?.title || 'Unknown');
-    }
-  }
-
-  function handleCancelUpload() {
-    // Do nothing, just close the modal
   }
 
   async function checkProcessedData() {
@@ -253,10 +244,6 @@
     return 'F';
   }
 
-  function truncateHash(hash: string): string {
-    return `${hash.slice(0, 4)}...${hash.slice(-4)}`;
-  }
-
   function getSolscanUrl(txHash: string): string {
     return `https://solscan.io/tx/${txHash}`;
   }
@@ -278,6 +265,7 @@
         <div class="w-full flex flex-col">
           <Card padding="none" className="mb-6">
             <div class="relative w-full">
+              <!-- svelte-ignore a11y_media_has_caption -->
               <video bind:this={videoElement} controls class="w-full h-full" src={videoSrc || ''}>
                 Your browser does not support the video tag.
               </video>
@@ -633,7 +621,4 @@
   </div>
 </div>
 
-<UploadConfirmModal
-  open={showUploadConfirmModal}
-  onConfirm={handleConfirmUpload}
-  onCancel={handleCancelUpload} />
+<UploadConfirmModal open={showUploadConfirmModal} uploader={handleUploadClick} />

@@ -1,22 +1,6 @@
 <script lang="ts">
-  import {
-    MessageSquare,
-    Dumbbell,
-    Server,
-    TestTube2,
-    Workflow,
-    Hammer,
-    Wallet,
-    LogOut
-  } from 'lucide-svelte';
+  import { MessageSquare, Dumbbell, Hammer } from 'lucide-svelte';
   import { page } from '$app/state';
-  import {
-    walletAddress,
-    isConnecting,
-    getConnectionUrl,
-    startPolling,
-    disconnectWallet
-  } from '$lib/stores/wallet';
   import logo from '$lib/assets/Logo_Icon.png';
   import WalletButton from './WalletButton.svelte';
   import UploadManager from './UploadManager.svelte';
@@ -39,8 +23,8 @@
     </div>
     <a
       href="/app/chat"
-      class="w-full py-2 flex justify-center rounded-full transition-colors {page.url
-        .pathname === '/app/chat'
+      class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname ===
+      '/app/chat'
         ? 'bg-secondary-300 text-white'
         : 'hover:bg-white/10 text-gray-300'}"
       title="Chat">

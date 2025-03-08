@@ -1,13 +1,12 @@
 <script lang="ts">
   import Sidebar from '$lib/components/Sidebar.svelte';
-  import { onMount } from 'svelte';
   import '../../app.css';
   import { checkForUpdate, updateApp } from '$lib/utils';
   import Button from '$lib/components/Button.svelte';
 
   let { children } = $props();
 
-  let canceled = false;
+  let canceled = $state(false);
 </script>
 
 <div class="h-screen flex bg-primary-600/40 overflow-hidden">
