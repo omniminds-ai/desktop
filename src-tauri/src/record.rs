@@ -480,6 +480,28 @@ pub async fn open_recording_folder(
 }
 
 #[tauri::command]
+pub async fn delete_recording(
+    app: tauri::AppHandle,
+    recording_id: String,
+) -> Result<(), String> {
+    let recordings_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?
+        .join("recordings")
+        .join(&recording_id);
+
+    if !recordings_dir.exists() {
+        return Err(format!("Recording folder not found: {}", recording_id));
+    }
+
+    fs::remove_dir_all(&recordings_dir)
+        .map_err(|e| format!("Failed to delete recording: {}", e))?;
+    
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn create_recording_zip(
     app: tauri::AppHandle,
     recording_id: String,
