@@ -30,7 +30,8 @@
         "title": "Viralmind Desktop",
         "width": 800,
         "height": 600,
-        "transparent": true
+        "transparent": true,
+        "maximized": true
       }
     ],
     "macOSPrivateApi": true,
