@@ -42,7 +42,20 @@
   "bundle": {
     "createUpdaterArtifacts": true,
     "windows": {
-      "signCommand": "trusted-signing-cli -e https://eus.codesigning.azure.net -a desktop-trusted-signer -c viralmind-desktop-cert -d Viralmind\\ Desktop %1"
+      "signCommand": {
+        "cmd": "trusted-signing-cli",
+        "args": [
+          "-e",
+          "https://eus.codesigning.azure.net",
+          "-a",
+          "desktop-trusted-signer",
+          "-c",
+          "viralmind-desktop-cert",
+          "-d",
+          "Viralmind Desktop",
+          "%1"
+        ]
+      }
     },
     "macOS": {
       "dmg": {
