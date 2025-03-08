@@ -545,10 +545,19 @@
                           Copy
                         </Button>
                       </div>
-                      <pre
-                        class="text-sm text-gray-700 whitespace-pre-wrap break-all flex-1 overflow-hidden">{formatJson(
-                          event
-                        )}</pre>
+                      {#if formatJson(event.data).length > 10000}
+                        <pre
+                          class="text-sm text-gray-700 whitespace-pre-wrap break-all flex-1 overflow-hidden">{formatJson(
+                            event
+                          ).slice(0, 10000)}... (Truncated for Performace)
+                      </pre>
+                      {:else}
+                        <pre
+                          class="text-sm text-gray-700 whitespace-pre-wrap break-all flex-1 overflow-hidden">{formatJson(
+                            event
+                          )}
+                      </pre>
+                      {/if}
                     </div>
                   {/each}
 
