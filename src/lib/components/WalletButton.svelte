@@ -163,12 +163,14 @@
         <span class="text-xs">Connect Wallet</span>
       {/if}
     </div>
-    <div
-      class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute bottom-0 left-full ml-2 w-40 p-3 bg-black text-gray-300 text-xs rounded-lg whitespace-nowrap text-center z-50 shadow-lg border border-gray-800">
-      <div class="flex items-center justify-center gap-1.5">
-        {$isConnecting ? 'Connecting...' : 'Connect Wallet'}
-        <ExternalLink size={10} />
+    {#if variant !== 'large'}
+      <div
+        class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute bottom-0 left-full ml-2 w-40 p-3 bg-black text-gray-300 text-xs rounded-lg whitespace-nowrap text-center z-50 shadow-lg border border-gray-800">
+        <div class="flex items-center justify-center gap-1.5">
+          {$isConnecting ? 'Connecting...' : 'Connect Wallet'}
+          <ExternalLink size={10} />
+        </div>
       </div>
-    </div>
+    {/if}
   </a>
 {/if}
