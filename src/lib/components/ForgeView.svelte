@@ -97,8 +97,8 @@
   });
 
   function navigateToGymDetail(pool: ExtendedPool) {
-    // Navigate to the gym detail page
-    goto(`/app/forge/${pool._id}`);
+    // Navigate to the gym detail page using querystring
+    goto(`/app/forge/gym?id=${pool._id}`);
   }
 
   async function refreshPoolData(poolId: string) {

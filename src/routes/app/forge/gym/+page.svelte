@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { ArrowLeft, AlertTriangle } from 'lucide-svelte';
   import GymBuilderView from '$lib/components/GymBuilderView.svelte';
@@ -22,7 +21,8 @@
   let viralPrice = 0;
   let refreshInterval: number | null = null;
   
-  $: gymId = $page.params.gymId;
+  // Get gymId from the data passed from +page.ts
+  $: gymId = data.gymId;
   
   onMount(async () => {
     await loadPool();
