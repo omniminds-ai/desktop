@@ -21,7 +21,7 @@
     <div class="my-4 flex justify-center">
       <img src={logo} alt="ViralMind Logo" class="h-8 w-8 object-contain" />
     </div>
-    
+
     <a
       href="/app/chat"
       class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname ===
@@ -32,14 +32,14 @@
       <MessageSquare size={20} />
     </a>
 
-    <a
+    <!-- <a
       href="/app/datasets"
       class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname.split('/')[2] == 'datasets'
         ? 'bg-secondary-300 text-white'
         : 'hover:bg-white/10 text-gray-300'}"
       title="Datasets">
-      <!-- <Database size={20} /> -->
-    </a>
+      <Database size={20} />
+    </a> -->
 
     <div class="py-2">
       <div class="text-gray-400 py-1 text-xs text-center font-semibold">Earn</div>
@@ -47,7 +47,9 @@
         {@const Icon = button.icon}
         <a
           href={button.path}
-          class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname.split('/')[2] == button.path.split('/')[2]
+          class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname.split(
+            '/'
+          )[2] == button.path.split('/')[2]
             ? 'bg-secondary-300 text-white'
             : 'hover:bg-white/10 text-gray-300'}"
           title={button.label}>
@@ -62,7 +64,9 @@
         {@const Icon = button.icon}
         <a
           href={button.path}
-          class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname.split('/')[2] == button.path.split('/')[2]
+          class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname.split(
+            '/'
+          )[2] == button.path.split('/')[2]
             ? 'bg-secondary-300 text-white'
             : 'hover:bg-white/10 text-gray-300'}"
           title={button.label}>

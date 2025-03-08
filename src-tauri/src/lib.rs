@@ -33,7 +33,9 @@ use record::{
     open_recording_folder, process_recording, start_recording, stop_recording, write_file,
     QuestState,
 };
-use settings::{get_upload_data_allowed, set_upload_confirmed};
+use settings::{
+    get_onboarding_complete, get_upload_data_allowed, set_onboarding_complete, set_upload_confirmed,
+};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -189,6 +191,8 @@ pub fn run() {
             request_ax_perms,
             list_recordings,
             get_recording_file,
+            get_onboarding_complete,
+            set_onboarding_complete,
             get_app_data_dir,
             write_file,
             open_recording_folder,
