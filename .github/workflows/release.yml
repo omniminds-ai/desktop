@@ -88,6 +88,9 @@ jobs:
       #     certutil -decode certificate/tempCert.txt certificate/certificate.pfx
       #     Remove-Item -path certificate -include tempCert.txt
       #     Import-PfxCertificate -FilePath certificate/certificate.pfx -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText)
+      - name: install Windows signing dependencies
+        if: matrix.platform == 'windows-latest'
+        run: cargo install trusted-signing-cli
 
       - uses: tauri-apps/tauri-action@v0
         env:
