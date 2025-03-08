@@ -346,7 +346,7 @@
       try {
         const uploadStarted = await $uploadManager.handleUpload(
           currentRecordingId,
-          activeQuest?.title || 'Unknown'
+          currentQuest?.title || activeQuest?.title || 'Unknown'
         );
 
         if (!uploadStarted) {
@@ -359,8 +359,7 @@
         // Upload started successfully
         await addMessage({
           role: 'assistant',
-          content:
-            'Your demonstration is being uploaded and processed. This may take a few minutes.'
+          content: 'Your demonstration is being processed. This may take a few minutes.'
         });
 
         // Set up a one-time event listener for this specific recording ID
@@ -395,7 +394,7 @@
                       ...chatMessages,
                       {
                         role: 'assistant',
-                        content: `Feedback: ${submissionDetails.grade_result.summary}`
+                        content: `Feedback:\n${submissionDetails.grade_result.summary}`
                       }
                     ];
                   }
@@ -561,10 +560,11 @@
             <Card
               variant="primary"
               padding="sm"
-              className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white">
+              className="w-auto! flex! flex-row! gap-2 max-w-2xl shadow-sm bg-secondary-300 text-white">
               <div
                 class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
               </div>
+              Saving...
             </Card>
           {:else}
             <Card

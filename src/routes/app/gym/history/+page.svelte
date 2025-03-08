@@ -2,17 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import {
-    Search,
-    Upload,
-    MonitorPlay,
-    Copy,
-    ExternalLink,
-    AlertTriangle,
-    MoreVertical,
-    Clock,
-    Calendar
-  } from 'lucide-svelte';
+  import { Search, Upload, AlertTriangle, MoreVertical, Clock, Calendar } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
@@ -22,6 +12,7 @@
   import { fly } from 'svelte/transition';
   import { open } from '@tauri-apps/plugin-shell';
   import { uploadManager } from '$lib/stores/misc';
+  import type { UploadQueueItem } from '$lib/uploadManager';
 
   let searchQuery = '';
   let exporting = false;
@@ -38,25 +29,6 @@
       clearInterval(interval);
     });
   });
-
-  function pollSubmissionStatus(recordingId: string, submissionId: string) {
-    if (statusIntervals[recordingId]) {
-      clearInterval(statusIntervals[recordingId]);
-    }
-
-    statusIntervals[recordingId] = setInterval(async () => {
-      try {
-        const status = await getSubmissionStatus(submissionId);
-        submissions = submissions.map((s) => (s.meta?.id === recordingId ? status : s));
-        if (status.status === 'completed' || status.status === 'failed') {
-          clearInterval(statusIntervals[recordingId]);
-          delete statusIntervals[recordingId];
-        }
-      } catch (error) {
-        console.error('Failed to get submission status:', error);
-      }
-    }, 5000);
-  }
 
   function formatNumber(num: number): string {
     if (num === undefined || num === null) return '0.00';
@@ -86,7 +58,6 @@
   async function loadSubmissions(address: string) {
     try {
       submissions = await listSubmissions(address);
-      console.log(submissions);
     } catch (error) {
       console.error('Failed to fetch submissions:', error);
     }
@@ -98,6 +69,11 @@
       if ($walletAddress) {
         loadSubmissions($walletAddress);
       }
+
+      $uploadManager.on('statusChange', '*', (rId, item) => {
+        const rec = filteredRecordings.find((r) => r.id === rId);
+        if (rec && item.result) rec.submission = item.result;
+      });
     } catch (error) {
       console.error('Failed to fetch recordings:', error);
     }
@@ -173,13 +149,13 @@
   function getMaxReward(
     recording: Recording & { submission?: SubmissionStatus; quest?: any }
   ): number {
-    if (
-      (recording.meta?.quest?.reward?.max_reward ||
-        recording.submission?.meta?.quest?.reward?.max_reward ||
-        recording.quest?.maxReward ||
-        0) == 0
-    )
-      console.log(recording);
+    // if (
+    //   (recording.meta?.quest?.reward?.max_reward ||
+    //     recording.submission?.meta?.quest?.reward?.max_reward ||
+    //     recording.quest?.maxReward ||
+    //     0) == 0
+    // )
+    //   console.log(recording);
     return (
       recording.meta?.quest?.reward?.max_reward ||
       recording.submission?.meta?.quest?.reward?.max_reward ||
@@ -198,6 +174,12 @@
   function isUploaded(recording: Recording & { submission?: SubmissionStatus }): boolean {
     return !!recording.submission;
   }
+
+  const uploadQueue = $uploadManager.queue;
+  const isUploading = (item: UploadQueueItem) => {
+    if (!item) return false;
+    return item.status === 'processing' || item.status === 'uploading' || item.status === 'zipping';
+  };
 </script>
 
 <div class="h-full max-w-7xl mx-auto">
@@ -325,18 +307,29 @@
 
           <!-- Action Buttons -->
           <div class="flex gap-2 items-center">
-            {#if recording.status === 'completed' && !recording.submission}
+            {#if recording.status === 'completed' && !recording.submission && $uploadQueue[recording.id]?.status !== 'completed'}
+              {#if $uploadQueue[recording.id]?.status === 'failed'}
+                <div class="text-center px-2">
+                  <div class="text-red-500 flex items-center gap-1">
+                    <AlertTriangle class="w-4 h-4" />
+                    <span class="text-sm font-semibold">Upload Failed</span>
+                  </div>
+                </div>
+              {/if}
               <Button
                 onclick={() => uploadRecording(recording)}
                 class="h-8 flex! items-center gap-1.5 px-2! text-sm font-semibold"
                 title="Upload Recording to earn VIRAL tokens"
-                disabled={$uploadManager.getUploadQueue[recording.id]?.status === 'uploading' ||
+                disabled={isUploading($uploadQueue[recording.id]) ||
+                  $uploadQueue[recording.id]?.status === 'queued' ||
                   !$walletAddress}>
-                {#if $uploadManager.getUploadQueue[recording.id]?.status === 'uploading'}
+                {#if isUploading($uploadQueue[recording.id])}
                   <div
                     class="w-3.5 h-3.5 border-2 border-t-transparent border-white rounded-full animate-spin">
                   </div>
                   <span>Uploading...</span>
+                {:else if $uploadQueue[recording.id]?.status === 'queued'}
+                  Queued
                 {:else}
                   <Upload class="w-3.5 h-3.5 shrink-0" />
                   <span>

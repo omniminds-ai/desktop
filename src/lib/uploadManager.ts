@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { uploadRecording, getSubmissionStatus } from '$lib/api/forge';
+import { writable, type Writable, get } from 'svelte/store';
+import type { SubmissionStatus } from './types/forge';
 
 // Define event types
 type UploadEventType = 'queueUpdate' | 'statusChange';
@@ -8,25 +10,33 @@ type UploadEventType = 'queueUpdate' | 'statusChange';
 type QueueUpdateCallback = (recordingId: string, item: UploadQueueItem) => void;
 type EventCallback = QueueUpdateCallback; // Can expand with more specific types if needed
 
-type UploadQueueItem = {
+export type UploadQueueItem = {
   status: 'queued' | 'uploading' | 'zipping' | 'processing' | 'completed' | 'failed';
   progress?: number;
   error?: string;
   submissionId?: string;
   name?: string;
+  result?: SubmissionStatus;
 };
 
-type UploadQueue = {
+export type UploadQueue = {
   [recordingId: string]: UploadQueueItem;
 };
 
 export class UploadManager {
-  private uploadQueue: UploadQueue = {};
+  private queueStore: Writable<UploadQueue> = writable({});
   private statusIntervals: { [recordingId: string]: number } = {};
   private subscribers: Array<(queue: UploadQueue) => void> = [];
   private eventListeners: Map<UploadEventType, Map<string, Set<EventCallback>>> = new Map();
 
   constructor(private getWalletAddress: () => string | null) {}
+
+  /**
+   * Expose the queue store directly for reactive access
+   */
+  get queue() {
+    return this.queueStore;
+  }
 
   /**
    * Register an event listener
@@ -40,37 +50,38 @@ export class UploadManager {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Map());
     }
-    
+
     const recordingsMap = this.eventListeners.get(event)!;
-    
+
     // Initialize recording ID set if it doesn't exist
     if (!recordingsMap.has(recordingId)) {
       recordingsMap.set(recordingId, new Set());
     }
-    
+
     const callbacks = recordingsMap.get(recordingId)!;
     callbacks.add(callback);
-    
+
     // If this is a queueUpdate event and the recording already exists, trigger immediately
-    if (event === 'queueUpdate' && recordingId !== '*' && this.uploadQueue[recordingId]) {
-      callback(recordingId, this.uploadQueue[recordingId]);
+    const currentQueue = get(this.queueStore);
+    if (event === 'queueUpdate' && recordingId !== '*' && currentQueue[recordingId]) {
+      callback(recordingId, currentQueue[recordingId]);
     }
-    
+
     // Return unsubscribe function
     return () => {
       const recordingsMap = this.eventListeners.get(event);
       if (!recordingsMap) return;
-      
+
       const callbacks = recordingsMap.get(recordingId);
       if (!callbacks) return;
-      
+
       callbacks.delete(callback);
-      
+
       // Clean up empty sets and maps
       if (callbacks.size === 0) {
         recordingsMap.delete(recordingId);
       }
-      
+
       if (recordingsMap.size === 0) {
         this.eventListeners.delete(event);
       }
@@ -86,17 +97,17 @@ export class UploadManager {
   private emit(event: UploadEventType, recordingId: string, data: UploadQueueItem): void {
     const recordingsMap = this.eventListeners.get(event);
     if (!recordingsMap) return;
-    
+
     // Call specific listeners for this recording ID
     const specificCallbacks = recordingsMap.get(recordingId);
     if (specificCallbacks) {
-      specificCallbacks.forEach(callback => callback(recordingId, data));
+      specificCallbacks.forEach((callback) => callback(recordingId, data));
     }
-    
+
     // Call wildcard listeners that listen to all recording IDs
     const wildcardCallbacks = recordingsMap.get('*');
     if (wildcardCallbacks) {
-      wildcardCallbacks.forEach(callback => callback(recordingId, data));
+      wildcardCallbacks.forEach((callback) => callback(recordingId, data));
     }
   }
 
@@ -128,7 +139,8 @@ export class UploadManager {
    * Checks if there are any active uploads in the queue
    */
   hasActiveUploads(): boolean {
-    return Object.values(this.uploadQueue).some(
+    const queue = get(this.queueStore);
+    return Object.values(queue).some(
       (item) =>
         item.status === 'queued' || item.status === 'uploading' || item.status === 'processing'
     );
@@ -159,16 +171,12 @@ export class UploadManager {
         if (status.status === 'completed') {
           this.updateQueue(recordingId, {
             status: 'completed',
-            progress: 100
+            progress: 100,
+            result: status
           });
           // successful upload, remove interval
           clearInterval(this.statusIntervals[recordingId]);
           delete this.statusIntervals[recordingId];
-
-          // // Auto-remove completed uploads after 5 seconds
-          // setTimeout(() => {
-          //   this.removeFromQueue(recordingId);
-          // }, 5000);
         } else if (status.status === 'failed') {
           this.updateQueue(recordingId, {
             status: 'failed',
@@ -177,7 +185,6 @@ export class UploadManager {
           // upload failed, remove intervals
           clearInterval(this.statusIntervals[recordingId]);
           delete this.statusIntervals[recordingId];
-          // todo: allow for retry
         } else if (status.status === 'processing') {
           // Set arbitrary progress for processing state
           this.updateQueue(recordingId, {
@@ -284,9 +291,12 @@ export class UploadManager {
    * Removes an item from the upload queue
    */
   removeFromQueue(recordingId: string): void {
-    const newQueue = { ...this.uploadQueue };
-    delete newQueue[recordingId];
-    this.uploadQueue = newQueue;
+    this.queueStore.update((queue) => {
+      const newQueue = { ...queue };
+      delete newQueue[recordingId];
+      return newQueue;
+    });
+
     this.notifySubscribers();
 
     // Clear any interval
@@ -300,28 +310,34 @@ export class UploadManager {
    * Updates a queue item with new properties
    */
   private updateQueue(recordingId: string, updates: Partial<UploadQueueItem>): void {
-    const previousStatus = this.uploadQueue[recordingId]?.status;
-    
-    this.uploadQueue = {
-      ...this.uploadQueue,
-      [recordingId]: {
-        ...this.uploadQueue[recordingId],
-        ...updates
-      }
-    };
-    
-    // Get the updated item
-    const updatedItem = this.uploadQueue[recordingId];
-    
+    let updatedItem: UploadQueueItem;
+    let previousStatus: string | undefined;
+
+    this.queueStore.update((queue) => {
+      previousStatus = queue[recordingId]?.status;
+
+      const updatedQueue = {
+        ...queue,
+        [recordingId]: {
+          ...queue[recordingId],
+          ...updates
+        }
+      };
+
+      updatedItem = updatedQueue[recordingId];
+
+      return updatedQueue;
+    });
+
     // Notify general subscribers (keep existing behavior)
     this.notifySubscribers();
-    
+
     // Emit queueUpdate event
-    this.emit('queueUpdate', recordingId, updatedItem);
-    
+    this.emit('queueUpdate', recordingId, updatedItem!);
+
     // Emit statusChange event if status changed
-    if (previousStatus !== updatedItem.status) {
-      this.emit('statusChange', recordingId, updatedItem);
+    if (previousStatus !== updatedItem!.status) {
+      this.emit('statusChange', recordingId, updatedItem!);
     }
   }
 
@@ -332,14 +348,16 @@ export class UploadManager {
    */
   waitForCompletion(recordingId: string): Promise<UploadQueueItem> {
     return new Promise((resolve, reject) => {
+      const currentQueue = get(this.queueStore);
+
       // If the recording doesn't exist, reject immediately
-      if (!this.uploadQueue[recordingId]) {
+      if (!currentQueue[recordingId]) {
         reject(new Error(`No upload found for recording ID: ${recordingId}`));
         return;
       }
-      
+
       // If already in a terminal state, resolve/reject immediately
-      const currentStatus = this.uploadQueue[recordingId];
+      const currentStatus = currentQueue[recordingId];
       if (currentStatus.status === 'completed') {
         resolve(currentStatus);
         return;
@@ -348,7 +366,7 @@ export class UploadManager {
         reject(new Error(currentStatus.error || 'Upload failed'));
         return;
       }
-      
+
       // Otherwise, wait for status to change to a terminal state
       const unsubscribe = this.on('queueUpdate', recordingId, (_, status) => {
         if (status.status === 'completed') {
@@ -368,7 +386,7 @@ export class UploadManager {
   subscribe(callback: (queue: UploadQueue) => void): () => void {
     this.subscribers.push(callback);
     // Immediately notify with current state
-    callback(this.uploadQueue);
+    callback(get(this.queueStore));
 
     // Return unsubscribe function
     return () => {
@@ -380,13 +398,7 @@ export class UploadManager {
    * Notifies all subscribers of queue changes
    */
   private notifySubscribers(): void {
-    this.subscribers.forEach((callback) => callback(this.uploadQueue));
-  }
-
-  /**
-   * Gets the current upload queue state
-   */
-  get getUploadQueue(): UploadQueue {
-    return this.uploadQueue;
+    const currentQueue = get(this.queueStore);
+    this.subscribers.forEach((callback) => callback(currentQueue));
   }
 }

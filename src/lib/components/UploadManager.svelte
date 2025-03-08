@@ -1,9 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { Upload, X, Check, AlertCircle } from 'lucide-svelte';
-  import { UploadManager } from '$lib/uploadManager';
-  import { get } from 'svelte/store';
-  import { walletAddress } from '$lib/stores/wallet';
   import { uploadManager } from '$lib/stores/misc';
 
   // Clean up intervals when component is destroyed
@@ -61,12 +58,14 @@
     }
   }
 
-  const queueItems = $derived(
-    Object.entries($uploadManager.getUploadQueue).map(([id, item]) => ({ id, ...item }))
-  );
+  // Subscribe to the queue store
+  const queue = $uploadManager.queue;
+
+  // Derive queue items from the store value
+  $: queueItems = Object.entries($queue).map(([id, item]) => ({ id, ...item }));
 </script>
 
-{#if queueItems.length > 0}
+{#if Object.keys($queue).length > 0}
   <div class="w-full flex justify-center relative group">
     <!-- Icon with badge -->
     <div class="relative">
@@ -106,7 +105,7 @@
             <div class="flex justify-between items-start mb-1">
               <div class="flex items-center gap-2">
                 <StatusIcon size={16} class={getStatusColor(item.status)} />
-                <span class="text-white text-sm truncate max-w-[120px]">{item.name}</span>
+                <span class="text-white text-sm truncate max-w-[150px]">{item.name}</span>
               </div>
               <button
                 class="text-gray-400 hover:text-white self-center"

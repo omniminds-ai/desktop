@@ -57,8 +57,9 @@
   });
 
   // Track upload status from the uploadQueue store
+  const uploadQueue = $uploadManager.queue;
   $: {
-    const uploadStatus = $uploadManager.getUploadQueue[recordingId || ''];
+    const uploadStatus = $uploadQueue[recordingId || ''];
     uploading = uploadStatus?.status === 'uploading' || uploadStatus?.status === 'processing';
 
     if (uploadStatus?.status === 'failed' && uploadStatus.error) {
@@ -220,6 +221,12 @@
       if ($walletAddress) {
         submissions = await listSubmissions($walletAddress);
         submission = submissions.find((s) => s.meta?.id === recordingId) || null;
+        $uploadManager.on('statusChange', recordingId || '*', async (_, item) => {
+          if (item.status === 'completed') {
+            submissions = await listSubmissions($walletAddress);
+            submission = submissions.find((s) => s.meta?.id === recordingId) || null;
+          }
+        });
       }
     } catch (error) {
       console.error('Failed to load recording:', error);
