@@ -1,7 +1,6 @@
 import { error } from '@sveltejs/kit';
-import type { PageLoad } from '@sveltejs/kit';
 
-export const load = (async ({ url }) => {
+export const load = async ({ url }) => {
   // Get the gymId from the querystring instead of route params
   const gymId = url.searchParams.get('id');
   
