@@ -2,6 +2,7 @@
   // Default values
   const DEFAULT_MIN = 0;
   const DEFAULT_MAX = 99;
+  type AppTouchEvent = TouchEvent;
 
   export let minPrice = DEFAULT_MIN;
   export let maxPrice = DEFAULT_MAX;
@@ -35,7 +36,7 @@
     return normalize(globalMax, DEFAULT_MAX);
   }
 
-  function getClientX(event: MouseEvent | TouchEvent): number {
+  function getClientX(event: MouseEvent | AppTouchEvent): number {
     if (event instanceof MouseEvent) {
       return event.clientX;
     } else {
@@ -67,11 +68,12 @@
     }
   }
 
-  function handleStart(event: MouseEvent | TouchEvent, isMin: boolean) {
+  function handleStart(event: MouseEvent | AppTouchEvent, isMin: boolean) {
     event.preventDefault();
     document.body.style.userSelect = 'none';
 
-    if (event instanceof TouchEvent) {
+    // some stupid safari polyfill
+    if ('touches' in event) {
       touchId = event.touches[0].identifier;
     }
     if (isMin) {
@@ -82,7 +84,7 @@
     updatePrice(getClientX(event), isMin);
   }
 
-  function handleMove(event: MouseEvent | TouchEvent) {
+  function handleMove(event: MouseEvent | AppTouchEvent) {
     if (!isDraggingMin && !isDraggingMax) return;
     event.preventDefault();
     updatePrice(getClientX(event), isDraggingMin);
