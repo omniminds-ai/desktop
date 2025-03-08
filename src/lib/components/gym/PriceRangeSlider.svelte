@@ -2,6 +2,7 @@
   // Default values
   const DEFAULT_MIN = 0;
   const DEFAULT_MAX = 99;
+  type AppTouchEvent = TouchEvent;
 
   export let minPrice = DEFAULT_MIN;
   export let maxPrice = DEFAULT_MAX;
@@ -35,11 +36,11 @@
     return normalize(globalMax, DEFAULT_MAX);
   }
 
-  function getClientX(event: MouseEvent | TouchEvent): number {
+  function getClientX(event: MouseEvent | AppTouchEvent): number {
     if (event instanceof MouseEvent) {
       return event.clientX;
     } else {
-      const touch = Array.from(event.touches).find(t => t.identifier === touchId);
+      const touch = Array.from(event.touches).find((t) => t.identifier === touchId);
       return touch ? touch.clientX : event.touches[0].clientX;
     }
   }
@@ -52,11 +53,11 @@
     const padding = 16; // 4rem = 16px
     const width = Math.max(1, rect.width - padding * 2); // Ensure positive width
     const percentage = Math.max(0, Math.min(1, (clientX - rect.left - padding) / width));
-    
+
     const min = safeGlobalMin();
     const max = safeGlobalMax();
     const range = Math.max(1, max - min); // Ensure positive range
-    
+
     const rawValue = min + range * percentage;
     const value = Math.round(rawValue);
 
@@ -67,11 +68,12 @@
     }
   }
 
-  function handleStart(event: MouseEvent | TouchEvent, isMin: boolean) {
+  function handleStart(event: MouseEvent | AppTouchEvent, isMin: boolean) {
     event.preventDefault();
     document.body.style.userSelect = 'none';
-    
-    if (event instanceof TouchEvent) {
+
+    // some stupid safari polyfill
+    if ('touches' in event) {
       touchId = event.touches[0].identifier;
     }
     if (isMin) {
@@ -82,7 +84,7 @@
     updatePrice(getClientX(event), isMin);
   }
 
-  function handleMove(event: MouseEvent | TouchEvent) {
+  function handleMove(event: MouseEvent | AppTouchEvent) {
     if (!isDraggingMin && !isDraggingMax) return;
     event.preventDefault();
     updatePrice(getClientX(event), isDraggingMin);
@@ -98,12 +100,12 @@
   function handleInput(event: Event, isMin: boolean) {
     const input = event.target as HTMLInputElement;
     let value = parseInt(input.value);
-    
+
     // Handle NaN
     if (isNaN(value)) {
       value = isMin ? safeGlobalMin() : safeGlobalMax();
     }
-    
+
     if (isMin) {
       minPrice = Math.max(safeGlobalMin(), Math.min(value, safeMaxPrice() - 1));
     } else {
@@ -117,14 +119,14 @@
     const sMax = safeGlobalMax();
     const sMinPrice = safeMinPrice();
     const sMaxPrice = safeMaxPrice();
-    
+
     // Make sure minPrice is valid
     minPrice = Math.max(sMin, Math.min(sMinPrice, sMaxPrice - 1));
-    
+
     // Make sure maxPrice is valid
     maxPrice = Math.max(minPrice + 1, Math.min(sMaxPrice, sMax));
   }
-  
+
   // Calculate safe percentage values for the UI
   function getMinPercent(): number {
     const min = safeGlobalMin();
@@ -132,85 +134,93 @@
     const range = max - min;
     return range <= 0 ? 0 : ((safeMinPrice() - min) / range) * 100;
   }
-  
+
   function getMaxPercent(): number {
     const min = safeGlobalMin();
     const max = safeGlobalMax();
     const range = max - min;
     return range <= 0 ? 100 : ((safeMaxPrice() - min) / range) * 100;
   }
-  
+
   function getRangeWidth(): number {
     return Math.max(0, getMaxPercent() - getMinPercent());
   }
 </script>
 
-<svelte:window 
-  on:mousemove={handleMove} 
+<svelte:window
+  on:mousemove={handleMove}
   on:mouseup={handleEnd}
   on:touchmove|preventDefault={handleMove}
   on:touchend={handleEnd}
-  on:touchcancel={handleEnd}
-/>
+  on:touchcancel={handleEnd} />
 
 <div class="flex flex-col gap-1.5">
   <div class="text-sm font-medium text-gray-700">Choose your reward range</div>
-  
+
   <!-- Price inputs -->
   <div class="flex items-center gap-2">
     <input
       type="number"
       min={globalMin || 0}
-      max={(maxPrice - 1) || 98}
+      max={maxPrice - 1 || 98}
       class="w-16 px-2 py-1 text-sm border rounded hover:border-gray-400 focus:outline-none focus:border-secondary-300 focus:ring-1 focus:ring-secondary-300/30 bg-white transition-colors"
-      value={(minPrice) || 0}
-      on:input={(e) => handleInput(e, true)}
-    />
+      value={minPrice || 0}
+      on:input={(e) => handleInput(e, true)} />
     <span class="text-sm text-gray-500">to</span>
     <input
       type="number"
-      min={(minPrice + 1) || 1}
+      min={minPrice + 1 || 1}
       max={globalMax || 99}
       class="w-16 px-2 py-1 text-sm border rounded hover:border-gray-400 focus:outline-none focus:border-secondary-300 focus:ring-1 focus:ring-secondary-300/30 bg-white transition-colors"
-      value={(maxPrice) || 99}
-      on:input={(e) => handleInput(e, false)}
-    />
+      value={maxPrice || 99}
+      on:input={(e) => handleInput(e, false)} />
     <span class="text-sm text-gray-500">VIRAL per task</span>
   </div>
 
   <!-- Slider container -->
-  <div 
-    class="relative h-8 px-4"
-    bind:this={sliderContainer}
-  >
+  <div class="relative h-8 px-4" bind:this={sliderContainer}>
     <!-- Track -->
     <div class="absolute inset-x-4 top-1/2 -translate-y-1/2">
       <!-- Background track -->
       <div class="absolute inset-x-0 h-1.5 bg-gray-200 rounded-full"></div>
-      
+
       <!-- Selected range -->
-      <div 
+      <div
         class="absolute h-1.5 bg-secondary-300 rounded-full"
-        style="left: {getMinPercent()}%; width: {getRangeWidth()}%"
-      ></div>
+        style="left: {getMinPercent()}%; width: {getRangeWidth()}%">
+      </div>
     </div>
 
     <!-- Slider handles -->
-    <div class="absolute top-1/2 -translate-y-1/2 w-6 h-6 -translate-x-1/2 cursor-pointer touch-none z-10 group"
+    <div
+      role="slider"
+      aria-valuenow={safeMinPrice()}
+      tabindex="0"
+      class="absolute top-1/2 -translate-y-1/2 w-6 h-6 -translate-x-1/2 cursor-pointer touch-none z-10 group"
       style="left: calc(16px + ({getMinPercent() / 100} * (100% - 32px)))"
       on:mousedown={(e) => handleStart(e, true)}
       on:touchstart={(e) => handleStart(e, true)}>
-      <div class="absolute inset-0 bg-white border-2 border-secondary-300 rounded-full hover:scale-110 active:scale-95 transition-transform shadow-sm"></div>
-      <div class="absolute -top-7 left-1/2 -translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-xs rounded px-1.5 py-0.5 whitespace-nowrap shadow-sm pointer-events-none">
+      <div
+        class="absolute inset-0 bg-white border-2 border-secondary-300 rounded-full hover:scale-110 active:scale-95 transition-transform shadow-sm">
+      </div>
+      <div
+        class="absolute -top-7 left-1/2 -translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-xs rounded px-1.5 py-0.5 whitespace-nowrap shadow-sm pointer-events-none">
         {safeMinPrice()} VIRAL
       </div>
     </div>
-    <div class="absolute top-1/2 -translate-y-1/2 w-6 h-6 -translate-x-1/2 cursor-pointer touch-none z-10 group"
+    <div
+      role="slider"
+      aria-valuenow={safeMaxPrice()}
+      tabindex="0"
+      class="absolute top-1/2 -translate-y-1/2 w-6 h-6 -translate-x-1/2 cursor-pointer touch-none z-10 group"
       style="left: calc(16px + ({getMaxPercent() / 100} * (100% - 32px)))"
       on:mousedown={(e) => handleStart(e, false)}
       on:touchstart={(e) => handleStart(e, false)}>
-      <div class="absolute inset-0 bg-white border-2 border-secondary-300 rounded-full hover:scale-110 active:scale-95 transition-transform shadow-sm"></div>
-      <div class="absolute -top-7 right-1/2 translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-xs rounded px-1.5 py-0.5 whitespace-nowrap shadow-sm pointer-events-none">
+      <div
+        class="absolute inset-0 bg-white border-2 border-secondary-300 rounded-full hover:scale-110 active:scale-95 transition-transform shadow-sm">
+      </div>
+      <div
+        class="absolute -top-7 right-1/2 translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-xs rounded px-1.5 py-0.5 whitespace-nowrap shadow-sm pointer-events-none">
         {safeMaxPrice()} VIRAL
       </div>
     </div>

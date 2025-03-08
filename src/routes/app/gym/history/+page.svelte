@@ -2,16 +2,17 @@
   import { onDestroy, onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import { Search, Upload, MonitorPlay, Copy, ExternalLink, AlertTriangle, MoreVertical, Clock, Calendar } from 'lucide-svelte';
+  import { Search, Upload, AlertTriangle, MoreVertical, Clock, Calendar } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
   import { getSubmissionStatus, listSubmissions } from '$lib/api/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
-  import { handleUpload, uploadQueue, saveUploadConfirmation } from '$lib/uploadManager';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
   import { fly } from 'svelte/transition';
   import { open } from '@tauri-apps/plugin-shell';
+  import { uploadManager } from '$lib/stores/misc';
+  import type { UploadQueueItem } from '$lib/uploadManager';
 
   let searchQuery = '';
   let exporting = false;
@@ -19,8 +20,6 @@
   let recordings: Recording[] = [];
   let submissions: SubmissionStatus[] = [];
   let showUploadConfirmModal = false;
-  let pendingUploadId = '';
-  let pendingUploadTitle = '';
   let dataExported = '';
   let statusIntervals: { [key: string]: number } = {};
 
@@ -31,36 +30,17 @@
     });
   });
 
-  function pollSubmissionStatus(recordingId: string, submissionId: string) {
-    if (statusIntervals[recordingId]) {
-      clearInterval(statusIntervals[recordingId]);
-    }
-
-    statusIntervals[recordingId] = setInterval(async () => {
-      try {
-        const status = await getSubmissionStatus(submissionId);
-        submissions = submissions.map((s) => (s.meta?.id === recordingId ? status : s));
-        if (status.status === 'completed' || status.status === 'failed') {
-          clearInterval(statusIntervals[recordingId]);
-          delete statusIntervals[recordingId];
-        }
-      } catch (error) {
-        console.error('Failed to get submission status:', error);
-      }
-    }, 5000);
-  }
-
   function formatNumber(num: number): string {
-    if (num === undefined || num === null) return "0.00";
+    if (num === undefined || num === null) return '0.00';
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function formatDuration(seconds: number): string {
-    if (!seconds) return "0:00";
-    
+    if (!seconds) return '0:00';
+
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
-    
+
     // Format as m:ss with leading zeros for seconds when needed
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
@@ -78,7 +58,6 @@
   async function loadSubmissions(address: string) {
     try {
       submissions = await listSubmissions(address);
-      console.log(submissions);
     } catch (error) {
       console.error('Failed to fetch submissions:', error);
     }
@@ -90,6 +69,11 @@
       if ($walletAddress) {
         loadSubmissions($walletAddress);
       }
+
+      $uploadManager.on('statusChange', '*', (rId, item) => {
+        const rec = filteredRecordings.find((r) => r.id === rId);
+        if (rec && item.result) rec.submission = item.result;
+      });
     } catch (error) {
       console.error('Failed to fetch recordings:', error);
     }
@@ -157,42 +141,45 @@
     setTimeout(() => (dataExported = ''), 5000);
   }
 
-  function truncateHash(hash: string): string {
-    return `${hash.slice(0, 4)}...${hash.slice(-4)}`;
-  }
-
-  function getSolscanUrl(txHash: string): string {
-    return `https://solscan.io/tx/${txHash}`;
-  }
-
-  function getRewardDisplay(recording: Recording & { submission?: SubmissionStatus }) {
-    if (recording.submission?.reward && recording.submission.maxReward) {
-      return `${formatNumber(recording.submission.reward)} VIRAL (${recording.submission.clampedScore}% of ${formatNumber(recording.submission.maxReward)})`;
-    } else if (recording.meta?.quest?.reward?.max_reward) {
-      return `${formatNumber(recording.meta.quest.reward.max_reward)} VIRAL (unclaimed)`;
-    }
-    return null;
-  }
-
   function handleImageError(event: Event) {
     const img = event.target as HTMLImageElement;
     img.src = 'https://placehold.co/40x40/gray/white?text=App';
   }
 
-  function getMaxReward(recording: Recording & { submission?: SubmissionStatus, quest?: any }): number {
-    if((recording.meta?.quest?.reward?.max_reward || 
-           recording.submission?.meta?.quest?.reward?.max_reward || 
-           recording.quest?.maxReward || 
-           0) == 0) console.log(recording)
-    return recording.meta?.quest?.reward?.max_reward || 
-           recording.submission?.meta?.quest?.reward?.max_reward || 
-           recording.quest?.reward?.max_reward || 
-           0;
+  function getMaxReward(
+    recording: Recording & { submission?: SubmissionStatus; quest?: any }
+  ): number {
+    // if (
+    //   (recording.meta?.quest?.reward?.max_reward ||
+    //     recording.submission?.meta?.quest?.reward?.max_reward ||
+    //     recording.quest?.maxReward ||
+    //     0) == 0
+    // )
+    //   console.log(recording);
+    return (
+      recording.meta?.quest?.reward?.max_reward ||
+      recording.submission?.meta?.quest?.reward?.max_reward ||
+      recording.quest?.reward?.max_reward ||
+      0
+    );
   }
+
+  const uploadRecording = async (recording: any) => {
+    const uploadStarted = await $uploadManager.handleUpload(recording.id, recording.title);
+    if (!uploadStarted) {
+      showUploadConfirmModal = true;
+    }
+  };
 
   function isUploaded(recording: Recording & { submission?: SubmissionStatus }): boolean {
     return !!recording.submission;
   }
+
+  const uploadQueue = $uploadManager.queue;
+  const isUploading = (item: UploadQueueItem) => {
+    if (!item) return false;
+    return item.status === 'processing' || item.status === 'uploading' || item.status === 'zipping';
+  };
 </script>
 
 <div class="h-full max-w-7xl mx-auto">
@@ -252,20 +239,20 @@
 
   <div class="grid gap-2 pb-4">
     {#each filteredRecordings as recording}
-      <Card 
-        padding="sm" 
+      <Card
+        padding="sm"
         className={`hover:border-secondary-300 transition-colors ${isUploaded(recording) ? 'opacity-50 hover:opacity-75 bg-gray-100 border border-gray-300' : 'font-semibold bg-white shadow-md border-l-4 border-secondary-300'}`}>
         <div class="flex items-center gap-3">
           <!-- Icon -->
           {#if recording.meta?.quest?.icon_url || recording.submission?.meta?.quest?.icon_url}
-            <img 
-              src={recording.meta?.quest?.icon_url || recording.submission?.meta?.quest?.icon_url} 
-              alt="App icon" 
+            <img
+              src={recording.meta?.quest?.icon_url || recording.submission?.meta?.quest?.icon_url}
+              alt="App icon"
               class="w-8 h-8 rounded-md object-contain"
-              on:error={handleImageError}
-            />
+              on:error={handleImageError} />
           {:else}
-            <div class="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center text-gray-500">
+            <div
+              class="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center text-gray-500">
               <span class="text-xs">App</span>
             </div>
           {/if}
@@ -273,7 +260,9 @@
           <!-- Title and Metadata -->
           <div class="flex-grow min-w-0">
             <a href="/app/gym/history/recording?id={recording.id}" class="hover:underline">
-              <h3 class="text-base font-title truncate" title={recording.title}>{recording.title}</h3>
+              <h3 class="text-base font-title truncate" title={recording.title}>
+                {recording.title}
+              </h3>
             </a>
             <div class="flex items-center gap-3 mt-1">
               <div class="flex items-center text-xs text-gray-500">
@@ -300,40 +289,47 @@
           <!-- Rating (if claimed) -->
           {#if recording.submission?.clampedScore !== undefined}
             <div class="text-center px-2">
-              <div class="text-lg font-bold text-secondary-300">{recording.submission.clampedScore}%</div>
+              <div class="text-lg font-bold text-secondary-300">
+                {recording.submission.clampedScore}%
+              </div>
               <div class="text-xs text-gray-500">Rating</div>
             </div>
           {/if}
 
           <!-- Reward -->
           {#if recording.submission?.reward}
-          <div class="text-right min-w-[120px]">
-            <div class="text-sm font-semibold text-secondary-300">
-              {formatNumber(recording.submission.reward)} VIRAL
+            <div class="text-right min-w-[120px]">
+              <div class="text-sm font-semibold text-secondary-300">
+                {formatNumber(recording.submission.reward)} VIRAL
+              </div>
             </div>
-          </div>
           {/if}
 
           <!-- Action Buttons -->
           <div class="flex gap-2 items-center">
-            {#if recording.status === 'completed' && !recording.submission}
+            {#if recording.status === 'completed' && !recording.submission && $uploadQueue[recording.id]?.status !== 'completed'}
+              {#if $uploadQueue[recording.id]?.status === 'failed'}
+                <div class="text-center px-2">
+                  <div class="text-red-500 flex items-center gap-1">
+                    <AlertTriangle class="w-4 h-4" />
+                    <span class="text-sm font-semibold">Upload Failed</span>
+                  </div>
+                </div>
+              {/if}
               <Button
-                onclick={async () => {
-                  const uploadStarted = await handleUpload(recording.id, recording.title);
-                  if (!uploadStarted) {
-                    pendingUploadId = recording.id;
-                    pendingUploadTitle = recording.title;
-                    showUploadConfirmModal = true;
-                  }
-                }}
+                onclick={() => uploadRecording(recording)}
                 class="h-8 flex! items-center gap-1.5 px-2! text-sm font-semibold"
                 title="Upload Recording to earn VIRAL tokens"
-                disabled={$uploadQueue[recording.id]?.status === 'uploading' || !$walletAddress}>
-                {#if $uploadQueue[recording.id]?.status === 'uploading'}
+                disabled={isUploading($uploadQueue[recording.id]) ||
+                  $uploadQueue[recording.id]?.status === 'queued' ||
+                  !$walletAddress}>
+                {#if isUploading($uploadQueue[recording.id])}
                   <div
                     class="w-3.5 h-3.5 border-2 border-t-transparent border-white rounded-full animate-spin">
                   </div>
                   <span>Uploading...</span>
+                {:else if $uploadQueue[recording.id]?.status === 'queued'}
+                  Queued
                 {:else}
                   <Upload class="w-3.5 h-3.5 shrink-0" />
                   <span>
@@ -346,10 +342,13 @@
                 {/if}
               </Button>
             {/if}
-            
+
             <!-- Play/Details Button -->
             <a href="/app/gym/history/recording?id={recording.id}" class="block">
-              <Button variant="secondary" class="h-8 w-8 p-0! flex! items-center justify-center bg-transparent shadow-transparent border-transparent" title="View Recording">
+              <Button
+                variant="secondary"
+                class="h-8 w-8 p-0! flex! items-center justify-center bg-transparent shadow-transparent border-transparent"
+                title="View Recording">
                 <MoreVertical class="w-4 h-4 shrink-0" />
               </Button>
             </a>
@@ -359,14 +358,5 @@
     {/each}
   </div>
 
-  <UploadConfirmModal
-    open={showUploadConfirmModal}
-    onConfirm={() => {
-      saveUploadConfirmation(true);
-      handleUpload(pendingUploadId, pendingUploadTitle);
-      showUploadConfirmModal = false;
-    }}
-    onCancel={() => {
-      showUploadConfirmModal = false;
-    }} />
+  <UploadConfirmModal open={showUploadConfirmModal} uploader={async () => {}} />
 </div>

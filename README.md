@@ -1,6 +1,6 @@
 # ViralMind Desktop
 
-> 🚧 Work in progress - coming soon
+> 🚧 Work in progress - coming soon!
 
 <p align="center" width="100%">
     <img src="https://github.com/user-attachments/assets/304e2bd6-9584-4d4b-afdb-71d759d91846">

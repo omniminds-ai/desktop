@@ -99,6 +99,7 @@ export interface SubmissionStatus {
     s3Key: string;
     _id: string;
   }>;
+  error?: string;
   createdAt: string;
   updatedAt: string;
   clampedScore: number;

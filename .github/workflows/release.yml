@@ -77,17 +77,20 @@ jobs:
         if: matrix.platform == 'macos-latest'
         run: echo "${{ secrets.APPLE_API_KEY_FILE }}" > apple_api.p8
 
-      - name: import Windows certificate
-        if: matrix.platform == 'windows-latest' && false
-        env:
-          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: |
-          New-Item -ItemType directory -Path certificate
-          Set-Content -Path certificate/tempCert.txt -Value $env:WINDOWS_CERTIFICATE
-          certutil -decode certificate/tempCert.txt certificate/certificate.pfx
-          Remove-Item -path certificate -include tempCert.txt
-          Import-PfxCertificate -FilePath certificate/certificate.pfx -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText)
+      # - name: import Windows certificate
+      #   if: matrix.platform == 'windows-latest' && false
+      #   env:
+      #     WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+      #     WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      #   run: |
+      #     New-Item -ItemType directory -Path certificate
+      #     Set-Content -Path certificate/tempCert.txt -Value $env:WINDOWS_CERTIFICATE
+      #     certutil -decode certificate/tempCert.txt certificate/certificate.pfx
+      #     Remove-Item -path certificate -include tempCert.txt
+      #     Import-PfxCertificate -FilePath certificate/certificate.pfx -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText)
+      - name: install Windows signing dependencies
+        if: matrix.platform == 'windows-latest'
+        run: cargo install trusted-signing-cli
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -103,6 +106,10 @@ jobs:
           # updater codesigning
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # windows codesigning
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         with:
           tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: 'Viralmind Desktop v__VERSION__'

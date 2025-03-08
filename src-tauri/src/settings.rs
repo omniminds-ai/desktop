@@ -15,7 +15,7 @@ pub struct Settings {
 impl Settings {
     pub fn load(app: &AppHandle) -> Self {
         let path = get_settings_path(app);
-        
+
         if path.exists() {
             match File::open(&path) {
                 Ok(file) => {
@@ -44,23 +44,24 @@ impl Settings {
 
     pub fn save(&self, app: &AppHandle) -> Result<(), String> {
         let path = get_settings_path(app);
-        
+
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)
                 .map_err(|e| format!("Failed to create settings directory: {}", e))?;
         }
 
-        let file = File::create(&path)
-            .map_err(|e| format!("Failed to create settings file: {}", e))?;
-        
+        let file =
+            File::create(&path).map_err(|e| format!("Failed to create settings file: {}", e))?;
+
         let mut writer = BufWriter::new(file);
         serde_json::to_writer_pretty(&mut writer, &self)
             .map_err(|e| format!("Failed to write settings JSON: {}", e))?;
-        
-        writer.flush()
+
+        writer
+            .flush()
             .map_err(|e| format!("Failed to flush settings file: {}", e))?;
-        
+
         info!("[Settings] Saved settings to {}", path.display());
         Ok(())
     }
@@ -74,7 +75,7 @@ fn get_settings_path(app: &AppHandle) -> PathBuf {
 }
 
 #[tauri::command]
-pub fn get_upload_confirmed(app: AppHandle) -> bool {
+pub fn get_upload_data_allowed(app: AppHandle) -> bool {
     Settings::load(&app).upload_confirmed
 }
 

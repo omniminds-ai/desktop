@@ -6,9 +6,11 @@
   import { tweened } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
   import AppText from './AppText.svelte';
+  import type { Quest } from '$lib/types/gym';
 
   export let title: string;
   export let objectives: string[];
+  export let reward: Quest['reward'];
   export let onStartRecording: () => void;
   export let onComplete: () => void;
   export let onGiveUp: () => void;
@@ -46,6 +48,19 @@
   {/if}
 
   <div class="relative p-6 bg-black/30">
+    <div class="absolute top-5 right-6">
+      {#if reward}
+        <div class="flex flex-col self-end items-end">
+          <div class="text-[10px] uppercase tracking-wider text-emerald-400/80 font-medium">
+            Up to
+          </div>
+          <div
+            class="flex flex-row items-center gap-1 px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg">
+            <span class="text-sm font-bold">{reward.max_reward} VIRAL</span>
+          </div>
+        </div>
+      {/if}
+    </div>
     <h3 class="text-xl font-bold text-white mb-2">{title}</h3>
     <div class="mb-4">
       <h4 class="text-lg font-semibold text-white/90 mb-2">Objectives:</h4>

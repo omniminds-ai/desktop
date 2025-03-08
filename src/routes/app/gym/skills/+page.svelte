@@ -383,7 +383,7 @@
   </div>
 
   <!-- Task node template -->
-  <a id="task-node-template" class="" href="#">
+  <a id="task-node-template" class="cursor-pointer">
     <div
       class="relative w-[140px] h-[140px] bg-white rounded-2xl p-4 hover:bg-gray-50
       transition-colors no-underline block">

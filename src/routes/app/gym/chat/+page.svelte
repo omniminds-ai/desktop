@@ -16,10 +16,9 @@
   import pfp from '$lib/assets/V_pfp_v1.png';
   import QuestPanel from '$lib/components/gym/QuestPanel.svelte';
   import RecordingPanel from '$lib/components/gym/RecordingPanel.svelte';
-  import QuestPopup from '$lib/components/gym/QuestPopup.svelte';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
-  import { handleUpload, saveUploadConfirmation } from '$lib/uploadManager';
   import { API_URL } from '$lib/utils';
+  import { uploadManager } from '$lib/stores/misc';
 
   const prompt = page.url.searchParams.get('prompt') || '';
   const appParam = page.url.searchParams.get('app');
@@ -36,7 +35,6 @@
   }
 
   // Quest state
-  let showQuestPopup = $state(false);
   let currentQuest = $state<Quest | null>(null);
   let activeQuest = $state<Quest | null>(null);
   let recordingState = $state<'recording' | 'stopping' | 'stopped'>('stopped');
@@ -217,7 +215,13 @@
             console.error('Failed to get reward info:', error);
           }
         }
-        showQuestPopup = true;
+
+        await addMessage({
+          role: 'user',
+          content: 'Sure!'
+        });
+        // Set active quest
+        activeQuest = currentQuest;
       }
     } catch (error) {
       console.error('Failed to handle quest data:', error);
@@ -338,146 +342,96 @@
   async function handleUploadClick() {
     if (currentRecordingId && !isUploading) {
       isUploading = true;
-      const uploadStarted = await handleUpload(currentRecordingId, activeQuest?.title || 'Unknown');
-      if (!uploadStarted) {
-        // If upload didn't start, show confirmation modal
-        showUploadConfirmModal = true;
-        isUploading = false;
-      } else {
+
+      try {
+        const uploadStarted = await $uploadManager.handleUpload(
+          currentRecordingId,
+          currentQuest?.title || activeQuest?.title || 'Unknown'
+        );
+
+        if (!uploadStarted) {
+          // If upload didn't start, show confirmation modal
+          showUploadConfirmModal = true;
+          isUploading = false;
+          return;
+        }
+
         // Upload started successfully
         await addMessage({
           role: 'assistant',
-          content:
-            'Your demonstration is being uploaded and processed. This may take a few minutes.'
+          content: 'Your demonstration is being processed. This may take a few minutes.'
         });
 
-        // Start polling for submission status
-        pollSubmissionStatus(currentRecordingId);
-      }
-    }
-  }
+        // Set up a one-time event listener for this specific recording ID
+        const unsubscribe = $uploadManager.on('queueUpdate', currentRecordingId, (_, status) => {
+          if (status.status === 'completed') {
+            unsubscribe(); // Remove the listener once we're done
 
-  // Handle confirmation modal actions
-  async function handleConfirmUpload() {
-    showUploadConfirmModal = false;
-    saveUploadConfirmation(true);
-    if (currentRecordingId) {
-      isUploading = true;
-      const uploadStarted = await handleUpload(currentRecordingId, activeQuest?.title || 'Unknown');
+            // Add success messages
+            chatMessages = [
+              ...chatMessages,
+              {
+                role: 'assistant',
+                content: 'Your demonstration was successfully uploaded!'
+              }
+            ];
 
-      if (uploadStarted) {
-        // Add message about upload
-        await addMessage({
-          role: 'assistant',
-          content:
-            'Your demonstration is being uploaded and processed. This may take a few minutes.'
-        });
+            // If we have a submission ID, try to get more details
+            if (status.submissionId) {
+              getSubmissionStatus(status.submissionId)
+                .then((submissionDetails) => {
+                  chatMessages = [
+                    ...chatMessages,
+                    {
+                      role: 'assistant',
+                      content: `You scored ${submissionDetails.clampedScore}% on this task.`
+                    }
+                  ];
 
-        // Start polling for submission status
-        pollSubmissionStatus(currentRecordingId);
-      } else {
-        isUploading = false;
-      }
-    }
-  }
+                  // Add feedback if available
+                  if (submissionDetails.grade_result) {
+                    chatMessages = [
+                      ...chatMessages,
+                      {
+                        role: 'assistant',
+                        content: `Feedback:\n${submissionDetails.grade_result.summary}`
+                      }
+                    ];
+                  }
 
-  function handleCancelUpload() {
-    showUploadConfirmModal = false;
-  }
-
-  // Poll submission status
-  let statusInterval: number | undefined = undefined;
-  function pollSubmissionStatus(recordingId: string) {
-    if (statusInterval) {
-      clearInterval(statusInterval);
-    }
-
-    console.log('Starting to poll submission status for recording:', recordingId);
-
-    // First check immediately
-    checkSubmissionStatus(recordingId);
-
-    // Then set up interval for subsequent checks
-    statusInterval = setInterval(() => {
-      checkSubmissionStatus(recordingId);
-    }, 5000);
-  }
-
-  // Function to check submission status
-  async function checkSubmissionStatus(recordingId: string) {
-    try {
-      console.log('Checking submission status for recording:', recordingId);
-      const status = await getSubmissionStatus(recordingId);
-      console.log('Submission status:', status);
-
-      if (status.status === 'completed') {
-        // Clear the interval first
-        if (statusInterval) {
-          clearInterval(statusInterval);
-          statusInterval = undefined;
-        }
-
-        // Reset uploading state immediately
-        isUploading = false;
-
-        // Force UI update by adding messages synchronously
-        chatMessages = [
-          ...chatMessages,
-          {
-            role: 'assistant',
-            content: 'Your demonstration was successfully uploaded!'
-          }
-        ];
-
-        // Add score message
-        chatMessages = [
-          ...chatMessages,
-          {
-            role: 'assistant',
-            content: `You scored ${status.clampedScore}% on this task.`
-          }
-        ];
-
-        // Add feedback if available
-        if (status.grade_result) {
-          chatMessages = [
-            ...chatMessages,
-            {
-              role: 'assistant',
-              content: `Feedback: ${status.grade_result.summary}`
+                  // Ensure scroll to bottom
+                  setTimeout(scrollToBottom, 100);
+                })
+                .catch((error) => {
+                  console.error('Failed to get submission details:', error);
+                });
             }
-          ];
-        }
 
-        // Ensure scroll to bottom
-        setTimeout(scrollToBottom, 100);
-      } else if (status.status === 'failed') {
-        if (statusInterval) {
-          clearInterval(statusInterval);
-          statusInterval = undefined;
-        }
+            // Reset uploading state
+            isUploading = false;
+          } else if (status.status === 'failed') {
+            unsubscribe(); // Remove the listener once we're done
 
-        // Reset uploading state
-        isUploading = false;
+            // Add error message
+            addMessage({
+              role: 'assistant',
+              content: `There was an error processing your demonstration: ${status.error || 'Unknown error'}`
+            });
 
-        // Add error message
+            // Reset uploading state
+            isUploading = false;
+          }
+        });
+      } catch (error) {
+        console.error('Error in upload process:', error);
         await addMessage({
           role: 'assistant',
-          content: `There was an error processing your demonstration: ${status.error || 'Unknown error'}`
+          content: `There was an error starting the upload: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
+        isUploading = false;
       }
-    } catch (error) {
-      console.error('Failed to get submission status:', error);
     }
   }
-
-  // Clean up interval on unmount
-  onDestroy(() => {
-    if (statusInterval) {
-      clearInterval(statusInterval);
-      statusInterval = undefined;
-    }
-  });
 
   async function handleGiveUp() {
     if (recordingState === 'recording') {
@@ -593,36 +547,6 @@
 </script>
 
 <div class="h-[calc(100vh-8rem)] flex flex-col pb-[65px] relative">
-  {#if showQuestPopup && currentQuest}
-    <QuestPopup
-      title={currentQuest.title}
-      objectives={currentQuest.objectives}
-      reward={currentQuest.reward ? { maxReward: currentQuest.reward.max_reward } : undefined}
-      onAccept={async () => {
-        showQuestPopup = false;
-        // Send user's acceptance message
-        await addMessage({
-          role: 'user',
-          content: 'Sure!'
-        });
-        // Set active quest
-        activeQuest = currentQuest;
-      }}
-      onDecline={async () => {
-        showQuestPopup = false;
-        // Send user's decline message
-        await addMessage({
-          role: 'user',
-          content: 'No'
-        });
-        // Send assistant's response
-        await addMessage(
-          generateAssistantMessage(
-            "No problem! Let me know if you'd like to try a different quest."
-          )
-        );
-      }} />
-  {/if}
   <div
     bind:this={chatContent}
     class="flex-1 max-w-7xl w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
@@ -636,10 +560,11 @@
             <Card
               variant="primary"
               padding="sm"
-              className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white">
+              className="w-auto! flex! flex-row! gap-2 max-w-2xl shadow-sm bg-secondary-300 text-white">
               <div
                 class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
               </div>
+              Saving...
             </Card>
           {:else}
             <Card
@@ -704,6 +629,7 @@
     {#if activeQuest}
       <QuestPanel
         title={activeQuest.title}
+        reward={activeQuest.reward}
         objectives={activeQuest.objectives}
         onStartRecording={toggleRecording}
         onComplete={handleComplete}
@@ -768,7 +694,4 @@
   </div>
 </div>
 
-<UploadConfirmModal
-  open={showUploadConfirmModal}
-  onConfirm={handleConfirmUpload}
-  onCancel={handleCancelUpload} />
+<UploadConfirmModal uploader={handleUploadClick} open={showUploadConfirmModal} />
