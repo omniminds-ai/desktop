@@ -6,13 +6,10 @@
   import TextArea from './TextArea.svelte';
 
   const {
-    show,
-    onClose,
-    onCreate
-  }: {
-    show: boolean;
-    onClose: () => void;
-    onCreate: (data: { name: string; skills: string; token: Token }) => void;
+    show = false,
+    onClose = () => {},
+    onCreate = (data: { name: string; skills: string; token: Token }) => {},
+    initialSkills = ''
   } = $props();
 
   let name = $state('');
@@ -52,10 +49,17 @@
 
   function resetForm() {
     name = '';
-    skills = '';
+    skills = initialSkills || '';
     selectedTokenType = 'VIRAL';
     customTokenAddress = '';
   }
+
+  // When the modal is shown, initialize skills with initialSkills
+  $effect(() => {
+    if (show) {
+      skills = initialSkills;
+    }
+  });
 </script>
 
 {#if show}

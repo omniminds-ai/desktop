@@ -323,3 +323,84 @@ export async function refreshPool(poolId: string): Promise<TrainingPool> {
 
   return response.json();
 }
+
+export interface GenerateResponse {
+  content: {
+    name: string;
+    apps: ForgeApp[];
+  }
+}
+
+export async function generateApps(prompt: string): Promise<GenerateResponse> {
+  const response = await fetch(`${API_BASE}/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ prompt })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to generate apps from prompt');
+  }
+
+  return await response.json();
+}
+
+export interface PoolSubmission {
+  _id: string;
+  address: string;
+  meta: {
+    poolId: string;
+    id: string;
+    generatedTime: number;
+    quest: {
+      pool_id: string;
+      app_id: string;
+    };
+    [key: string]: any;
+  };
+  status: string; // PENDING, PROCESSING, COMPLETED, FAILED, etc.
+  files: {
+    file: string;
+    s3Key: string;
+  }[];
+  grade_result?: any;
+  reward: number;
+  maxReward: number;
+  clampedScore: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getPoolSubmissions(poolId: string): Promise<PoolSubmission[]> {
+  const response = await fetch(`${API_BASE}/pool-submissions/${poolId}`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch pool submissions');
+  }
+
+  return response.json();
+}
+
+// Update create pool interface to accept apps
+export interface CreatePoolInputWithApps extends CreatePoolInput {
+  apps?: ForgeApp[];
+}
+
+// Updated create pool function
+export async function createPoolWithApps(input: CreatePoolInputWithApps): Promise<TrainingPool> {
+  const response = await fetch(`${API_BASE}/create`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to create training pool');
+  }
+
+  return response.json();
+}

@@ -2,18 +2,28 @@
   import { onDestroy, onMount } from 'svelte';
   import Card from './Card.svelte';
   import CreatePoolModal from './CreatePoolModal.svelte';
-  import { ChevronDown, ChevronRight, Train, TrainIcon, RefreshCw, AlertTriangle, DollarSign, Settings } from 'lucide-svelte';
+  import GenerateGymModal from './GenerateGymModal.svelte';
+  import { ChevronDown, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import { walletAddress } from '$lib/stores/wallet';
-  import { listPools, createPool, updatePool, refreshPool } from '$lib/api/forge';
+  import { listPools, createPool, updatePool, refreshPool, generateApps, createPoolWithApps } from '$lib/api/forge';
   import { type TrainingPool, type Token, TrainingPoolStatus } from '$lib/types/forge';
   import Button from './Button.svelte';
-  import CopyButton from './CopyButton.svelte';
-  import TextArea from './TextArea.svelte';
-  import Input from './Input.svelte';
+  import GymBuilderView from './GymBuilderView.svelte';
 
-  let trainingPools: TrainingPool[] = [];
+  // Extended TrainingPool for UI state
+  type ExtendedPool = TrainingPool & {
+    unsavedSkills?: boolean;
+    unsavedPrice?: boolean;
+    unsavedName?: boolean;
+    tokenBalance?: number;
+    solBalance?: number;
+  };
+
+  let trainingPools: ExtendedPool[] = [];
   let showCreateModal = false;
+  let showGenerateGymModal = false;
+  let currentSkills = '';
   let loading = true;
   let error: string | null = null;
   let refreshingPools: Set<string> = new Set();
@@ -62,20 +72,19 @@
     try {
       loading = true;
       error = null;
-      trainingPools = await listPools($walletAddress);
-      // Initialize unsavedSkills flag for each pool
-      trainingPools = trainingPools.map((pool) => ({ ...pool, unsavedSkills: false }));
+      let pools = await listPools($walletAddress);
+      // Initialize UI state properties
+      trainingPools = pools.map((pool) => ({ 
+        ...pool, 
+        unsavedSkills: false,
+        unsavedPrice: false,
+        unsavedName: false
+      }));
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load AI agent gyms';
     } finally {
       loading = false;
     }
-  }
-
-  function previewQuest(pool: TrainingPool) {
-    goto(
-      `/app/gym?poolId=${encodeURIComponent(pool._id)}&poolName=${encodeURIComponent(pool.name)}`
-    );
   }
 
   let refreshIntervals: { [key: string]: number } = {};
@@ -87,26 +96,9 @@
     });
   });
 
-  function togglePool(pool: TrainingPool) {
-    pool.expanded = !pool.expanded;
-
-    // Start periodic refresh if expanded
-    if (pool.expanded) {
-      // Initial refresh
-      refreshPoolData(pool._id);
-      // Set up interval for periodic refresh
-      refreshIntervals[pool._id] = window.setInterval(() => {
-        refreshPoolData(pool._id);
-      }, 300000); // Refresh every 5 minutes
-    } else {
-      // Clear interval when collapsed
-      if (refreshIntervals[pool._id]) {
-        clearInterval(refreshIntervals[pool._id]);
-        delete refreshIntervals[pool._id];
-      }
-    }
-
-    trainingPools = trainingPools;
+  function navigateToGymDetail(pool: ExtendedPool) {
+    // Navigate to the gym detail page
+    goto(`/app/forge/${pool._id}`);
   }
 
   async function refreshPoolData(poolId: string) {
@@ -138,10 +130,35 @@
     if (!$walletAddress) return;
 
     try {
-      await createPool({
-        ...data,
-        ownerAddress: $walletAddress
-      });
+      // Try to generate apps first if we have skills
+      let apps = undefined;
+      if (data.skills.trim()) {
+        try {
+          const response = await generateApps(data.skills);
+          if (response?.content?.apps?.length > 0) {
+            apps = response.content.apps;
+          }
+        } catch (genError) {
+          console.error("Failed to generate apps:", genError);
+          // Continue without apps
+        }
+      }
+      
+      // Create pool with apps if available
+      if (apps) {
+        await createPoolWithApps({
+          ...data,
+          apps,
+          ownerAddress: $walletAddress
+        });
+      } else {
+        await createPool({
+          ...data,
+          ownerAddress: $walletAddress
+        });
+      }
+      
+      currentSkills = '';
       showCreateModal = false;
       loadPools();
     } catch (err) {
@@ -150,8 +167,8 @@
   }
 
   async function handleUpdatePool(
-    pool: TrainingPool,
-    updates: { status?: TrainingPoolStatus.live | TrainingPoolStatus.paused; skills?: string; pricePerDemo?: number }
+    pool: ExtendedPool,
+    updates: any
   ) {
     try {
       await updatePool({
@@ -163,99 +180,69 @@
       error = err instanceof Error ? err.message : 'Failed to update AI agent gym';
     }
   }
-
-  function handleSkillsChange(pool: TrainingPool, skills: string) {
-    pool.skills = skills;
-    pool.unsavedSkills = true;
-    trainingPools = trainingPools;
-  }
-
-  function handlePriceChange(pool: TrainingPool, price: number) {
-    // Ensure price is at least 1 VIRAL
-    pool.pricePerDemo = Math.max(1, price);
-    pool.unsavedPrice = true;
-    trainingPools = trainingPools;
-  }
-
-  async function handleSaveSkills(pool: TrainingPool) {
-    try {
-      await handleUpdatePool(pool, { skills: pool.skills });
-      pool.unsavedSkills = false;
-      trainingPools = trainingPools;
-    } catch (err) {
-      // Error is already handled by handleUpdatePool
-    }
-  }
-
-  async function handleSavePrice(pool: TrainingPool) {
-    try {
-      await handleUpdatePool(pool, { pricePerDemo: pool.pricePerDemo });
-      pool.unsavedPrice = false;
-      trainingPools = trainingPools;
-    } catch (err) {
-      // Error is already handled by handleUpdatePool
-    }
-  }
-
-  function setRecommendedPrice(pool: TrainingPool) {
-    handlePriceChange(pool, 7); // Set recommended price to 7 VIRAL
-  }
-
-  function handleStatusToggle(pool: TrainingPool) {
-    handleUpdatePool(pool, {
-      status:
-        pool.status === TrainingPoolStatus.live
-          ? TrainingPoolStatus.paused
-          : TrainingPoolStatus.live
-    });
-  }
 </script>
 
 <div class="h-full space-y-6 p-4">
   <div>
-    <div class="flex justify-between items-center mb-2">
-      <h2 class="text-2xl font-bold">Forge</h2>
-      <Button
-        class="px-4! py-2!"
-        onclick={() => (showCreateModal = true)}
-        disabled={$walletAddress ? false : true}>
-        Create New Gym
-      </Button>
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-2xl font-bold">Forge</h2>
+      </div>
+      <p class="text-gray-400">
+        Collect crowd-powered demonstrations, perfect for training AI agents.
+      </p>
     </div>
-    <p class="text-gray-400">
-      Collect crowd-powered demonstrations, perfect for training AI agents.
-    </p>
-  </div>
 
-  {#if error}
-    <div class="p-4 bg-red-500/10 text-red-500 rounded-lg">
-      {error}
-    </div>
-  {/if}
+    {#if error}
+      <div class="p-4 bg-red-500/10 text-red-500 rounded-lg">
+        {error}
+      </div>
+    {/if}
 
-  {#if !$walletAddress}
-    <div class="text-center text-blac py-8">
-      Connect your wallet to view and manage your AI agent gyms
-    </div>
-  {:else if loading}
-    <div class="text-center text-gray-400 py-8">Loading AI agent gyms...</div>
-  {:else if trainingPools.length === 0}
-    <div class="text-center text-gray-400 py-8">
-      No AI agent gyms found. Create one to get started!
-    </div>
-  {:else}
-    <div class="space-y-4">
-      {#each trainingPools as pool (pool._id)}
-        <Card variant="secondary" padding="md">
+    {#if !$walletAddress}
+      <div class="text-center text-black py-8">
+        Connect your wallet to view and manage your AI agent gyms
+      </div>
+    {:else if loading}
+      <div class="text-center text-gray-400 py-8">Loading AI agent gyms...</div>
+    {:else if trainingPools.length === 0}
+      <div class="text-center text-gray-400 py-8">
+        No AI agent gyms found. Create one to get started!
+      </div>
+    {:else}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <!-- Create New Gym Card -->
+        <Card variant="secondary" padding="md" className="h-full flex flex-col border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-secondary-300 transition-all duration-300">
           <div
-            class="flex justify-between items-center cursor-pointer"
+            class="flex flex-col h-full items-center justify-center cursor-pointer"
             role="button"
             tabindex="0"
-            onkeydown={() => togglePool(pool)}
-            onclick={() => togglePool(pool)}>
-            <div>
-              <div class="flex items-center gap-2">
-                <div class="font-title text-lg">{pool.name}</div>
+            onkeydown={() => (showGenerateGymModal = true)}
+            onclick={() => (showGenerateGymModal = true)}>
+            <div class="rounded-full bg-gray-200 w-24 h-24 flex items-center justify-center mb-4  transition-colors duration-300 transform transition-transform">
+              <span class="text-5xl text-gray-500 font-light transition-colors duration-300">+</span>
+            </div>
+            <div class="text-lg font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-300">Create New Gym</div>
+            <p class="text-sm text-gray-500 text-center mt-2 group-hover:text-gray-600 transition-colors duration-300">
+              Start collecting demonstrations for your AI agent training
+            </p>
+          </div>
+        </Card>
+        
+        {#each trainingPools as pool (pool._id)}
+          <Card variant="secondary" padding="md" className="h-full flex flex-col hover:bg-white hover:shadow-lg! transition-shadow duration-300">
+            <div
+              class="flex flex-col h-full cursor-pointer transition-opacity duration-300"
+              role="button"
+              tabindex="0"
+              onkeydown={() => navigateToGymDetail(pool)}
+              onclick={() => navigateToGymDetail(pool)}>
+              <!-- Gym Name -->
+              <div class="font-title text-lg mb-2 truncate {
+                pool.status !== TrainingPoolStatus.live ? 'opacity-50' : ''
+              }">{pool.name}</div>
+              
+              <!-- Status Badge -->
+              <div class="flex items-center gap-1 mb-3">
                 <div
                   class="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full {pool.status ===
                   TrainingPoolStatus.live
@@ -281,234 +268,76 @@
                   {/if}
                 </div>
               </div>
-              <div class="text-sm text-gray-500 flex items-center gap-3">
-                <span>{pool.demonstrations.toLocaleString()} demos</span>
-                <span class="text-gray-300">·</span>
-                <span>{pool.pricePerDemo || 1} <b>{pool.token.symbol}</b>/demo</span>
-                <span class="text-gray-300">·</span>
-                <span>{pool.funds.toLocaleString()} <b>{pool.token.symbol}</b> balance</span>
-              </div>
-            </div>
-            <div class="flex gap-2 items-center">
-              <Button
-                class="px-3 py-1.5 text-sm"
-                variant="secondary"
-                type="button"
-                onclick={() => previewQuest(pool)}>
-                View Gym
-              </Button>
-              <Button class="px-3 py-1.5 text-sm">Export Data</Button>
-              <div class="text-gray-400 flex items-center cursor-pointer">
-                {#if pool.expanded}
-                  <ChevronDown size={24} />
-                {:else}
-                  <ChevronRight size={24} />
-                {/if}
-              </div>
-            </div>
-          </div>
-
-          {#if pool.expanded}
-            {#if pool.status === TrainingPoolStatus.noGas || pool.status === TrainingPoolStatus.noFunds}
-            <div class="p-4 my-3 bg-amber-50 border-l-4 border-amber-400 rounded-lg flex gap-3 shadow-sm">
-              <div class="text-amber-500 flex-shrink-0">
-                <AlertTriangle size={18} />
-              </div>
-              <div class="flex-1">
-                {#if pool.status === TrainingPoolStatus.noGas}
-                  <p class="text-sm text-amber-900 font-semibold mb-1">
-                    Missing SOL for Gas
-                  </p>
-                  <p class="text-xs leading-relaxed text-amber-800">
-                    Your gym needs SOL to pay for on-chain transactions. Without gas, the gym cannot function on the Solana blockchain.
-                  </p>
-                {:else if pool.status === TrainingPoolStatus.noFunds}
-                  <p class="text-sm text-amber-900 font-semibold mb-1">
-                    Missing VIRAL Tokens
-                  </p>
-                  <p class="text-xs leading-relaxed text-amber-800">
-                    Your gym needs VIRAL tokens to reward users who provide demonstrations. Without funds, users won't receive compensation.
-                  </p>
-                {/if}
-                <p class="text-xs text-amber-800 font-medium mt-2">
-                  Deposit {pool.status === TrainingPoolStatus.noGas ? 'SOL' : 'VIRAL'} to the address above to activate your gym and start collecting data.
-                </p>
-              </div>
-            </div>
-          {/if}
-
-            <div class="mt-4 space-y-4">
-              <div>
-                <div class="flex justify-between items-center mb-2">
-                  <div>
-                    <p class="text-sm font-semibold">Skills to Train</p>
-                    <p class="text-xs text-gray-500 italic">
-                      Customize your AI agent gym's training focus. These skills generate new tasks for user demonstrations.
-                    </p>
+              
+              <!-- Stats -->
+              <div class="mt-auto">
+                <div class="flex items-center justify-between mt-2">
+                  <div class="text-sm font-medium">
+                    {(pool.tokenBalance || 0).toLocaleString()} <span class="font-medium">{pool.token.symbol}</span>
                   </div>
-                  <div class="flex gap-2">
-                    {#if pool.unsavedSkills}
-                      <Button
-                        class="px-3 py-1.5 text-sm border-green-500! text-green-600! hover:bg-green-100! bg-gray-200!"
-                        onclick={() => handleSaveSkills(pool)}>
-                        Save Skills
-                      </Button>
-                    {/if}
-                    {#if pool.status !== TrainingPoolStatus.noFunds && pool.status !== TrainingPoolStatus.noGas}
-                      <Button
-                        class="px-3 py-1.5 text-sm bg-transparent! {pool.status ===
-                        TrainingPoolStatus.live
-                          ? 'border-gray-300! text-gray-700! hover:bg-gray-200!'
-                          : 'border-green-500! text-green-600! hover:bg-green-100!'}"
-                        onclick={() => handleStatusToggle(pool)}>
-                        {pool.status === TrainingPoolStatus.live ? 'Pause Gym' : 'Resume Gym'}
-                      </Button>
-                    {/if}
-                  </div>
-                </div>
-                <TextArea
-                  class="h-32"
-                  variant="light"
-                  placeholder="List the skills you want to train your AI agent on (one per line)..."
-                  bind:value={pool.skills}
-                  oninput={(e) => handleSkillsChange(pool, e.currentTarget.value)}>
-                </TextArea>
-              </div>
-
-              <div>
-                <div class="flex justify-between items-center mb-2">
-                  <div>
-                    <p class="text-sm font-semibold">Deposit Address ({pool.token.symbol})</p>
-                    <p class="text-xs text-gray-500 italic">
-                      Send ${pool.token.symbol} to this address to fund your gym.
-                    </p>
-                  </div>
-                  <Button
-                    class="px-2 py-1 text-sm"
-                    variant="secondary"
-                    onclick={() => refreshPoolData(pool._id)}
-                    disabled={refreshingPools.has(pool._id)}>
-                    <span>Refresh</span>
-                    <RefreshCw
-                      size={14}
-                      class={`inline mb-0.5 ${refreshingPools.has(pool._id) ? 'animate-spin' : ''}`} />
-                  </Button>
-                </div>
-                <div class="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    class="flex-1 p-2 bg-gray-200 rounded-lg cursor-text"
-                    readonly
-                    value={pool.depositAddress} />
-                  <CopyButton content={pool.depositAddress} />
-                </div>
-              </div>
-
-              <div>
-                <div class="flex justify-between items-center mb-2">
-                  <div>
-                    <div class="flex items-center gap-2">
-                      <p class="text-sm font-semibold">Pricing Settings</p>
-                    </div>
-                    <p class="text-xs text-gray-500 italic">
-                      Set compensation rates for users who contribute demonstration data to your gym.
-                    </p>
-                  </div>
-                  <div class="flex gap-2">
-                    {#if pool.unsavedPrice}
-                      <Button
-                        class="px-3 py-1.5 text-sm border-green-500! text-green-600! hover:bg-green-100! bg-gray-200!"
-                        onclick={() => handleSavePrice(pool)}>
-                        Save Price
-                      </Button>
-                    {/if}
-                  </div>
+                  <div class="text-sm text-gray-500">Pool Balance</div>
                 </div>
                 
-                <div class="bg-gray-100 p-4 rounded-lg">
-                  <div class="mb-3">
-                    <label class="flex items-center justify-between mb-2">
-                      <span class="text-sm font-medium">Price per demonstration</span>
-                      <Button 
-                        class="px-2 py-1 text-xs bg-blue-50! text-blue-600! border-blue-200!"
-                        onclick={() => setRecommendedPrice(pool)}>
-                        Use recommended (7 VIRAL)
-                      </Button>
-                    </label>
-                    <div class="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        step="0.1"
-                        class="flex-1 p-2 bg-white border border-gray-300 rounded-lg"
-                        value={pool.pricePerDemo || 1}
-                        oninput={(e) => handlePriceChange(pool, parseFloat(e.currentTarget.value))} />
-                      <span class="text-sm font-medium">{pool.token.symbol}</span>
+                <!-- Possible demos calculation -->
+                {#if pool.pricePerDemo && pool.pricePerDemo > 0}
+                  {@const possibleDemos = Math.floor((pool.tokenBalance || 0) / pool.pricePerDemo)}
+                  {@const totalDemos = pool.demonstrations + possibleDemos}
+                  {@const demoPercentage = totalDemos > 0 ? Math.min(100, (pool.demonstrations / totalDemos) * 100) : 0}
+                  
+                  <div class="mt-2">
+                    <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <span>Uploads / Remaining Demos</span>
+                      <span>{pool.demonstrations.toLocaleString()} / {(possibleDemos).toLocaleString()}</span>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">
-                      Minimum price: 1 {pool.token.symbol}
-                    </p>
+                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                      <div class="bg-gradient-to-br from-secondary-500 to-secondary-200 h-1.5 rounded-full" style="width: {demoPercentage}%"></div>
+                    </div>
                   </div>
-
-                  {#if !loadingPrices && viralPrice > 0}
-                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 shadow-sm mt-4">
-                      <div class="flex items-center gap-2 mb-3">
-                        <DollarSign size={16} class="text-blue-600" />
-                        <p class="text-sm font-bold text-blue-800">Pricing Calculator</p>
-                      </div>
-                      
-                      <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-white/60 p-2 rounded border border-blue-100">
-                          <p class="text-xs text-blue-500 mb-1">VIRAL Market Price</p>
-                          <p class="text-sm font-bold text-blue-900">${viralPrice.toFixed(4)} <span class="text-xs font-normal">USD per token</span></p>
-                        </div>
-                        
-                        <div class="bg-white/60 p-2 rounded border border-blue-100">
-                          <p class="text-xs text-blue-500 mb-1">Reward in USD</p>
-                          <p class="text-sm font-bold text-blue-900">${((pool.pricePerDemo || 1) * viralPrice).toFixed(2)} <span class="text-xs font-normal">per demo</span></p>
-                        </div>
-                      </div>
-                      
-                      <div class="mt-3 bg-blue-100/50 p-3 rounded-lg border border-blue-200">
-                        <p class="text-sm text-blue-800 font-medium mb-1">Demonstration Capacity</p>
-                        <div class="flex flex-col gap-3">
-                          <div class="flex items-center justify-center gap-2 py-1">
-                            <div class="flex flex-col items-center">
-                              <div class="bg-white px-3 py-1 rounded-lg border border-blue-200 font-bold text-blue-900">
-                                {pool.funds.toLocaleString()} {pool.token.symbol}
-                              </div>
-                              <p class="text-xs text-blue-600 mt-1">Pool Balance</p>
-                            </div>
-                            <div class="text-blue-500 font-bold">÷</div>
-                            <div class="flex flex-col items-center">
-                              <div class="bg-white px-3 py-1 rounded-lg border border-blue-200 font-bold text-blue-900">
-                                {(pool.pricePerDemo || 1).toLocaleString()} {pool.token.symbol}
-                              </div>
-                              <p class="text-xs text-blue-600 mt-1">Price Per Demo</p>
-                            </div>
-                            <div class="text-blue-500 font-bold">=</div>
-                            <div class="flex flex-col items-center">
-                              <div class="bg-indigo-100 px-3 py-1 rounded-lg border border-blue-300 font-bold text-indigo-900">
-                                {Math.floor(pool.funds / (pool.pricePerDemo || 1)).toLocaleString()}
-                              </div>
-                              <p class="text-xs text-blue-600 mt-1">Possible Demos</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  {/if}
+                {/if}
+                
+                <div class="flex justify-end mt-2">
+                <button 
+                  class="text-secondary-500 text-sm flex items-center gap-1 hover:text-blue-600 focus:outline-none"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    navigateToGymDetail(pool);
+                  }}
+                >
+                  View Details
+                  <div class="text-gray-400">
+                    <ChevronRight size={16} />
+                  </div>
+                </button>
                 </div>
               </div>
             </div>
-          {/if}
-        </Card>
-      {/each}
-    </div>
-  {/if}
+          </Card>
+        {/each}
+      </div>
+    {/if}
 </div>
 
 <CreatePoolModal
   show={showCreateModal}
   onClose={() => (showCreateModal = false)}
-  onCreate={handleCreatePool} />
+  onCreate={handleCreatePool}
+  initialSkills={currentSkills} />
+
+<!-- Use GenerateGymModal for gym creation -->
+<GenerateGymModal 
+  show={showGenerateGymModal}
+  skills={currentSkills}
+  on:change={(e) => currentSkills = e.detail.skills}
+  on:close={() => showGenerateGymModal = false}
+  on:save={async () => {
+    try {
+      // Try to generate apps based on the prompt first
+      await generateApps(currentSkills);
+    } catch (err) {
+      console.error("Failed to pre-generate apps:", err);
+    } finally {
+      // Continue with creating the pool regardless of app generation success
+      showGenerateGymModal = false;
+      showCreateModal = true;
+    }
+  }} />
