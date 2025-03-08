@@ -1,7 +1,5 @@
 <script lang="ts">
   import Card from '$lib/components/Card.svelte';
-  import Button from '$lib/components/Button.svelte';
-  import TextArea from '$lib/components/TextArea.svelte';
   import { slide } from 'svelte/transition';
   import PriceRangeSlider from '$lib/components/gym/PriceRangeSlider.svelte';
   import { ListTodo, Loader, Pencil, Check, X, Eye, Settings, Sparkles } from 'lucide-svelte';
