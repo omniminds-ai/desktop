@@ -66,14 +66,14 @@
       <div class="flex-1">
         {#if pool.status === TrainingPoolStatus.noGas}
           <p class="text-sm text-amber-900 font-semibold mb-1">
-            Missing SOL for Gas
+            Insufficient SOL for Gas
           </p>
           <p class="text-xs leading-relaxed text-amber-800">
             Your gym needs SOL to pay for on-chain transactions. Without gas, the gym cannot function on the Solana blockchain.
           </p>
         {:else if pool.status === TrainingPoolStatus.noFunds}
           <p class="text-sm text-amber-900 font-semibold mb-1">
-            Missing VIRAL Tokens
+            Insufficient VIRAL Tokens
           </p>
           <p class="text-xs leading-relaxed text-amber-800">
             Your gym needs VIRAL tokens to reward users who provide demonstrations. Without funds, users won't receive compensation.
