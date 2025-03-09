@@ -357,6 +357,8 @@ export interface PoolSubmission {
     quest: {
       pool_id: string;
       app_id: string;
+      title?: string;
+      app?: string;
     };
     [key: string]: any;
   };
@@ -364,6 +366,8 @@ export interface PoolSubmission {
   files: {
     file: string;
     s3Key: string;
+    _id?: string;
+    size?: number;
   }[];
   grade_result?: any;
   reward: number;
