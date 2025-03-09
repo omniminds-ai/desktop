@@ -302,7 +302,7 @@
       <p>No tasks available.</p>
     </div>
   {:else}
-    <div class="overflow-y-auto pr-1" style="max-height: calc(100vh - 500px);">
+    <div>
       <div
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr w-full">
         {#each filteredApps as app}
