@@ -21,6 +21,7 @@
       <p class="text-gray-700 mb-6">
         Before uploading your recording, make sure you've read the <a
           href="https://github.com/viralmind-ai/desktop/blob/main/PRIVACY.md"
+          target="_blank"
           class="hover:underline text-secondary-300">
           Privacy Policy.
         </a>
