@@ -10,6 +10,7 @@ use tauri::{AppHandle, Manager};
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Settings {
     pub upload_confirmed: bool,
+    pub onboarding_complete: bool,
 }
 
 impl Settings {
@@ -80,8 +81,20 @@ pub fn get_upload_data_allowed(app: AppHandle) -> bool {
 }
 
 #[tauri::command]
+pub fn get_onboarding_complete(app: AppHandle) -> bool {
+    Settings::load(&app).onboarding_complete
+}
+
+#[tauri::command]
 pub fn set_upload_confirmed(app: AppHandle, confirmed: bool) -> Result<(), String> {
     let mut settings = Settings::load(&app);
     settings.upload_confirmed = confirmed;
+    settings.save(&app)
+}
+
+#[tauri::command]
+pub fn set_onboarding_complete(app: AppHandle, confirmed: bool) -> Result<(), String> {
+    let mut settings = Settings::load(&app);
+    settings.onboarding_complete = confirmed;
     settings.save(&app)
 }

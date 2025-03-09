@@ -1,140 +1,101 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
-  import { relaunch } from '@tauri-apps/plugin-process';
-  import Button from '$lib/components/Button.svelte';
-  import { getPlatform } from '$lib/utils';
   import { goto } from '$app/navigation';
+  import Logo from '$lib/assets/Logo_Icon.png';
+  import Button from '$lib/components/Button.svelte';
+  import WalletButton from '$lib/components/WalletButton.svelte';
+  import { getPlatform } from '$lib/utils';
+  import { privacyAccepted } from '$lib/stores/privacy';
+  import { walletAddress } from '$lib/stores/wallet';
+  import { invoke } from '@tauri-apps/api/core';
+  import PrivacyPolicy from '$lib/components/PrivacyPolicy.svelte';
 
-  // State for tracking permissions
-  let isMacOS = true;
-  let accessibilityGranted = false;
-  let screenRecordingGranted = false;
-  let loading = true;
+  // Reactive variable to check if both conditions are met
+  const canContinue = $derived($privacyAccepted && $walletAddress !== null);
 
-  // Check if we're on macOS
-  onMount(async () => {
-    // Check platform
+  const goNext = async () => {
     const platform = await getPlatform();
-    loading = false;
 
-    // If not on macOS, we don't need to show this page
-    if (platform !== 'macos') {
-      console.log('Not on macos, skipping permissions');
-      return goto('/app/gym');
+    const accessibilityGranted = await invoke('has_ax_perms');
+    const screenRecordingGranted = await invoke('has_record_perms');
+
+    if (platform === 'macos') {
+      if (accessibilityGranted && screenRecordingGranted) {
+        await invoke('set_onboarding_complete', { confirmed: true });
+        goto('/app/gym');
+      } else {
+        goto('/onboarding/ax');
+      }
+    } else {
+      await invoke('set_onboarding_complete', { confirmed: true });
+      goto('/app/gym');
     }
-
-    accessibilityGranted = await invoke('has_ax_perms');
-    screenRecordingGranted = await invoke('has_record_perms');
-  });
-
-  // Request accessibility permissions
-  async function requestAccessibilityPermission() {
-    try {
-      // macOS will show the system dialog
-      await invoke('request_ax_perms');
-      accessibilityGranted = true;
-    } catch (error) {
-      console.error('Error requesting accessibility permissions:', error);
-    }
-  }
-
-  // Request screen recording permissions
-  async function requestScreenRecordingPermission() {
-    try {
-      await invoke('request_record_perms');
-      screenRecordingGranted = true;
-    } catch (error) {
-      console.error('Error requesting screen recording permissions:', error);
-    }
-  }
-
-  // Restart the app
-  async function restartApp() {
-    try {
-      await relaunch();
-    } catch (error) {
-      console.error('Error restarting app:', error);
-    }
-  }
-
-  // Check if all permissions are granted
-  $: allPermissionsGranted = accessibilityGranted && screenRecordingGranted;
+  };
 </script>
 
-<div class="flex justify-center items-center min-h-screen p-8">
-  <div class="max-w-3xl w-full bg-white rounded-2xl p-8 shadow-md text-black">
-    <h1 class="text-4xl mb-4 text-secondary-300 text-center font-title">
+<div class="max-w-3xl w-full bg-white rounded-2xl px-8 py-4 shadow-lg text-black">
+  <div class="flex-col flex items-center justify-center border-b border-gray-200 pb-6 mb-6">
+    <img src={Logo} alt="Viralmind Logo" class="w-28 h-28 object-contain mb-4" />
+    <h1 class="text-4xl mb-3 text-secondary-300 text-center font-title font-bold">
       Welcome to Viralmind Desktop
     </h1>
+    <p class="text-lg text-gray-600">Train AI, Complete Tasks, Earn Rewards</p>
+  </div>
 
-    {#if loading}
-      <p class="text-center">Loading...</p>
-    {:else if !isMacOS}
-      <p class="text-center">You're not on macOS, so no special permissions are needed.</p>
-      <div class="flex justify-center mt-8">
-        <Button variant="primary" onclick={restartApp}>Continue to App</Button>
-      </div>
-    {:else}
-      <p class="text-xl mb-8 text-center">
-        To use all features of Viralmind Desktop, we need the following permissions:
-      </p>
+  <div class="space-y-5">
+    <p class="text-lg font-medium text-gray-700 mb-6">
+      Just a couple of things before we get started:
+    </p>
 
-      <div class="flex flex-col gap-6 mb-8">
-        <!-- Accessibility Permission -->
-        <div
-          class={`bg-gray-100 shadow-md rounded-lg p-6 border-l-4 ${accessibilityGranted ? 'border-emerald-500 bg-opacity-10 bg-emerald-500' : 'border-red-600'} transition-all duration-300`}>
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-xl font-title m-0">1. Accessibility Permission</h3>
-            {#if accessibilityGranted}
-              <span class="text-sm font-bold py-1 px-2 rounded bg-emerald-500 text-white">
-                ✓ Pending
-              </span>
-            {:else}
-              <span class="text-sm font-bold py-1 px-2 rounded bg-red-600 text-white">Denied</span>
-            {/if}
-          </div>
-          <p class="mb-4 leading-relaxed">
-            This allows Viralmind to understand what's on your screen and provide relevant
-            assistance.
-          </p>
-          {#if !accessibilityGranted}
-            <Button variant="primary" onclick={requestAccessibilityPermission}>
-              Grant Accessibility Permission
-            </Button>
-          {/if}
+    <div class="space-y-8">
+      <div class="bg-gray-50 p-6 rounded-xl border border-gray-100 shadow-sm">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+          <span
+            class="bg-secondary-300 text-white rounded-full w-7 h-7 inline-flex items-center justify-center mr-3">
+            1
+          </span>
+          Accept the Privacy Policy
+        </h3>
+        <div class="mb-4">
+          <PrivacyPolicy class={'h-64'} />
         </div>
-        <!-- Screen Recording Permission -->
-        <div
-          class={`bg-gray-100 shadow-md rounded-lg p-6 border-l-4 ${screenRecordingGranted ? 'border-emerald-500 bg-opacity-10 bg-emerald-500' : 'border-red-600'} transition-all duration-300`}>
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-xl font-title m-0">2. Screen Recording Permission</h3>
-            {#if screenRecordingGranted}
-              <span class="text-sm font-bold py-1 px-2 rounded bg-emerald-500 text-white">
-                ✓ Pending
-              </span>
-            {:else}
-              <span class="text-sm font-bold py-1 px-2 rounded bg-red-600 text-white">Denied</span>
-            {/if}
+        <div class="flex items-center gap-3">
+          <div class="flex items-center">
+            <input
+              type="checkbox"
+              id="privacy-checkbox"
+              class="w-5 h-5 text-secondary-300 bg-gray-100 border-gray-300 rounded focus:ring-secondary-300"
+              bind:checked={$privacyAccepted} />
+            <label for="privacy-checkbox" class="ml-2 text-gray-700">I accept</label>
           </div>
-          <p class="mb-4 leading-relaxed">
-            This allows Viralmind to record your screen for training and assistance purposes.
-          </p>
-          {#if !screenRecordingGranted}
-            <Button variant="primary" onclick={requestScreenRecordingPermission}>
-              Grant Screen Recording Permission
-            </Button>
-          {/if}
         </div>
       </div>
 
-      <div class="flex justify-center mt-8">
-        <Button variant="green" disabled={!allPermissionsGranted} onclick={restartApp}>
-          {allPermissionsGranted
-            ? 'Restart for Permissions to Take Effect'
-            : 'Please Grant All Permissions'}
-        </Button>
+      <div class="bg-gray-50 p-6 rounded-xl border border-gray-100 shadow-sm">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+          <span
+            class="bg-secondary-300 text-white rounded-full w-7 h-7 inline-flex items-center justify-center mr-3">
+            2
+          </span>
+          Connect Your Wallet
+        </h3>
+        <div class="w-fit mx-auto mb-2">
+          <WalletButton variant="large" theme="light" />
+        </div>
+        <p class="text-center text-sm text-gray-500 mt-2">
+          {$walletAddress ? 'Wallet connected ✓' : 'Click to connect your wallet'}
+        </p>
       </div>
-    {/if}
+    </div>
+
+    <div class="flex justify-center mt-8 pt-4">
+      <Button
+        behavior="none"
+        onclick={goNext}
+        variant="green"
+        disabled={!canContinue}
+        class="px-8 py-3 text-lg font-medium">
+        Continue
+      </Button>
+    </div>
   </div>
 </div>

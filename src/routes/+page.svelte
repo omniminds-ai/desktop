@@ -8,14 +8,17 @@
     try {
       if ((await getPlatform()) === 'macos') {
         // Check if accessibility permissions are already granted
-        const hasPermission =
-          (await invoke('has_ax_perms')) &&
-          // (await invoke('has_input_perms')) &&
-          (await invoke('has_record_perms'));
+        const hasPerms = (await invoke('has_ax_perms')) && (await invoke('has_record_perms'));
+        const onboardingComplete = await invoke('get_onboarding_complete');
 
-        // If permissions are not granted, show the onboarding page
-        if (!hasPermission) {
+        if (!onboardingComplete) {
           goto('/onboarding');
+          return;
+        }
+
+        // If permissions are not granted but we've already onboarded, show the ax page
+        if (!hasPerms && onboardingComplete) {
+          goto('/onboarding/ax');
           return;
         }
       }
