@@ -59,7 +59,7 @@
     </div>
 
     <div class="py-2">
-      <div class="text-gray-400 py-1 text-xs text-center font-semibold">Spend</div>
+      <div class="text-gray-400 py-1 text-xs text-center font-semibold">Forge</div>
       {#each spendButtons as button}
         {@const Icon = button.icon}
         <a
