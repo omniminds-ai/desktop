@@ -12,6 +12,8 @@
     "core:event:allow-listen",
     "opener:default",
     "opener:allow-open-path",
+    "dialog:allow-ask",
+    "dialog:default",
     "shell:allow-execute",
     "dialog:allow-confirm",
     "shell:allow-open",

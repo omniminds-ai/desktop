@@ -25,14 +25,15 @@
   import { open } from '@tauri-apps/plugin-shell';
   import { uploadManager } from '$lib/stores/misc';
   import type { UploadQueueItem } from '$lib/uploadManager';
+  import { ask } from '@tauri-apps/plugin-dialog';
 
-  let searchQuery = '';
-  let exporting = false;
-  let sortOrder: 'newest' | 'oldest' = 'newest';
-  let recordings: Recording[] = [];
-  let submissions: SubmissionStatus[] = [];
-  let showUploadConfirmModal = false;
-  let dataExported = '';
+  let searchQuery = $state('');
+  let exporting = $state(false);
+  let sortOrder: 'newest' | 'oldest' = $state('newest');
+  let recordings: Recording[] = $state([]);
+  let submissions: SubmissionStatus[] = $state([]);
+  let showUploadConfirmModal = $state(false);
+  let dataExported = $state('');
   let statusIntervals: { [key: string]: number } = {};
 
   onDestroy(() => {
@@ -77,14 +78,16 @@
 
   onMount(async () => {
     try {
-      recordings = await invoke('list_recordings');
       if ($walletAddress) {
         loadSubmissions($walletAddress);
       }
+      recordings = await invoke('list_recordings');
 
-      $uploadManager.on('statusChange', '*', (rId, item) => {
-        const rec = filteredRecordings.find((r) => r.id === rId);
-        if (rec && item.result) rec.submission = item.result;
+      $uploadManager.on('statusChange', '*', async (rId, item) => {
+        if ($walletAddress) await loadSubmissions($walletAddress);
+        recordings = await invoke('list_recordings');
+        // const rec = filteredRecordings.find((r) => r.id === rId);
+        // if (rec && item.result) rec.submission = item.result;
       });
     } catch (error) {
       console.error('Failed to fetch recordings:', error);
@@ -98,7 +101,7 @@
     }
   });
 
-  $: mergedRecordings = [
+  const mergedRecordings = $derived([
     // First include all local recordings with their submissions
     ...recordings.map((recording) => {
       const submission = submissions.find((s) => s.meta?.id === recording.id);
@@ -128,22 +131,24 @@
         },
         submission: s
       }))
-  ];
+  ]);
 
-  $: filteredRecordings = mergedRecordings
-    .filter(
-      (recording) =>
-        recording.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (recording.description &&
-          recording.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    )
-    .sort((a, b) => {
-      if (sortOrder === 'newest') {
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-      } else {
-        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-      }
-    });
+  const filteredRecordings = $derived(
+    mergedRecordings
+      .filter(
+        (recording) =>
+          recording.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (recording.description &&
+            recording.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+      .sort((a, b) => {
+        if (sortOrder === 'newest') {
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        } else {
+          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        }
+      })
+  );
 
   async function handleExport() {
     exporting = true;
@@ -194,8 +199,8 @@
   };
 
   // Popup menu state
-  let showMenu = false;
-  let menuPosition = { x: 0, y: 0 };
+  let showMenu = $state(false);
+  let menuPosition = $state({ x: 0, y: 0 });
   let activeRecordingId: string | null = null;
 
   // Handle menu button click
@@ -221,15 +226,23 @@
 
   // Delete recording function
   async function deleteRecording(recordingId: string) {
-    if (confirm('Are you sure you want to delete this recording? This action cannot be undone.')) {
+    const res = await ask(
+      'Are you sure you want to delete this recording? This action cannot be undone.',
+      {
+        title: 'Delete Recording',
+        kind: 'warning'
+      }
+    );
+    if (res) {
       try {
         await invoke('delete_recording', { recordingId });
         // Refresh recordings list
+        if ($walletAddress) await loadSubmissions($walletAddress);
         recordings = await invoke('list_recordings');
         //todo: figure out why this doesn't remove the existing recording from the list
       } catch (error) {
         console.error('Failed to delete recording:', error);
-        alert('Failed to delete recording: ' + error);
+        alert(`Error. Recording deletion failed.\n${error}`);
       }
     }
   }
@@ -243,14 +256,14 @@
         class="absolute right-10 top-10 bg-gray-700 rounded-lg p-5 z-50">
         <p class="text-emerald-500 font-semibold">Data Export Complete!</p>
         <button
-          on:click={() => open(dataExported.substring(0, dataExported.lastIndexOf('/') + 1))}
+          onclick={() => open(dataExported.substring(0, dataExported.lastIndexOf('/') + 1))}
           class="text-sm text-gray-300 hover:underline cursor-pointer hover:text-white">
           {dataExported}
         </button>
       </div>
     {/if}
     <button
-      on:click={() => invoke('open_recording_folder', { recordingId: '' })}
+      onclick={() => invoke('open_recording_folder', { recordingId: '' })}
       class="text-secondary-300 text-sm cursor-pointer mb-2 -mt-2 hover:underline">
       Open Recordings Folder
     </button>
@@ -302,7 +315,7 @@
               src={recording.meta?.quest?.icon_url || recording.submission?.meta?.quest?.icon_url}
               alt="App icon"
               class="w-8 h-8 rounded-md object-contain"
-              on:error={handleImageError} />
+              onerror={handleImageError} />
           {:else}
             <div
               class="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center text-gray-500">
@@ -424,16 +437,18 @@
       }}>
       Open Folder
     </MenuItem>
-    <MenuItem
-      icon={Trash2}
-      danger
-      on:click={() => {
-        if (activeRecordingId) {
-          deleteRecording(activeRecordingId);
-        }
-        showMenu = false;
-      }}>
-      Delete
-    </MenuItem>
+    {#if !submissions.find((s) => s.meta.id === activeRecordingId)}
+      <MenuItem
+        icon={Trash2}
+        danger
+        on:click={() => {
+          if (activeRecordingId) {
+            deleteRecording(activeRecordingId);
+          }
+          showMenu = false;
+        }}>
+        Delete
+      </MenuItem>
+    {/if}
   </PopupMenu>
 </div>
