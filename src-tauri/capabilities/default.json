@@ -18,9 +18,10 @@
     "clipboard-manager:allow-write-text",
     "log:default",
     "deep-link:default",
-    "dialog:allow-open", 
+    "dialog:allow-open",
     "dialog:default",
     "store:default",
-    "os:allow-platform"
+    "os:allow-platform",
+    "store:default"
   ]
 }

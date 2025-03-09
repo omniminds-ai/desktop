@@ -8,6 +8,7 @@
   "permissions": [
     "core:default",
     "core:event:allow-listen",
-    "log:default"
+    "log:default",
+    "store:default"
   ]
 }

@@ -1,10 +1,11 @@
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
 use std::collections::HashMap;
 use std::process::{Command, Output};
-use tauri::{AppHandle, Manager, State, Emitter};
+use std::sync::Mutex;
 use tauri::async_runtime::spawn;
+use tauri::{AppHandle, Emitter, Manager, State};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum EngineType {
@@ -131,22 +132,22 @@ fn sanitize_string(s: &str) -> String {
 }
 
 /// A robust cross-platform function to run shell commands with bash as the backend
-/// 
+///
 /// This function handles all the platform-specific details and provides a unified interface
 /// for executing shell commands across Windows, macOS, and Linux, using bash when possible.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `cmd` - The command to execute
 /// * `engine_type` - The type of engine to use (Native, WSL, SSH)
 /// * `wsl_config` - Configuration for WSL execution (if applicable)
 /// * `ssh_config` - Configuration for SSH execution (if applicable)
-/// 
+///
 /// # Returns
-/// 
+///
 /// A Result containing either the command Output or an error message
 pub fn run_shell_command(
-    cmd: &str, 
+    cmd: &str,
     engine_type: &EngineType,
     wsl_config: Option<&WSLConfig>,
     ssh_config: Option<&SSHConfig>,
@@ -161,41 +162,41 @@ pub fn run_shell_command(
                 .args(["/C", &sanitize_string(cmd)])
                 .output()
                 .map_err(|e| format!("Failed to execute command: {}", e))?;
-                
+
             #[cfg(not(target_os = "windows"))]
             let output = Command::new("bash")
                 .args(["-c", cmd])
                 .output()
                 .map_err(|e| format!("Failed to execute command: {}", e))?;
-                
+
             Ok(output)
-        },
+        }
         EngineType::WSL => {
             let wsl_config = wsl_config.ok_or("WSL config is missing")?;
             let distro = sanitize_string(&wsl_config.distro);
-            
+
             #[cfg(target_os = "windows")]
             let mut command = Command::new("wsl");
-            
+
             // Add distro argument if specified
             #[cfg(target_os = "windows")]
             if !distro.is_empty() {
                 command.arg("-d");
                 command.arg(&distro);
             }
-            
+
             // Add -e flag and the command
             #[cfg(target_os = "windows")]
             {
                 command.arg("-e");
-                
-                // Instead of splitting the command ourselves, 
+
+                // Instead of splitting the command ourselves,
                 // pass it as a single argument to bash
                 command.arg("bash");
                 command.arg("-c");
                 command.arg(cmd);
             }
-            
+
             // Execute the command
             #[cfg(target_os = "windows")]
             {
@@ -203,36 +204,43 @@ pub fn run_shell_command(
                 let output = command
                     .output()
                     .map_err(|e| format!("Failed to execute WSL command: {}", e))?;
-                
+
                 info!("WSL command executed successfully");
                 Ok(output)
             }
-                
+
             #[cfg(not(target_os = "windows"))]
             return Err("WSL is only supported on Windows".to_string());
-            
+
             #[cfg(not(target_os = "windows"))]
-            { unreachable!() }
-        },
+            {
+                unreachable!()
+            }
+        }
         EngineType::SSH => {
             let ssh_config = ssh_config.ok_or("SSH config is missing")?;
-            
+
             // For SSH we need to handle it differently to properly escape the command
-            let ssh_user_host = format!("{}@{}", 
+            let ssh_user_host = format!(
+                "{}@{}",
                 sanitize_string(&ssh_config.username),
                 sanitize_string(&ssh_config.host)
             );
-            
+
             #[cfg(target_os = "windows")]
             let output = Command::new("cmd")
-                .args(["/C", &format!("ssh {} -p {} \"{}\"", 
-                    ssh_user_host,
-                    ssh_config.port,
-                    cmd.replace("\"", "\\\"")
-                )])
+                .args([
+                    "/C",
+                    &format!(
+                        "ssh {} -p {} \"{}\"",
+                        ssh_user_host,
+                        ssh_config.port,
+                        cmd.replace("\"", "\\\"")
+                    ),
+                ])
                 .output()
                 .map_err(|e| format!("Failed to execute SSH command: {}", e))?;
-                
+
             #[cfg(not(target_os = "windows"))]
             let output = Command::new("ssh")
                 .arg(ssh_user_host)
@@ -241,9 +249,9 @@ pub fn run_shell_command(
                 .arg(cmd)
                 .output()
                 .map_err(|e| format!("Failed to execute SSH command: {}", e))?;
-            
+
             info!("SSH command executed");
-                
+
             Ok(output)
         }
     }
@@ -256,11 +264,11 @@ pub async fn start_engine(
     config: EngineConfig,
 ) -> Result<EngineStatus, String> {
     let mut status = engine_state.status.lock().map_err(|e| e.to_string())?;
-    
+
     if status.running {
         return Ok(status.clone());
     }
-    
+
     // Select appropriate commands based on engine type
     let (sys_info_cmd, gpu_info_cmd) = match config.engine_type {
         EngineType::Native => {
@@ -269,31 +277,32 @@ pub async fn start_engine(
             let sys_cmd = "ver";
             #[cfg(not(target_os = "windows"))]
             let sys_cmd = "uname -a";
-            
+
             #[cfg(target_os = "windows")]
             let gpu_cmd = "where nvidia-smi && nvidia-smi || echo No GPU info available";
             #[cfg(not(target_os = "windows"))]
             let gpu_cmd = "which nvidia-smi && nvidia-smi || echo 'No GPU info available'";
-            
+
             (sys_cmd, gpu_cmd)
-        },
+        }
         EngineType::WSL => {
             // For WSL we need simpler commands without pipes or shell operators
             ("uname -a", "nvidia-smi")
-        },
-        EngineType::SSH => {
-            ("uname -a", "which nvidia-smi && nvidia-smi || echo 'No GPU info available'")
         }
+        EngineType::SSH => (
+            "uname -a",
+            "which nvidia-smi && nvidia-smi || echo 'No GPU info available'",
+        ),
     };
-    
+
     // Execute system info command
     let sys_cmd_result = run_shell_command(
         sys_info_cmd,
         &config.engine_type,
         config.wsl_config.as_ref(),
-        config.ssh_config.as_ref()
+        config.ssh_config.as_ref(),
     );
-    
+
     let system_info = match sys_cmd_result {
         Ok(output) => {
             if output.status.success() {
@@ -304,20 +313,20 @@ pub async fn start_engine(
                     safe_string_from_bytes(&output.stderr)
                 ));
             }
-        },
+        }
         Err(e) => {
             return Err(e);
         }
     };
-    
+
     // Execute GPU info command
     let gpu_cmd_result = run_shell_command(
         gpu_info_cmd,
         &config.engine_type,
         config.wsl_config.as_ref(),
-        config.ssh_config.as_ref()
+        config.ssh_config.as_ref(),
     );
-    
+
     let gpu_info = match gpu_cmd_result {
         Ok(output) => {
             if output.status.success() {
@@ -328,12 +337,10 @@ pub async fn start_engine(
                     safe_string_from_bytes(&output.stderr)
                 ))
             }
-        },
-        Err(e) => {
-            Some(format!("Failed to execute GPU info command: {}", e))
         }
+        Err(e) => Some(format!("Failed to execute GPU info command: {}", e)),
     };
-    
+
     // Update engine status
     *status = EngineStatus {
         running: true,
@@ -341,10 +348,10 @@ pub async fn start_engine(
         gpu_info,
         error: None,
     };
-    
+
     // Emit engine started event
     let _ = app.emit("engine-status", &*status);
-    
+
     Ok(status.clone())
 }
 
@@ -354,21 +361,21 @@ pub async fn stop_engine(
     engine_state: State<'_, EngineState>,
 ) -> Result<EngineStatus, String> {
     let mut status = engine_state.status.lock().map_err(|e| e.to_string())?;
-    
+
     if !status.running {
         return Ok(status.clone());
     }
-    
+
     // Clear any running jobs
     let mut jobs = engine_state.jobs.lock().map_err(|e| e.to_string())?;
     jobs.clear();
-    
+
     // Update engine status
     *status = EngineStatus::default();
-    
+
     // Emit engine stopped event
     let _ = app.emit("engine-status", &*status);
-    
+
     Ok(status.clone())
 }
 
@@ -387,53 +394,59 @@ pub async fn run_command(
     command: String,
 ) -> Result<String, String> {
     let status = engine_state.status.lock().map_err(|e| e.to_string())?;
-    
+
     if !status.running {
         return Err("Engine is not running".to_string());
     }
-    
+
     // Load settings directly instead of trying to access SettingsState
     let settings = crate::settings::Settings::load(&app);
-    
+
     // Create engine config from current settings with null checks
     let engine_settings = settings.engines.unwrap_or_default();
-    
+
     let engine_type = match engine_settings.backend.as_str() {
         "wsl" => EngineType::WSL,
         "ssh" => EngineType::SSH,
-        _ => EngineType::Native
+        _ => EngineType::Native,
     };
-    
+
     let wsl_config = if engine_type == EngineType::WSL {
-        engine_settings.wsl_config.as_ref().map(|wsl_cfg| WSLConfig {
-            distro: wsl_cfg.distro.clone()
-        })
+        engine_settings
+            .wsl_config
+            .as_ref()
+            .map(|wsl_cfg| WSLConfig {
+                distro: wsl_cfg.distro.clone(),
+            })
     } else {
         None
     };
-    
+
     let ssh_config = if engine_type == EngineType::SSH {
-        engine_settings.ssh_config.as_ref().map(|ssh_cfg| SSHConfig {
-            host: ssh_cfg.host.clone(),
-            port: ssh_cfg.port,
-            username: ssh_cfg.username.clone(),
-            private_key_path: ssh_cfg.private_key_path.clone(),
-            password: None
-        })
+        engine_settings
+            .ssh_config
+            .as_ref()
+            .map(|ssh_cfg| SSHConfig {
+                host: ssh_cfg.host.clone(),
+                port: ssh_cfg.port,
+                username: ssh_cfg.username.clone(),
+                private_key_path: ssh_cfg.private_key_path.clone(),
+                password: None,
+            })
     } else {
         None
     };
-    
-    let job_id = uuid::Uuid::new_v4().to_string();
+
+    let job_id = Uuid::new_v4().to_string();
     let mut jobs = engine_state.jobs.lock().map_err(|e| e.to_string())?;
-    
+
     // Create job and add to state
     let job = CommandJob::new(job_id.clone(), command.clone());
     jobs.insert(job_id.clone(), job.clone());
-    
+
     // Emit job created event
     let _ = app.emit("job-created", &job);
-    
+
     // Run the command in a separate thread
     let app_handle = app.clone();
     let job_id_clone = job_id.clone();
@@ -446,9 +459,9 @@ pub async fn run_command(
             &command,
             &engine_type_clone,
             wsl_config_clone.as_ref(),
-            ssh_config_clone.as_ref()
+            ssh_config_clone.as_ref(),
         );
-        
+
         // Get the engine state
         let engine_state = app_handle.state::<EngineState>();
         let mut jobs = match engine_state.jobs.lock() {
@@ -458,7 +471,7 @@ pub async fn run_command(
                 return;
             }
         };
-        
+
         // Get the job
         if let Some(job) = jobs.get_mut(&job_id_clone) {
             match output {
@@ -470,18 +483,18 @@ pub async fn run_command(
                         job.status = JobStatus::Failed;
                         job.error = safe_string_from_bytes(&output.stderr);
                     }
-                },
+                }
                 Err(e) => {
                     job.status = JobStatus::Failed;
                     job.error = format!("Failed to execute command: {}", e);
                 }
             }
-            
+
             // Emit job updated event
             let _ = app_handle.emit("job-updated", &job);
         }
     });
-    
+
     Ok(job_id)
 }
 
@@ -497,9 +510,7 @@ pub async fn get_job(
 }
 
 #[tauri::command]
-pub async fn get_all_jobs(
-    engine_state: State<'_, EngineState>,
-) -> Result<Vec<CommandJob>, String> {
+pub async fn get_all_jobs(engine_state: State<'_, EngineState>) -> Result<Vec<CommandJob>, String> {
     let jobs = engine_state.jobs.lock().map_err(|e| e.to_string())?;
     Ok(jobs.values().cloned().collect())
 }
@@ -507,27 +518,28 @@ pub async fn get_all_jobs(
 #[tauri::command]
 pub async fn clear_all_jobs(
     app: AppHandle,
-    engine_state: State<'_, EngineState>
+    engine_state: State<'_, EngineState>,
 ) -> Result<(), String> {
     // Create a new jobs map with only running jobs
     let running_jobs: HashMap<String, CommandJob>;
-    
+
     {
         // Limited scope for the jobs lock to avoid lifetime issues
         let mut jobs = engine_state.jobs.lock().map_err(|e| e.to_string())?;
-        
+
         // Filter out completed jobs, keep only running ones
-        running_jobs = jobs.iter()
+        running_jobs = jobs
+            .iter()
             .filter(|(_, job)| job.status == JobStatus::Running)
             .map(|(id, job)| (id.clone(), job.clone()))
             .collect();
-        
+
         // Replace the jobs map with only running jobs
         *jobs = running_jobs;
     }
-    
+
     // Emit an event to notify clients that jobs were cleared
     let _ = app.emit("jobs-cleared", ());
-    
+
     Ok(())
 }
