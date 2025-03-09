@@ -30,7 +30,7 @@
       </div>
       
       <div class="bg-green-50 p-4 rounded-lg">
-        <div class="text-sm text-green-800">Current Balance</div>
+        <div class="text-sm text-green-800">Pool Balance</div>
         <div class="text-2xl font-bold text-green-900">{formatNumber(pool.funds)} {pool.token.symbol}</div>
       </div>
       
