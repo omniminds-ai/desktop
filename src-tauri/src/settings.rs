@@ -50,6 +50,7 @@ pub struct Settings {
     pub upload_confirmed: bool,
     pub engines: Option<EngineSettings>,
     pub storage: Option<StorageSettings>,
+    pub onboarding_complete: bool,
 }
 
 impl Settings {
@@ -117,6 +118,11 @@ fn get_settings_path(app: &AppHandle) -> PathBuf {
 #[tauri::command]
 pub fn get_upload_data_allowed(app: AppHandle) -> bool {
     Settings::load(&app).upload_confirmed
+}
+
+#[tauri::command]
+pub fn get_onboarding_complete(app: AppHandle) -> bool {
+    Settings::load(&app).onboarding_complete
 }
 
 #[tauri::command]
@@ -210,4 +216,11 @@ pub fn get_default_wsl_distro() -> Result<String, String> {
 pub fn select_directory() -> Result<String, String> {
     // Note: This function will be replaced by using dialog plugin from the frontend
     Err("Use dialog plugin from frontend".into())
+}
+
+#[tauri::command]
+pub fn set_onboarding_complete(app: AppHandle, confirmed: bool) -> Result<(), String> {
+    let mut settings = Settings::load(&app);
+    settings.onboarding_complete = confirmed;
+    settings.save(&app)
 }

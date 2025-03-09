@@ -1,7 +1,8 @@
 <script lang="ts">
   import PrivacyPolicy from '../PrivacyPolicy.svelte';
 
-  let { privacyAccepted }: { privacyAccepted: () => boolean } = $props();
+  let { privacyAccepted, class: className }: { privacyAccepted: () => boolean; class?: string } =
+    $props();
 </script>
 
 {#if privacyAccepted()}
@@ -12,5 +13,7 @@
     View Privacy Policy
   </a>
 {:else}
-  <PrivacyPolicy />
+  <div class={className}>
+    <PrivacyPolicy class={className} />
+  </div>
 {/if}

@@ -16,13 +16,13 @@
   export let refreshingPools: Set<string>;
   export let unsavedChanges: boolean;
   export let handleSaveChanges: () => Promise<void>;
-  
+
   function handleNameChange(event: Event) {
     pool.name = (event.target as HTMLInputElement).value;
     pool.unsavedName = true;
     unsavedChanges = true;
   }
-  
+
   function handlePriceChange(event: Event) {
     const price = parseFloat((event.target as HTMLInputElement).value);
     // Ensure price is at least 1 VIRAL
@@ -30,25 +30,27 @@
     pool.unsavedPrice = true;
     unsavedChanges = true;
   }
-  
+
   function formatNumber(num: number) {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 </script>
 
 <div class="space-y-6">
-  <Card padding="md" className="border border-gray-200 hover:shadow-md transition-shadow duration-300">
+  <Card
+    padding="md"
+    className="border border-gray-200 hover:shadow-md transition-shadow duration-300">
     <div class="space-y-4">
       <div>
         <label class="block text-sm font-medium mb-1">Gym Name</label>
-        <Input 
-          type="text" 
+        <Input
+          type="text"
           variant="light"
-          value={pool.name} 
+          value={pool.name}
           oninput={handleNameChange}
           placeholder="Enter gym name" />
       </div>
-      
+
       <div>
         <div class="flex justify-between items-center mb-1">
           <label class="block text-sm font-medium">Deposit Address ({pool.token.symbol})</label>
@@ -72,7 +74,7 @@
           Send {pool.token.symbol} tokens to this address to fund your gym.
         </p>
       </div>
-      
+
       <div>
         <label class="block text-sm font-medium mb-1">Price per Demonstration</label>
         <div class="flex items-center gap-2">
@@ -89,20 +91,25 @@
           Minimum price: 1 {pool.token.symbol}
         </p>
       </div>
-      
+
       <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
         <div class="flex justify-between mb-1">
           <span class="text-sm text-blue-800 font-medium">Current Balance:</span>
-          <span class="text-sm font-bold text-blue-800">{formatNumber(pool.funds)} {pool.token.symbol}</span>
+          <span class="text-sm font-bold text-blue-800">
+            {formatNumber(pool.funds)}
+            {pool.token.symbol}
+          </span>
         </div>
         <div class="flex justify-between">
           <span class="text-sm text-blue-800 font-medium">Possible Demos:</span>
-          <span class="text-sm font-bold text-blue-800">{Math.floor(pool.funds / (pool.pricePerDemo || 1))}</span>
+          <span class="text-sm font-bold text-blue-800">
+            {Math.floor(pool.funds / (pool.pricePerDemo || 1))}
+          </span>
         </div>
       </div>
     </div>
   </Card>
-  
+
   <div class="flex flex-col gap-2">
     {#if unsavedChanges}
       <Button
@@ -111,14 +118,19 @@
         Save Changes
       </Button>
     {/if}
-    
+
     <Button
-      class="w-full justify-center border-none {pool.status === TrainingPoolStatus.live
-        ? 'bg-gray-200! text-gray-800! hover:bg-gray-300!' 
-        : 'bg-green-500! text-white! hover:bg-green-600!'}"
-      onclick={() => onSave(pool, {
-        status: pool.status === TrainingPoolStatus.live ? TrainingPoolStatus.paused : TrainingPoolStatus.live
-      })}>
+      behavior="none"
+      class="py-4!"
+      variant={pool.status === TrainingPoolStatus.live ? 'secondary' : 'green'}
+      title={pool.status === TrainingPoolStatus.live ? 'Pause Gym' : 'Activate Gym'}
+      onclick={() =>
+        onSave(pool, {
+          status:
+            pool.status === TrainingPoolStatus.live
+              ? TrainingPoolStatus.paused
+              : TrainingPoolStatus.live
+        })}>
       <div class="flex items-center">
         {#if pool.status === TrainingPoolStatus.live}
           <Pause size={16} class="mr-2" />

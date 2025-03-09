@@ -3,7 +3,6 @@
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { Send, Bot, User, Keyboard, Mouse, Gamepad, Monitor, Twitter, X } from 'lucide-svelte';
-  import { onMount, onDestroy } from 'svelte';
   import Card from './Card.svelte';
   import Button from './Button.svelte';
   import Input from './Input.svelte';
@@ -49,8 +48,7 @@
 </script>
 
 <div class="relative h-full flex flex-col">
-  <!-- TEMPORARY DISABLED COVER -->
-  <!-- <div class="absolute h-full w-full z-50 flex items-center align-middle">
+  <div class="absolute h-full w-full z-50 flex items-center align-middle">
     <div class="mx-auto text-center w-full">
       <p class="font-semibold text-lg">Viralmind chat is coming soon!</p>
       <p class="text-slate-600">Stay tuned by following us on X.</p>
@@ -61,9 +59,9 @@
         <span>@viralmindai</span>
       </a>
     </div>
-  </div> -->
+  </div>
 
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col blur-xs">
     <div class="flex-1 p-6 space-y-6 overflow-y-auto">
       <div class="flex gap-4">
         <div
@@ -98,9 +96,9 @@
       </div>
     {/if}
   </div>
-  
+
   <div>
-    <div class="p-4 bg-white border-t border-gray-200">
+    <div class="p-4 bg-white border-t border-gray-200 blur-xs">
       <div class="flex gap-3 items-center max-w-4xl mx-auto">
         <form class="flex-1 flex gap-3 items-center" onsubmit={greet}>
           <Input

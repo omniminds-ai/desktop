@@ -12,11 +12,11 @@
     unsavedPrice?: boolean;
     unsavedName?: boolean;
   };
-  
+
   let submissions: PoolSubmission[] = [];
   let loading = true;
   let error: string | null = null;
-  
+
   onMount(async () => {
     try {
       loading = true;
@@ -29,7 +29,7 @@
       loading = false;
     }
   });
-  
+
   function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -37,7 +37,7 @@
       day: 'numeric'
     });
   }
-  
+
   function getFileName(submission: PoolSubmission): string {
     if (submission.files && submission.files.length > 0) {
       // Extract filename from file path or s3Key
@@ -151,15 +151,16 @@
   {:else if error}
     <div class="p-8 text-center text-red-500">
       <div class="text-sm font-medium">{error}</div>
-      <button class="mt-2 text-secondary-600 hover:text-secondary-900 text-sm" 
+      <button
+        class="mt-2 text-secondary-600 hover:text-secondary-900 text-sm hover:underline cursor-pointer"
         on:click={() => {
           loading = true;
           getPoolSubmissions(pool._id)
-            .then(data => {
+            .then((data) => {
               submissions = data;
               error = null;
             })
-            .catch(err => {
+            .catch((err) => {
               console.error('Failed to reload submissions:', err);
               error = 'Failed to load submissions. Please try again later.';
             })

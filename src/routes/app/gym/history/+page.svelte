@@ -2,7 +2,19 @@
   import { onDestroy, onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
-  import { Search, Upload, AlertTriangle, MoreVertical, Clock, Calendar } from 'lucide-svelte';
+  import PopupMenu from '$lib/components/PopupMenu.svelte';
+  import MenuItem from '$lib/components/MenuItem.svelte';
+  import {
+    Search,
+    Upload,
+    AlertTriangle,
+    MoreVertical,
+    Clock,
+    Calendar,
+    Folder,
+    Trash2,
+    Eye
+  } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
@@ -180,6 +192,47 @@
     if (!item) return false;
     return item.status === 'processing' || item.status === 'uploading' || item.status === 'zipping';
   };
+
+  // Popup menu state
+  let showMenu = false;
+  let menuPosition = { x: 0, y: 0 };
+  let activeRecordingId: string | null = null;
+
+  // Handle menu button click
+  function handleMenuClick(event: MouseEvent, recordingId: string) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // If the menu is already open and the same recording is clicked, close the menu
+    if (showMenu && activeRecordingId === recordingId) {
+      showMenu = false;
+      return;
+    }
+
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    menuPosition = {
+      x: rect.left - 200,
+      y: rect.bottom + window.scrollY
+    };
+
+    activeRecordingId = recordingId;
+    showMenu = true;
+  }
+
+  // Delete recording function
+  async function deleteRecording(recordingId: string) {
+    if (confirm('Are you sure you want to delete this recording? This action cannot be undone.')) {
+      try {
+        await invoke('delete_recording', { recordingId });
+        // Refresh recordings list
+        recordings = await invoke('list_recordings');
+        //todo: figure out why this doesn't remove the existing recording from the list
+      } catch (error) {
+        console.error('Failed to delete recording:', error);
+        alert('Failed to delete recording: ' + error);
+      }
+    }
+  }
 </script>
 
 <div class="h-full max-w-7xl mx-auto">
@@ -343,15 +396,14 @@
               </Button>
             {/if}
 
-            <!-- Play/Details Button -->
-            <a href="/app/gym/history/recording?id={recording.id}" class="block">
-              <Button
-                variant="secondary"
-                class="h-8 w-8 p-0! flex! items-center justify-center bg-transparent shadow-transparent border-transparent"
-                title="View Recording">
-                <MoreVertical class="w-4 h-4 shrink-0" />
-              </Button>
-            </a>
+            <!-- Options Button -->
+            <Button
+              variant="secondary"
+              class="h-8 w-8 p-0! flex! items-center justify-center bg-transparent shadow-transparent border-transparent"
+              title="Recording Options"
+              onclick={(e: MouseEvent) => handleMenuClick(e, recording.id)}>
+              <MoreVertical class="w-4 h-4 shrink-0" />
+            </Button>
           </div>
         </div>
       </Card>
@@ -359,4 +411,29 @@
   </div>
 
   <UploadConfirmModal open={showUploadConfirmModal} uploader={async () => {}} />
+
+  <!-- Popup Menu -->
+  <PopupMenu bind:open={showMenu} position={menuPosition} on:close={() => (showMenu = false)}>
+    <MenuItem
+      icon={Folder}
+      on:click={() => {
+        if (activeRecordingId) {
+          invoke('open_recording_folder', { recordingId: activeRecordingId });
+        }
+        showMenu = false;
+      }}>
+      Open Folder
+    </MenuItem>
+    <MenuItem
+      icon={Trash2}
+      danger
+      on:click={() => {
+        if (activeRecordingId) {
+          deleteRecording(activeRecordingId);
+        }
+        showMenu = false;
+      }}>
+      Delete
+    </MenuItem>
+  </PopupMenu>
 </div>
