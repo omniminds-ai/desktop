@@ -351,19 +351,40 @@ export interface PoolSubmission {
   _id: string;
   address: string;
   meta: {
-    poolId: string;
     id: string;
-    generatedTime: number;
-    quest: {
+    timestamp: string;
+    duration_seconds: number;
+    status: string;
+    reason: string;
+    title: string;
+    description: string;
+    platform: string;
+    arch: string;
+    version: string;
+    locale: string;
+    primary_monitor: {
+      width: number;
+      height: number;
+    };
+    quest?: {
+      title: string;
+      app: string;
+      icon_url: string;
+      objectives: string[];
+      content: string;
       pool_id: string;
-      app_id: string;
+      reward: {
+        time: number;
+        max_reward: number;
+      };
     };
     [key: string]: any;
   };
-  status: string; // PENDING, PROCESSING, COMPLETED, FAILED, etc.
+  status: string; // pending, processing, completed, failed, etc.
   files: {
     file: string;
     s3Key: string;
+    _id: string;
   }[];
   grade_result?: any;
   reward: number;

@@ -8,8 +8,48 @@ use std::{
 use tauri::{AppHandle, Manager};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+pub struct WSLConfig {
+    pub distro: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct SSHConfig {
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub private_key_path: Option<String>,
+    pub password: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EngineSettings {
+    pub backend: String,
+    pub wsl_config: Option<WSLConfig>,
+    pub ssh_config: Option<SSHConfig>,
+    pub downloads_path: String,
+}
+
+impl Default for EngineSettings {
+    fn default() -> Self {
+        Self {
+            backend: String::new(),
+            wsl_config: None,
+            ssh_config: None,
+            downloads_path: "~/.viralmind/downloads".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct StorageSettings {
+    pub recordings_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Settings {
     pub upload_confirmed: bool,
+    pub engines: Option<EngineSettings>,
+    pub storage: Option<StorageSettings>,
 }
 
 impl Settings {
@@ -84,4 +124,90 @@ pub fn set_upload_confirmed(app: AppHandle, confirmed: bool) -> Result<(), Strin
     let mut settings = Settings::load(&app);
     settings.upload_confirmed = confirmed;
     settings.save(&app)
+}
+
+#[tauri::command]
+pub fn get_settings(app: AppHandle) -> Settings {
+    Settings::load(&app)
+}
+
+#[tauri::command]
+pub fn save_settings(app: AppHandle, settings: Settings) -> Result<(), String> {
+    settings.save(&app)
+}
+
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn list_wsl_distros() -> Result<String, String> {
+    use std::process::Command;
+    
+    let output = Command::new("wsl")
+        .args(["--list", "--quiet"])
+        .output()
+        .map_err(|e| format!("Failed to execute command: {}", e))?;
+    
+    if !output.status.success() {
+        return Err(format!(
+            "Command returned with error: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    
+    // Clean the output by removing carriage returns and empty lines
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let cleaned = stdout
+        .lines()
+        .map(|line| line.trim().replace("\r", ""))
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<String>>()
+        .join("\n");
+    
+    Ok(cleaned)
+}
+
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn get_default_wsl_distro() -> Result<String, String> {
+    use std::process::Command;
+    
+    // Get the default distribution by parsing the output of 'wsl -l -v'
+    // The default distribution has a '*' next to it
+    let output = Command::new("wsl")
+        .args(["-l", "-v"])
+        .output()
+        .map_err(|e| format!("Failed to execute command: {}", e))?;
+    
+    if !output.status.success() {
+        return Err(format!(
+            "Command returned with error: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    
+    // Find the line with '*' indicating default distro
+    for line in stdout.lines().skip(1) { // Skip header line
+        // Clean the line by removing carriage returns
+        let cleaned = line.replace("\r", "");
+        let trimmed = cleaned.trim();
+        
+        if trimmed.contains('*') {
+            // Extract distro name (2nd column)
+            let parts: Vec<&str> = trimmed.split_whitespace().collect();
+            if parts.len() >= 2 {
+                // Return the cleaned distro name
+                return Ok(parts[1].to_string().trim().to_string());
+            }
+        }
+    }
+    
+    // If no default was found, return empty string
+    Ok("".to_string())
+}
+
+#[tauri::command]
+pub fn select_directory() -> Result<String, String> {
+    // Note: This function will be replaced by using dialog plugin from the frontend
+    Err("Use dialog plugin from frontend".into())
 }

@@ -1,9 +1,8 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import Card from './Card.svelte';
-  import CreatePoolModal from './CreatePoolModal.svelte';
   import GenerateGymModal from './GenerateGymModal.svelte';
-  import { ChevronDown, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-svelte';
+  import { ChevronDown, ChevronRight, RefreshCw, AlertTriangle, Wand2 } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import { walletAddress } from '$lib/stores/wallet';
   import { listPools, createPool, updatePool, refreshPool, generateApps, createPoolWithApps } from '$lib/api/forge';
@@ -21,7 +20,6 @@
   };
 
   let trainingPools: ExtendedPool[] = [];
-  let showCreateModal = false;
   let showGenerateGymModal = false;
   let currentSkills = '';
   let loading = true;
@@ -126,45 +124,6 @@
     }
   }
 
-  async function handleCreatePool(data: { name: string; skills: string; token: Token }) {
-    if (!$walletAddress) return;
-
-    try {
-      // Try to generate apps first if we have skills
-      let apps = undefined;
-      if (data.skills.trim()) {
-        try {
-          const response = await generateApps(data.skills);
-          if (response?.content?.apps?.length > 0) {
-            apps = response.content.apps;
-          }
-        } catch (genError) {
-          console.error("Failed to generate apps:", genError);
-          // Continue without apps
-        }
-      }
-      
-      // Create pool with apps if available
-      if (apps) {
-        await createPoolWithApps({
-          ...data,
-          apps,
-          ownerAddress: $walletAddress
-        });
-      } else {
-        await createPool({
-          ...data,
-          ownerAddress: $walletAddress
-        });
-      }
-      
-      currentSkills = '';
-      showCreateModal = false;
-      loadPools();
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to create AI agent gym';
-    }
-  }
 
   async function handleUpdatePool(
     pool: ExtendedPool,
@@ -218,10 +177,10 @@
             tabindex="0"
             onkeydown={() => (showGenerateGymModal = true)}
             onclick={() => (showGenerateGymModal = true)}>
-            <div class="rounded-full bg-gray-200 w-24 h-24 flex items-center justify-center mb-4  transition-colors duration-300 transform transition-transform">
-              <span class="text-5xl text-gray-500 font-light transition-colors duration-300">+</span>
+            <div class="rounded-full bg-gray-200 w-24 h-24 flex items-center justify-center mb-4 transition-colors duration-300 transform transition-transform">
+              <Wand2 size={32} class="text-gray-500 transition-colors duration-300" />
             </div>
-            <div class="text-lg font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-300">Create New Gym</div>
+            <div class="text-lg font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-300">Generate New Gym</div>
             <p class="text-sm text-gray-500 text-center mt-2 group-hover:text-gray-600 transition-colors duration-300">
               Start collecting demonstrations for your AI agent training
             </p>
@@ -317,27 +276,37 @@
     {/if}
 </div>
 
-<CreatePoolModal
-  show={showCreateModal}
-  onClose={() => (showCreateModal = false)}
-  onCreate={handleCreatePool}
-  initialSkills={currentSkills} />
-
 <!-- Use GenerateGymModal for gym creation -->
 <GenerateGymModal 
   show={showGenerateGymModal}
   skills={currentSkills}
   on:change={(e) => currentSkills = e.detail.skills}
   on:close={() => showGenerateGymModal = false}
-  on:save={async () => {
+  on:save={async (event) => {
+    if (!$walletAddress) return;
+    
     try {
-      // Try to generate apps based on the prompt first
-      await generateApps(currentSkills);
-    } catch (err) {
-      console.error("Failed to pre-generate apps:", err);
-    } finally {
-      // Continue with creating the pool regardless of app generation success
+      const generatedResponse = event.detail.generatedResponse;
+      const gymName = generatedResponse?.content?.name || "Desktop Agent Gym";
+      const apps = generatedResponse?.content?.apps || [];
+      
+      // Create pool with apps directly from this modal
+      await createPoolWithApps({
+        name: gymName,
+        skills: currentSkills,
+        token: { // Default to VIRAL token
+          type: "VIRAL",
+          address: TOKEN_DATA.contractAddress,
+          symbol: "VIRAL"
+        },
+        apps: apps,
+        ownerAddress: $walletAddress
+      });
+      
       showGenerateGymModal = false;
-      showCreateModal = true;
+      currentSkills = '';
+      loadPools();
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to create AI agent gym';
     }
   }} />

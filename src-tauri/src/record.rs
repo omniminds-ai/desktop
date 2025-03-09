@@ -480,6 +480,85 @@ pub async fn open_recording_folder(
 }
 
 #[tauri::command]
+pub async fn open_folder(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let folder_path = std::path::Path::new(&path);
+
+    if !folder_path.exists() {
+        return Err(format!("Folder not found: {}", path));
+    }
+
+    if !folder_path.is_dir() {
+        return Err(format!("Path is not a directory: {}", path));
+    }
+
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| format!("Failed to open folder: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_directory_size(path: String) -> Result<serde_json::Value, String> {
+    let dir_path = std::path::Path::new(&path);
+
+    if !dir_path.exists() {
+        return Err(format!("Directory not found: {}", path));
+    }
+
+    if !dir_path.is_dir() {
+        return Err(format!("Path is not a directory: {}", path));
+    }
+
+    let mut total_size: u64 = 0;
+
+    // Calculate size recursively
+    fn calculate_size(dir: &std::path::Path) -> std::io::Result<u64> {
+        let mut dir_size = 0;
+
+        if dir.is_dir() {
+            for entry in std::fs::read_dir(dir)? {
+                let entry = entry?;
+                let path = entry.path();
+
+                if path.is_file() {
+                    dir_size += path.metadata()?.len();
+                } else if path.is_dir() {
+                    dir_size += calculate_size(&path)?;
+                }
+            }
+        }
+
+        Ok(dir_size)
+    }
+
+    match calculate_size(dir_path) {
+        Ok(size) => {
+            total_size = size;
+            Ok(serde_json::json!({
+                "path": path,
+                "sizeBytes": total_size,
+                "formattedSize": format_size(total_size)
+            }))
+        }
+        Err(e) => Err(format!("Failed to calculate directory size: {}", e)),
+    }
+}
+
+fn format_size(bytes: u64) -> String {
+    const UNITS: [&str; 5] = ["Bytes", "KB", "MB", "GB", "TB"];
+
+    if bytes == 0 {
+        return "0 Bytes".to_string();
+    }
+
+    let base: f64 = 1024.0;
+    let exp = (bytes as f64).log(base).floor() as usize;
+    let exp = if exp > 4 { 4 } else { exp };
+
+    format!("{:.2} {}", bytes as f64 / base.powi(exp as i32), UNITS[exp])
+}
+
+#[tauri::command]
 pub async fn create_recording_zip(
     app: tauri::AppHandle,
     recording_id: String,

@@ -79,7 +79,7 @@
   <a
     {href}
     {...rest as HTMLAnchorAttributes}
-    class="{variantClasses} p-3 text-center inline-block rounded disabled:bg-gray-300 disabled:border-gray-300 cursor-pointer disabled:cursor-default disabled:shadow-sm disabled:text-white transition-colors shadow-sm {className}">
+    class="{variantClasses} p-3 text-center flex items-center rounded disabled:bg-gray-300 disabled:border-gray-300 cursor-pointer disabled:cursor-default disabled:shadow-sm disabled:text-white transition-colors shadow-sm {className}">
     {@render children()}
   </a>
 {:else}
@@ -87,7 +87,7 @@
     aria-label="button"
     {type}
     {...rest as HTMLButtonAttributes}
-    class="{variantClasses} p-3 inline-block rounded disabled:bg-gray-300 disabled:border-gray-300 cursor-pointer disabled:cursor-default disabled:shadow-sm disabled:text-white transition-colors shadow-sm {className}">
+    class="{variantClasses} p-3 flex items-center rounded disabled:bg-gray-300 disabled:border-gray-300 cursor-pointer disabled:cursor-default disabled:shadow-sm disabled:text-white transition-colors shadow-sm {className}">
     {@render children()}
   </button>
 {/if}

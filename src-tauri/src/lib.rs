@@ -25,15 +25,19 @@ mod permissions;
 mod pipeline;
 mod record;
 mod settings;
+mod engine;
 
 #[cfg(target_os = "macos")]
 use permissions::{has_ax_perms, has_record_perms, request_ax_perms, request_record_perms};
 use record::{
-    create_recording_zip, get_app_data_dir, get_recording_file, list_recordings,
-    open_recording_folder, process_recording, start_recording, stop_recording, write_file,
-    QuestState,
+    create_recording_zip, get_app_data_dir, get_directory_size, get_recording_file,
+    list_recordings, open_folder, open_recording_folder, process_recording, start_recording,
+    stop_recording, write_file, QuestState,
 };
-use settings::{get_upload_data_allowed, set_upload_confirmed};
+use settings::{get_upload_data_allowed, set_upload_confirmed, get_settings, save_settings};
+#[cfg(target_os = "windows")]
+use settings::{list_wsl_distros, get_default_wsl_distro};
+use engine::{EngineState, start_engine, stop_engine, get_engine_status, run_command, get_job, get_all_jobs, clear_all_jobs};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -158,6 +162,7 @@ pub fn run() {
     }
 
     let _app = tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(
@@ -171,7 +176,9 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .manage(QuestState::default())
+        .manage(EngineState::default())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
@@ -192,11 +199,26 @@ pub fn run() {
             get_app_data_dir,
             write_file,
             open_recording_folder,
+            open_folder,
             process_recording,
             create_recording_zip,
             get_upload_data_allowed,
             set_upload_confirmed,
-            export_recordings
+            get_settings,
+            save_settings,
+            #[cfg(target_os = "windows")]
+            list_wsl_distros,
+            #[cfg(target_os = "windows")]
+            get_default_wsl_distro,
+            export_recordings,
+            get_directory_size,
+            start_engine,
+            stop_engine,
+            get_engine_status,
+            run_command,
+            get_job,
+            get_all_jobs,
+            clear_all_jobs
         ])
         .setup(|app| {
             #[cfg(any(windows, target_os = "linux"))]

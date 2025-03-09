@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { MessageSquare, Dumbbell, Hammer } from 'lucide-svelte';
+  import { MessageSquare, Dumbbell, Hammer, Settings, Database } from 'lucide-svelte';
   import { page } from '$app/state';
   import logo from '$lib/assets/Logo_Icon.png';
   import WalletButton from './WalletButton.svelte';
   import UploadManager from './UploadManager.svelte';
+  import JobsList from './JobsList.svelte';
 
   const earnButtons = [
     { path: '/app/gym', icon: Dumbbell, label: 'Gym' }
@@ -30,15 +31,6 @@
         : 'hover:bg-white/10 text-gray-300'}"
       title="Chat">
       <MessageSquare size={20} />
-    </a>
-
-    <a
-      href="/app/datasets"
-      class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname.split('/')[2] == 'datasets'
-        ? 'bg-secondary-300 text-white'
-        : 'hover:bg-white/10 text-gray-300'}"
-      title="Datasets">
-      <!-- <Database size={20} /> -->
     </a>
 
     <div class="py-2">
@@ -71,9 +63,25 @@
       {/each}
     </div>
   </div>
-  <div class="self-end w-full">
+  <div class="self-end w-full flex-col flex gap-3">
+    <a
+      href="/app/datasets"
+      class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname.split('/')[2] == 'datasets'
+        ? 'bg-secondary-300 text-white'
+        : 'hover:bg-white/10 text-gray-300'}"
+      title="Datasets">
+      <Database size={20} />
+    </a>
+    <JobsList />
     <UploadManager />
-    <br />
+    <a
+      href="/app/settings"
+      class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname === '/app/settings'
+        ? 'bg-secondary-300 text-white'
+        : 'hover:bg-white/10 text-gray-300'}"
+      title="Settings">
+      <Settings size={20} />
+    </a>
     <WalletButton />
   </div>
 </div>

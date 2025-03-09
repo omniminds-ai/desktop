@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { History, Settings, LayoutDashboard, Network, HomeIcon, House, Home, Zap } from 'lucide-svelte';
+  import { History, Settings, LayoutDashboard, Network, HomeIcon, House, Home, Zap, Shield } from 'lucide-svelte';
   let title = $derived.by(() => {
     let path = page.route.id;
     // handle dynamic history routes
@@ -17,8 +17,8 @@
         return 'Recording History';
       case '/app/gym/history/id':
         return 'Recording Details';
-      case '/app/gym/settings':
-        return 'Settings';
+      case '/app/gym/privacy':
+        return 'Privacy Controls';
       default:
         return 'Recording Details';
     }
@@ -45,9 +45,9 @@
         <History class="w-6 h-6" />
       </a>
       <a
-        href="/app/gym/settings"
-        class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id === '/app/gym/settings' ? 'bg-secondary-100/20 rounded-md' : ''}">
-        <Settings class="w-6 h-6" />
+        href="/app/gym/privacy"
+        class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id === '/app/gym/privacy' ? 'bg-secondary-100/20 rounded-md' : ''}">
+        <Shield class="w-6 h-6" />
       </a>
     </div>
   </div>
