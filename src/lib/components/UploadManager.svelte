@@ -99,7 +99,7 @@
         </div>
       </div>
       <div class="max-h-60 overflow-y-auto">
-        {#each queueItems as item}
+        {#each queueItems.reverse() as item}
           {@const StatusIcon = getStatusIcon(item.status)}
           <div class="px-4 py-3 border-b border-gray-700 last:border-0">
             <div class="flex justify-between items-start mb-1">
