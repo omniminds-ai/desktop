@@ -2,6 +2,8 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { History, Settings, LayoutDashboard, Network, HomeIcon, House, Home, Zap } from 'lucide-svelte';
+  
+  const { hasPendingRewards = false } = $props();
   let title = $derived.by(() => {
     let path = page.route.id;
     // handle dynamic history routes
@@ -41,8 +43,11 @@
       </a>
       <a
         href="/app/gym/history"
-        class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id?.includes('/app/gym/history') ? 'bg-secondary-100/20 rounded-md' : ''}">
+        class="text-secondary-300 hover:scale-115 transform transition-all p-1 {page.route.id?.includes('/app/gym/history') ? 'bg-secondary-100/20 rounded-md' : ''} relative">
         <History class="w-6 h-6" />
+        {#if hasPendingRewards}
+          <span class="absolute bottom-5.5 left-5.5 1 w-2.5 h-2.5 bg-secondary-100/50 rounded-full"></span>
+        {/if}
       </a>
       <a
         href="/app/gym/settings"
