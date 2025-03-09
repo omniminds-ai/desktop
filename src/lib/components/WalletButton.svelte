@@ -84,8 +84,8 @@
     <!-- Wallet Popup -->
     <div
       class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200
-      absolute bottom-0 left-full ml-1 w-64 p-3
-      bg-primary-600 text-gray-300 text-xs rounded-lg z-50 shadow-2xl border border-primary-600">
+      absolute bottom-0 left-full ml-1 w-64 p-4
+      bg-neutral-950 text-gray-300 text-xs rounded-lg z-50 shadow-2xl border border-neutral-800">
       <div class="flex flex-col gap-2">
         <!-- Wallet Address -->
         <div class="flex justify-between items-center">
