@@ -44,11 +44,11 @@
         class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id?.includes('/app/gym/history') ? 'bg-secondary-100/20 rounded-md' : ''}">
         <History class="w-6 h-6" />
       </a>
-      <a
+      <!-- <a
         href="/app/gym/privacy"
         class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id === '/app/gym/privacy' ? 'bg-secondary-100/20 rounded-md' : ''}">
         <Shield class="w-6 h-6" />
-      </a>
+      </a> -->
     </div>
   </div>
 </div>
