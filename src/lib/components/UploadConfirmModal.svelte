@@ -2,7 +2,7 @@
   import { uploadManager } from '$lib/stores/misc';
   import Button from './Button.svelte';
 
-  let { open, uploader }: { open: boolean; uploader: () => Promise<void> } = $props();
+  let { open = $bindable(), uploader }: { open: boolean; uploader: () => Promise<void> } = $props();
   const onCancel = async () => {
     open = false;
     await $uploadManager.setUploadDataAllowed(false);
@@ -19,7 +19,14 @@
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
       <h2 class="text-xl font-semibold mb-4">Confirm Upload</h2>
       <p class="text-gray-700 mb-6">
-        By uploading your demonstration data, you give Viralmind permission to process and train
+        Before uploading your recording, make sure you've read the <a
+          href="https://github.com/viralmind-ai/desktop/blob/main/PRIVACY.md"
+          class="hover:underline text-secondary-300">
+          Privacy Policy.
+        </a>
+      </p>
+      <p class="text-gray-500 text-sm mb-6">
+        By uploading your recording data, you give Viralmind permission to process and train AI
         agents with it.
       </p>
       <div class="flex justify-end gap-3">

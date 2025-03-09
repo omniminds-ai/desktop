@@ -129,7 +129,8 @@ export class UploadManager {
    */
   async setUploadDataAllowed(allowed: boolean): Promise<void> {
     try {
-      await invoke('get_upload_data_allowed', { confirmed: allowed });
+      console.log(allowed);
+      await invoke('set_upload_data_allowed', { confirmed: allowed });
     } catch (error) {
       console.error('Failed to save upload allowance:', error);
     }

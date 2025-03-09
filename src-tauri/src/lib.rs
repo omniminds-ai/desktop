@@ -34,7 +34,8 @@ use record::{
     QuestState,
 };
 use settings::{
-    get_onboarding_complete, get_upload_data_allowed, set_onboarding_complete, set_upload_confirmed,
+    get_onboarding_complete, get_upload_data_allowed, set_onboarding_complete,
+    set_upload_data_allowed,
 };
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -199,7 +200,7 @@ pub fn run() {
             process_recording,
             create_recording_zip,
             get_upload_data_allowed,
-            set_upload_confirmed,
+            set_upload_data_allowed,
             export_recordings,
             delete_recording
         ])

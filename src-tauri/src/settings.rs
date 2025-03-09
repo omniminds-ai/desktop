@@ -86,7 +86,7 @@ pub fn get_onboarding_complete(app: AppHandle) -> bool {
 }
 
 #[tauri::command]
-pub fn set_upload_confirmed(app: AppHandle, confirmed: bool) -> Result<(), String> {
+pub fn set_upload_data_allowed(app: AppHandle, confirmed: bool) -> Result<(), String> {
     let mut settings = Settings::load(&app);
     settings.upload_confirmed = confirmed;
     settings.save(&app)

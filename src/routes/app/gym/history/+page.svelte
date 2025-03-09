@@ -35,6 +35,7 @@
   let showUploadConfirmModal = $state(false);
   let dataExported = $state('');
   let statusIntervals: { [key: string]: number } = {};
+  let uploadConfirmRecording: Recording = $state({} as Recording);
 
   onDestroy(() => {
     // Clear all intervals
@@ -83,11 +84,9 @@
       }
       recordings = await invoke('list_recordings');
 
-      $uploadManager.on('statusChange', '*', async (rId, item) => {
+      $uploadManager.on('statusChange', '*', async () => {
         if ($walletAddress) await loadSubmissions($walletAddress);
         recordings = await invoke('list_recordings');
-        // const rec = filteredRecordings.find((r) => r.id === rId);
-        // if (rec && item.result) rec.submission = item.result;
       });
     } catch (error) {
       console.error('Failed to fetch recordings:', error);
@@ -181,9 +180,10 @@
     );
   }
 
-  const uploadRecording = async (recording: any) => {
+  const uploadRecording = async (recording: Recording) => {
     const uploadStarted = await $uploadManager.handleUpload(recording.id, recording.title);
     if (!uploadStarted) {
+      uploadConfirmRecording = recording;
       showUploadConfirmModal = true;
     }
   };
@@ -423,7 +423,11 @@
     {/each}
   </div>
 
-  <UploadConfirmModal open={showUploadConfirmModal} uploader={async () => {}} />
+  <UploadConfirmModal
+    bind:open={showUploadConfirmModal}
+    uploader={async () => {
+      uploadRecording(uploadConfirmRecording);
+    }} />
 
   <!-- Popup Menu -->
   <PopupMenu bind:open={showMenu} position={menuPosition} on:close={() => (showMenu = false)}>
