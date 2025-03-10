@@ -34,8 +34,8 @@ We do NOT intentionally collect:
 
 You maintain full control over your recordings:
 - You can review all recordings before submission
-- You can use our built-in tools to detect and remove personally identifiable information (PII)
-- You can block specific applications or windows from being recorded
+- You can use our built-in tools to delete sections of video and data containing sensitive information
+- You can export recordings with privacy sections removed
 - You can delete recordings entirely before submission
 
 ## Data Usage
@@ -57,33 +57,29 @@ By uploading your recordings, you acknowledge and agree that:
    - Available for commercial and non-commercial use
 
 3. These public datasets and model weights may be used by researchers, organizations, and other third parties for any purpose allowed under the MIT License
-4. While we process public datasets to remove PII, you should use the provided tools during recording to ensure sensitive information is not captured
+4. While we process public datasets according to your privacy selections, you should use the provided section deletion tools to ensure sensitive information is not included
 
 Note: We maintain the original recordings with associated wallet public keys on our servers to enable user deletion rights and reward distribution.
 
 ## Data Protection
 We implement several measures to protect your privacy:
 
-### Blocking and Filtering Tools
-- Application and Window Blocking:
-  - Block specific applications or windows from recording
-  - Any data recorded while a blocked window is active is automatically excluded
-  - This includes all associated keyboard input, mouse movements, and metadata during those time periods
-- AI-Powered Semantic Filtering:
-  - Specify topics or keywords you want to block
-  - Our AI automatically detects and censors any recording segments that are semantically related to your blocked topics
-  - This helps prevent accidental capture of sensitive content even if expressed in different words
+### Section Deletion Tools
+- Video and Data Section Deletion:
+  - Delete specific sections of your recording that may contain sensitive information
+  - Any data recorded during these time periods is automatically excluded from submission
+  - This includes all associated video frames, keyboard input, mouse movements, and metadata during those time periods
+  - You can mark multiple sections for deletion as needed
 
 ### Review and Control
-- Built-in PII detection and removal tools to help identify and remove personal information
 - Pre-submission review capabilities
+- Ability to export recordings with privacy sections removed
 - Secure data transmission and storage
 
 While we provide tools to help remove personal information, please be mindful that any text you type or information you display during recording may be captured. We encourage you to:
-- Use our PII detection tools
-- Configure topic/keyword blocking before starting a recording
-- Block applications or windows that might contain sensitive information
+- Use our section deletion tools to remove any sensitive content
 - Carefully review recordings before submission
+- Mark for deletion any sections containing sensitive information
 - Avoid typing or displaying sensitive information during recordings
 
 ## Compensation

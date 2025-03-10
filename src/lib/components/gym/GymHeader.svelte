@@ -49,11 +49,11 @@
           <span class="absolute bottom-5.5 left-5.5 1 w-2.5 h-2.5 bg-secondary-100/50 rounded-full"></span>
         {/if}
       </a>
-      <a
+      <!-- <a
         href="/app/gym/settings"
         class="text-secondary-300 hover:scale-115 transform transition-all  p-1 {page.route.id === '/app/gym/settings' ? 'bg-secondary-100/20 rounded-md' : ''}">
         <Settings class="w-6 h-6" />
-      </a>
+      </a> -->
     </div>
   </div>
 </div>
