@@ -5,7 +5,7 @@
   import * as gym from '$lib/gym';
   import AppText from '$lib/components/gym/AppText.svelte';
   import { tweened } from 'svelte/motion';
-  import { cubicOut } from 'svelte/easing';
+  import { cubicOut, elasticOut } from 'svelte/easing';
 
   type RecordingState = 'recording' | 'stopping' | 'stopped';
 
@@ -107,40 +107,64 @@
   });
 
   let isMinimized = $derived($showContent === 0);
+  
+  // Animated properties 
+  const borderOpacity = tweened(0, {
+    duration: 400,
+    easing: elasticOut
+  });
+  
+  let animationFrame: number | null = null;
+  let startTime = 0;
+  
+  // Update animated properties based on recording state
+  $effect(() => {
+    // Clear any existing animation
+    if (animationFrame !== null) {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+    }
+    
+    if (recordingState === 'recording') {
+      // Initialize the start time
+      startTime = Date.now();
+      
+      // Create a smooth sine wave animation for opacity between 0.3 and 1.0
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        // Use sine function to create a wave pattern oscillating between 0.3 and 1.0
+        // sin returns -1 to 1, so we adjust to get the range we want
+        const opacity = 0.65 + 0.35 * Math.sin(elapsed / 800); // 800ms controls speed of oscillation
+        
+        borderOpacity.set(opacity);
+        animationFrame = requestAnimationFrame(animate);
+      };
+      
+      animationFrame = requestAnimationFrame(animate);
+      
+    } else if (recordingState === 'stopping') {
+      // Solid border for stopping state with full opacity
+      borderOpacity.set(1.0);
+    } else {
+      borderOpacity.set(0);
+    }
+  });
+  
+  // Clean up animation on component destruction
+  onDestroy(() => {
+    if (animationFrame !== null) {
+      cancelAnimationFrame(animationFrame);
+    }
+  });
 </script>
 
 <div class="overlay-content">
   {#if recordingState !== 'stopped' && currentQuest}
     <div 
-      class="fixed top-4 right-0 bg-black/80 rounded-lg border border-purple-500/50 shadow-lg backdrop-blur-sm overflow-hidden transition-all duration-300"
-      style="transform: translateX(calc({$slideIn}px))">
-      <div class="p-2">
-        <div class="flex items-center gap-1.5">
-          <span class="px-2 py-1 text-xs font-semibold bg-red-600 rounded-full animate-pulse whitespace-nowrap">
-            {#if recordingState === 'recording'}
-              Recording
-            {:else if recordingState === 'stopping'}
-              Saving...
-            {/if}
-          </span>
-          <span class="text-purple-400 font-mono transition-opacity duration-300" class:hidden={isMinimized}>{formatTime(recordingTime)}</span>
-        </div>
-
-        <div class="transition-opacity duration-300" class:hidden={isMinimized}>
-          <h3 class="text-lg font-bold text-white my-2 break-words">{currentQuest.title}</h3>
-          
-          <div class="mb-3">
-            <h4 class="text-sm font-semibold text-white/90 mb-1">Objectives:</h4>
-            <ul class="list-disc pl-4 space-y-1">
-              {#each currentQuest.objectives as objective}
-                <li class="text-sm text-white/80 break-words">
-                  <AppText text={objective} />
-                </li>
-              {/each}
-            </ul>
-          </div>
-        </div>
-      </div>
+      class="fixed inset-0 pointer-events-none transition-colors duration-300"
+      style="border-width: 6px; opacity: {$borderOpacity};"
+      class:border-red-500={recordingState === 'recording'}
+      class:border-yellow-500={recordingState === 'stopping'}>
     </div>
   {/if}
 </div>
