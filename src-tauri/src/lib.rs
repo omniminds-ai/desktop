@@ -226,8 +226,8 @@ pub fn run() {
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
             #[cfg(target_os = "windows")]
-            apply_mica(&window, Some(true))
-                .expect("Unsupported platform! 'apply_mica' is only supported on Windows");
+            apply_acrylic(&window, Some((0, 0, 0, 0)))
+                .expect("Unsupported platform! 'apply_acrylic' is only supported on Windows");
 
             // TODO: multimonitor support
             // Get primary display info
