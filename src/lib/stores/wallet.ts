@@ -4,7 +4,12 @@ import { writable, get } from 'svelte/store';
 // Initialize from localStorage if available
 const storedAddress =
   typeof localStorage !== 'undefined' ? localStorage.getItem('walletAddress') : null;
+const storedToken =
+  typeof localStorage !== 'undefined' ? localStorage.getItem('connectionToken') : null;
+
 export const walletAddress = writable<string | null>(storedAddress);
+export const connectionToken = writable<string | null>(storedToken);
+export const isConnecting = writable(false);
 
 // Subscribe to changes and save to localStorage
 if (typeof localStorage !== 'undefined') {
@@ -15,9 +20,15 @@ if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('walletAddress');
     }
   });
+  
+  connectionToken.subscribe((value) => {
+    if (value) {
+      localStorage.setItem('connectionToken', value);
+    } else {
+      localStorage.removeItem('connectionToken');
+    }
+  });
 }
-export const isConnecting = writable(false);
-export const connectionToken = writable<string | null>(null);
 
 function generateToken() {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -58,7 +69,6 @@ export function startPolling() {
 
       if (data.connected) {
         walletAddress.set(data.address);
-        connectionToken.set(null);
         if (currentInterval) {
           clearInterval(currentInterval);
           currentInterval = null;

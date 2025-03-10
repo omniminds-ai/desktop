@@ -77,7 +77,7 @@
     try {
       loading = true;
       error = null;
-      let pools = await listPools($walletAddress);
+      let pools = await listPools();
       // Initialize UI state properties
       trainingPools = pools.map((pool) => ({
         ...pool,

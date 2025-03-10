@@ -237,7 +237,7 @@
         // If poolId is provided, get reward info
         if (poolId) {
           try {
-            const rewardInfo = await getReward(poolId, get(walletAddress) || '');
+            const rewardInfo = await getReward(poolId);
             currentQuest.pool_id = poolId;
             currentQuest.reward = {
               time: rewardInfo.time,

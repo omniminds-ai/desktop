@@ -1,4 +1,4 @@
-import { walletAddress } from '$lib/stores/wallet';
+import { walletAddress, connectionToken } from '$lib/stores/wallet';
 import type {
   TrainingPool,
   CreatePoolInput,
@@ -78,10 +78,10 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
   const appMap = new Map<string, ForgeApp>();
 
   // Get submissions to get scores
-  const address = get(walletAddress);
+  const token = get(connectionToken);
   let submissions: SubmissionStatus[] = [];
-  if (address) {
-    submissions = await listSubmissions(address);
+  if (token) {
+    submissions = await listSubmissions();
   }
 
   // Add history apps to map
@@ -163,13 +163,15 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
   return result;
 }
 
-export async function listPools(address: string): Promise<TrainingPool[]> {
+export async function listPools(): Promise<TrainingPool[]> {
+  const token = get(connectionToken);
   const response = await fetch(`${API_BASE}/list`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-connect-token': token || ''
     },
-    body: JSON.stringify({ address })
+    body: JSON.stringify({})
   });
 
   if (!response.ok) {
@@ -180,10 +182,12 @@ export async function listPools(address: string): Promise<TrainingPool[]> {
 }
 
 export async function createPool(input: CreatePoolInput): Promise<TrainingPool> {
+  const token = get(connectionToken);
   const response = await fetch(`${API_BASE}/create`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-connect-token': token || ''
     },
     body: JSON.stringify(input)
   });
@@ -196,10 +200,12 @@ export async function createPool(input: CreatePoolInput): Promise<TrainingPool> 
 }
 
 export async function updatePool(input: UpdatePoolInput): Promise<TrainingPool> {
+  const token = get(connectionToken);
   const response = await fetch(`${API_BASE}/update`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-connect-token': token || ''
     },
     body: JSON.stringify(input)
   });
@@ -216,8 +222,14 @@ export interface RewardInfo {
   maxReward: number; // Value between 1-128
 }
 
-export async function getBalance(address: string): Promise<number> {
-  const response = await fetch(`${API_BASE}/balance/${address}`);
+export async function getBalance(): Promise<number> {
+  const token = get(connectionToken);
+  const address = get(walletAddress);
+  const response = await fetch(`${API_BASE}/balance/${address}`, {
+    headers: {
+      'x-connect-token': token || ''
+    }
+  });
 
   if (!response.ok) {
     throw new Error('Failed to get balance');
@@ -227,8 +239,13 @@ export async function getBalance(address: string): Promise<number> {
   return data.balance;
 }
 
-export async function getReward(poolId: string, address: string): Promise<RewardInfo> {
-  const response = await fetch(`${API_BASE}/reward?poolId=${poolId}&address=${address}`);
+export async function getReward(poolId: string): Promise<RewardInfo> {
+  const token = get(connectionToken);
+  const response = await fetch(`${API_BASE}/reward?poolId=${poolId}`, {
+    headers: {
+      'x-connect-token': token || ''
+    }
+  });
 
   if (!response.ok) {
     throw new Error('Failed to get reward info');
@@ -239,9 +256,9 @@ export async function getReward(poolId: string, address: string): Promise<Reward
 
 export async function uploadRecording(
   zipBlob: Blob,
-  address: string,
   onProgress?: (progress: number) => void
 ): Promise<{ submissionId: string }> {
+  const token = get(connectionToken);
   const formData = new FormData();
   formData.append('file', zipBlob, 'recording.zip');
 
@@ -279,7 +296,7 @@ export async function uploadRecording(
     });
 
     xhr.open('POST', `${API_BASE}/upload-race`);
-    xhr.setRequestHeader('x-wallet-address', address);
+    xhr.setRequestHeader('x-connect-token', token || '');
     xhr.send(formData);
   });
 }
@@ -294,10 +311,11 @@ export async function getSubmissionStatus(submissionId: string): Promise<Submiss
   return response.json();
 }
 
-export async function listSubmissions(address: string): Promise<SubmissionStatus[]> {
+export async function listSubmissions(): Promise<SubmissionStatus[]> {
+  const token = get(connectionToken);
   const response = await fetch(`${API_BASE}/submissions`, {
     headers: {
-      'x-wallet-address': address
+      'x-connect-token': token || ''
     }
   });
 
@@ -309,10 +327,12 @@ export async function listSubmissions(address: string): Promise<SubmissionStatus
 }
 
 export async function refreshPool(poolId: string): Promise<TrainingPool> {
+  const token = get(connectionToken);
   const response = await fetch(`${API_BASE}/refresh`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-connect-token': token || ''
     },
     body: JSON.stringify({ id: poolId })
   });
@@ -378,7 +398,12 @@ export interface PoolSubmission {
 }
 
 export async function getPoolSubmissions(poolId: string): Promise<PoolSubmission[]> {
-  const response = await fetch(`${API_BASE}/pool-submissions/${poolId}`);
+  const token = get(connectionToken);
+  const response = await fetch(`${API_BASE}/pool-submissions/${poolId}`, {
+    headers: {
+      'x-connect-token': token || ''
+    }
+  });
 
   if (!response.ok) {
     throw new Error('Failed to fetch pool submissions');
@@ -394,10 +419,12 @@ export interface CreatePoolInputWithApps extends CreatePoolInput {
 
 // Updated create pool function
 export async function createPoolWithApps(input: CreatePoolInputWithApps): Promise<TrainingPool> {
+  const token = get(connectionToken);
   const response = await fetch(`${API_BASE}/create`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-connect-token': token || ''
     },
     body: JSON.stringify(input)
   });

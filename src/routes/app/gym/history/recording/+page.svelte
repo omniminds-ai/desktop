@@ -633,11 +633,11 @@
 
       // Load submissions if wallet connected
       if ($walletAddress) {
-        submissions = await listSubmissions($walletAddress);
+        submissions = await listSubmissions();
         submission = submissions.find((s) => s.meta?.id === recordingId) || null;
         $uploadManager.on('statusChange', recordingId || '*', async (_, item) => {
           if (item.status === 'completed') {
-            submissions = await listSubmissions($walletAddress);
+            submissions = await listSubmissions();
             submission = submissions.find((s) => s.meta?.id === recordingId) || null;
           }
         });
@@ -650,7 +650,7 @@
   // Subscribe to wallet address changes
   walletAddress.subscribe((val) => {
     if (val !== $walletAddress && val) {
-      listSubmissions(val).then((subs) => {
+      listSubmissions().then((subs) => {
         submissions = subs;
         submission = submissions.find((s) => s.meta?.id === recordingId) || null;
       });

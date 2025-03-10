@@ -16,7 +16,7 @@
       let submissions: any[] = [];
       
       if ($walletAddress) {
-        submissions = await listSubmissions($walletAddress);
+        submissions = await listSubmissions();
       }
       
       // Reset pending recordings

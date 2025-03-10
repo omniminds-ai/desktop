@@ -263,7 +263,7 @@ export class UploadManager {
       });
 
       // Upload to server
-      const { submissionId } = await uploadRecording(zipBlob, walletAddress);
+      const { submissionId } = await uploadRecording(zipBlob);
 
       // Update status to processing
       this.updateQueue(recordingId, {

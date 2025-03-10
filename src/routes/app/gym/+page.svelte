@@ -41,8 +41,8 @@
   }
   async function loadBalance(address: string) {
     try {
-      viralBalance = await getBalance(address);
-      recentSubmissions = await listSubmissions(address);
+      viralBalance = await getBalance();
+      recentSubmissions = await listSubmissions();
       earnedThisMonth = calculateEarnedRewards(recentSubmissions);
     } catch (error) {
       console.error('Failed to load balance:', error);
@@ -54,7 +54,7 @@
       const recordings = await invoke<any[]>('list_recordings');
       let submissions: any[] = [];
       if ($walletAddress) {
-        submissions = await listSubmissions($walletAddress);
+        submissions = await listSubmissions();
       }
 
       // Reset pending recordings

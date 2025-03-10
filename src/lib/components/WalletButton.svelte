@@ -32,7 +32,7 @@
 
   async function loadBalance(address: string) {
     try {
-      viralBalance = await getBalance(address);
+      viralBalance = await getBalance();
     } catch (error) {
       console.error('Failed to load balance:', error);
     }
@@ -40,7 +40,7 @@
 
   async function loadSubmissions(address: string) {
     try {
-      const submissions = await listSubmissions(address);
+      const submissions = await listSubmissions();
       // Sort by date (newest first) and take the last 3
       recentSubmissions = submissions
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

@@ -66,7 +66,7 @@ export async function generateQuest(
   // If poolId is provided, get reward info
   if (poolId) {
     try {
-      const rewardInfo = await getReward(poolId, get(walletAddress) || '');
+      const rewardInfo = await getReward(poolId);
       quest.poolId = poolId;
       quest.reward = rewardInfo;
     } catch (error) {

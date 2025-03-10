@@ -73,7 +73,7 @@
 
   async function loadSubmissions(address: string) {
     try {
-      submissions = await listSubmissions(address);
+      submissions = await listSubmissions();
     } catch (error) {
       console.error('Failed to fetch submissions:', error);
     }
