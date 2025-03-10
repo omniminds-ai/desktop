@@ -240,19 +240,19 @@ pub fn run() {
                 .ok_or_else(|| "No display found".to_string())?;
             // set overlay locations for specific platforms
 
-            let mut overlay_x = primary.x as f64;
-            let mut overlay_y = primary.y as f64;
+            let overlay_x = primary.x as f64;
+            let overlay_y = primary.y as f64;
 
-            if cfg!(target_os = "macos") {
-                overlay_y += 35.0;
-                overlay_x -= 10.0;
-            }
+            // if cfg!(target_os = "macos") {
+            //     overlay_y += 35.0;
+            //     overlay_x -= 10.0;
+            // }
 
-            if cfg!(target_os = "linux") {
-                // do this becuase some linux distros have top bars
-                overlay_y += 25.0;
-                overlay_x -= 10.0;
-            }
+            // if cfg!(target_os = "linux") {
+            //     // do this becuase some linux distros have top bars
+            //     overlay_y += 25.0;
+            //     overlay_x -= 10.0;
+            // }
 
             // Create transparent overlay window
             sleep(time::Duration::from_millis(500));
