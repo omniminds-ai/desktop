@@ -167,6 +167,11 @@ pub fn run() {
             tauri_plugin_log::Builder::new()
                 .level_for("app_finder::platform::platform", log::LevelFilter::Error)
                 .level_for("tao::platform_impl::platform", log::LevelFilter::Error)
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("logs".to_string()),
+                    },
+                ))
                 .build(),
         )
         .plugin(tauri_plugin_process::init())
