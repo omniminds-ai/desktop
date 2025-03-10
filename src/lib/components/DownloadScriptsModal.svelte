@@ -19,7 +19,7 @@
           return {
             url: `https://training-gym.s3.us-east-2.amazonaws.com/${s3Key}`,
             id: sub._id,
-            filename: s3Key.split('/').pop() || 'file'
+            filename: s3Key.split('-').pop() || 'file'
           };
         });
       })
@@ -82,7 +82,7 @@ files.forEach(file => {
           return {
             url: `https://training-gym.s3.us-east-2.amazonaws.com/${s3Key}`,
             id: sub._id,
-            filename: s3Key.split('/').pop() || 'file'
+            filename: s3Key.split('-').pop() || 'file'
           };
         });
       })
@@ -136,7 +136,7 @@ for file in files:
           return {
             url: `https://training-gym.s3.us-east-2.amazonaws.com/${s3Key}`,
             id: sub._id,
-            filename: s3Key.split('/').pop() || 'file'
+            filename: s3Key.split('-').pop() || 'file'
           };
         });
       })

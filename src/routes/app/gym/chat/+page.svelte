@@ -6,8 +6,9 @@
   import { getReward, getSubmissionStatus } from '$lib/api/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { get } from 'svelte/store';
-  import { Send, User, Video, Square, Upload } from 'lucide-svelte';
+  import { Send, User, Video, Square, Upload, MousePointer, ArrowRight, Trash2, RotateCcw } from 'lucide-svelte';
   import { emit } from '@tauri-apps/api/event';
+  import { invoke } from '@tauri-apps/api/core';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
   import Input from '$lib/components/Input.svelte';
@@ -42,10 +43,18 @@
   let showUploadConfirmModal = $state(false);
   let currentRecordingId = $state<string | null>(null);
   let isUploading = $state(false);
+  let loadingSftData = $state(false);
 
   type Message = {
     role: 'user' | 'assistant';
     content: string;
+    timestamp?: number;
+  };
+
+  type SftMessage = {
+    role: string;
+    content: any;
+    timestamp: number;
   };
 
   let message = $state('');
@@ -56,6 +65,9 @@
     messageIndex: number;
   } | null>(null);
   let isWaitingForResponse = $state(false);
+  let hoveredMessageIndex = $state<number | null>(null);
+  let deletedRanges = $state<{ start: number; end: number; count: number }[]>([]);
+  let originalSftData = $state<SftMessage[] | null>(null);
   // Initialize variables with default values
   let chatContent: HTMLElement | null = null;
   let toneAudio: HTMLAudioElement | null = null;
@@ -101,7 +113,10 @@
   async function addMessage(msg: Message) {
     const messageIndex = chatMessages.length;
 
-    if (msg.role === 'assistant') {
+    // Check if the message is an image
+    const isText = !msg.content.startsWith('<');
+
+    if (msg.role === 'assistant' && isText) {
       // Add empty message first
       chatMessages = [
         ...chatMessages,
@@ -124,6 +139,23 @@
       }
       chatMessages = [...chatMessages, msg];
       scrollToBottom();
+    }
+  }
+
+  async function loadSftData(recordingId: string): Promise<SftMessage[] | null> {
+    try {
+      loadingSftData = true;
+      const sftText = await invoke<string>('get_recording_file', {
+        recordingId,
+        filename: 'sft.json'
+      });
+      const sftJson = JSON.parse(sftText);
+      return sftJson;
+    } catch (error) {
+      console.error('Failed to load SFT data:', error);
+      return null;
+    } finally {
+      loadingSftData = false;
     }
   }
 
@@ -291,13 +323,146 @@
     }
   }
 
+  // Function to save deleted ranges to a JSON file
+  async function savePrivateRanges() {
+    if (!currentRecordingId) return;
+    
+    try {
+      // Convert deletedRanges to JSON string
+      const rangesJson = JSON.stringify(deletedRanges, null, 2);
+      
+      // Use invoke to save the file to the recording folder
+      await invoke('write_recording_file', {
+        recordingId: currentRecordingId,
+        filename: 'private_ranges.json',
+        content: rangesJson
+      });
+      
+      console.log('Saved private ranges to file');
+    } catch (error) {
+      console.error('Failed to save private ranges:', error);
+    }
+  }
+
+  function handleDeleteMessage(index: number, msg: Message) {
+    if (msg.timestamp === undefined || !originalSftData) return;
+    
+    // Find previous and next messages in originalSftData
+    const sortedMessages = [...originalSftData].sort((a, b) => a.timestamp - b.timestamp).filter(msg => msg.role === 'assistant');
+    const currentIndex = sortedMessages.findIndex(m => m.timestamp === msg.timestamp);
+    
+    let start_timestamp: number;
+    let end_timestamp: number;
+    
+    // Calculate start timestamp by averaging with previous message if available
+    if (currentIndex > 0) {
+      const prevMsg = sortedMessages[currentIndex - 1];
+      start_timestamp = (prevMsg.timestamp + msg.timestamp) / 2;
+    } else {
+      // No previous message, use fallback
+      start_timestamp = msg.timestamp - 5000;
+    }
+    
+    // Calculate end timestamp by averaging with next message if available
+    if (currentIndex < sortedMessages.length - 1) {
+      const nextMsg = sortedMessages[currentIndex + 1];
+      end_timestamp = (msg.timestamp + nextMsg.timestamp) / 2;
+    } else {
+      // No next message, use fallback
+      end_timestamp = msg.timestamp + 5000;
+    }
+    
+    const count = originalSftData.filter(m => m.timestamp >= start_timestamp && m.timestamp <= end_timestamp).length;
+    deletedRanges = [...deletedRanges, { 
+      start: start_timestamp, 
+      end: end_timestamp, 
+      count 
+    }];
+    
+    // Save the updated ranges to file
+    savePrivateRanges();
+    
+    chatMessages = [
+      ...chatMessages.slice(0, index), 
+      { 
+        role: 'user', 
+        content: `<delete>${start_timestamp} ${end_timestamp} ${count}</delete>` 
+      }, 
+      ...chatMessages.slice(index + 1)
+    ];
+  }
+  
+  function handleUndoDelete(clickedMessageIndex?: number) {
+    // Parse the start, end, and count from the delete message
+    if (clickedMessageIndex !== undefined && originalSftData) {
+      const deleteMsg = chatMessages[clickedMessageIndex];
+      if (deleteMsg && deleteMsg.content.startsWith('<delete>') && deleteMsg.content.endsWith('</delete>')) {
+        // Extract values from <delete>start end count</delete>
+        const content = deleteMsg.content.slice(8, -9); // Remove the <delete> and </delete> tags
+        const [start, end, count] = content.split(' ').map(Number);
+        
+        // Remove the range from deletedRanges
+        deletedRanges = deletedRanges.filter(r => r.start !== start);
+        
+        // Save the updated ranges to file
+        savePrivateRanges();
+        
+        // Find messages in originalSftData that fall within this time range
+        const messagesToRestore = originalSftData.filter(
+          msg => msg.timestamp >= start && msg.timestamp <= end
+        );
+        
+        // Create new messages to insert
+        const newMessages: Message[] = [];
+        
+        for (const msg of messagesToRestore) {
+          if (msg.role === 'user' && typeof msg.content === 'object' && msg.content?.type === 'image') {
+            // VM sends the desktop screenshot
+            newMessages.push({
+              role: 'assistant',
+              content: `<img>${msg.content.data}</img>`,
+              timestamp: msg.timestamp
+            });
+          } else if (msg.role === 'assistant') {
+            // Extract code block content when applicable
+            let content = msg.content;
+            if (typeof content === 'string' && content.includes('```python')) {
+              const match = content.match(/```python\s*\n(.*?)\n```/s);
+              if (match && match[1]) {
+                content = `<action>${match[1].trim()}</action>`;
+              }
+            } else if (typeof content !== 'string') {
+              content = JSON.stringify(content);
+            }
+            
+            // User sends the action
+            newMessages.push({
+              role: 'user',
+              content: content,
+              timestamp: msg.timestamp
+            });
+          }
+        }
+        
+        // Replace the delete message with the restored messages
+        chatMessages = [
+          ...chatMessages.slice(0, clickedMessageIndex),
+          ...newMessages,
+          ...chatMessages.slice(clickedMessageIndex + 1)
+        ];
+      }
+    }
+    
+    scrollToBottom();
+  }
+
   async function handleComplete() {
     if (recordingState === 'recording') {
       activeQuest = null;
       recordingLoading = true;
       await addMessage({
         role: 'user',
-        content: `<loading></loading>`
+        content: `<loading>Processing recording...</loading>`
       });
       const recordingId = await gym.stopRecording('done').catch((error) => {
         console.error(error);
@@ -307,27 +472,107 @@
       recordingLoading = false;
       recordingState = 'stopped';
 
+      // Store the recording ID for upload
+      currentRecordingId = recordingId;
+
+      // Update message to show "replaying" status
       await removeMessage();
       await addMessage({
         role: 'user',
-        content: `<recording>${recordingId}</recording>`
-      });
-      await addMessage({
-        role: 'user',
-        content: 'I completed the task! 🎉'
-      });
-      await addMessage({
-        role: 'assistant',
-        content: 'Great job completing the task!'
+        content: `<loading>Replaying recording...</loading>`
       });
 
-      // Store the recording ID for upload
-      currentRecordingId = recordingId;
+      // Wait briefly to ensure processing has completed
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Remove the loading message
+      await removeMessage();
+      
+      // Try to load SFT data
+      if (recordingId) {
+        const sftData = await loadSftData(recordingId);
+        if (sftData?.length) {
+          // Store original SFT data for filtering
+          originalSftData = [...sftData];
+          
+          // Add styled start replay message
+          await addMessage({
+            role: 'assistant',
+            content: "<start>--- demonstration replay ---</start>"
+          });
+          
+          // Process SFT messages properly alternating between VM (assistant) and user
+          for (const msg of sftData) {
+            if (msg.role === 'user' && typeof msg.content === 'object' && msg.content?.type === 'image') {
+              // VM sends the desktop screenshot
+              await addMessage({
+                role: 'assistant',
+                content: `<img>${msg.content.data}</img>`,
+                timestamp: msg.timestamp
+              });
+              
+              // Add a small delay between images for better pacing
+              await new Promise(resolve => setTimeout(resolve, 800));
+            } else if (msg.role === 'assistant') {
+              // Extract code block content when applicable
+              let content = msg.content;
+              if (typeof content === 'string' && content.includes('```python')) {
+                const match = content.match(/```python\s*\n(.*?)\n```/s);
+                if (match && match[1]) {
+                  content = `<action>${match[1].trim()}</action>`;
+                }
+              } else if (typeof content !== 'string') {
+                content = JSON.stringify(content);
+              }
+              
+              // User sends the action
+              await addMessage({
+                role: 'user',
+                content: content,
+                timestamp: msg.timestamp
+              });
+            }
+          }
+          
+          // Add end replay message
+          await addMessage({
+            role: 'assistant',
+            content: "<end>--- end of replay ---</end>"
+          });
+          
+          // Finish with completion message
+          await addMessage({
+            role: 'user',
+            content: 'I completed the task! 🎉'
+          });
+          
+          await addMessage({
+            role: 'assistant',
+            content: 'Great job completing the task!'
+          });
+        } else {
+          // Fallback if no SFT data
+          await addMessage({
+            role: 'user',
+            content: `<recording>${recordingId}</recording>`
+          });
+          
+          await addMessage({
+            role: 'user',
+            content: 'I completed the task! 🎉'
+          });
+          
+          await addMessage({
+            role: 'assistant',
+            content: 'Great job completing the task!'
+          });
+        }
+      }
 
       await addMessage({
         role: 'assistant',
         content:
-          'You can upload your demonstration to get scored now, or upload it later from the history page.'
+          'Review your demonstration before uploading. You can hover over messages to delete any sections containing sensitive information. Once you\'re ready, upload to get scored or do it later from the history page.'
       });
 
       // Add upload button message
@@ -544,16 +789,64 @@
       console.error('Failed to cleanup:', error);
     }
   });
+  
+  function handleHover(index: number) {
+    hoveredMessageIndex = index;
+  }
+  
+  function handleHoverEnd() {
+    hoveredMessageIndex = null;
+  }
 </script>
 
-<div class="h-[calc(100vh-8rem)] flex flex-col pb-[65px] relative">
+<div class="flex flex-col pb-[65px] h-full">
   <div
     bind:this={chatContent}
     class="flex-1 max-w-7xl w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
     {#each chatMessages as msg, i}
       <div
-        class="flex gap-2 transition-all duration-200 {msg.role === 'user' ? 'justify-end' : ''}">
-        {#if msg.role === 'user'}
+        class="flex gap-2 transition-all duration-200 relative group {msg.role === 'user' ? 'justify-end' : ''}"
+        onmouseenter={() => handleHover(i)}
+        onmouseleave={handleHoverEnd} 
+        role="listitem">
+
+        <!-- Delete overlay for the entire message -->
+        {#if hoveredMessageIndex === i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
+          <div 
+            class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
+            style="opacity: {hoveredMessageIndex === i ? '1' : '0'}"
+            onclick={() => handleDeleteMessage(i, msg)}>
+            <div 
+              class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
+              <Trash2 size={24} />
+            </div>
+          </div>
+        {/if}
+        
+        {#if msg.content.startsWith('<start>') && msg.content.endsWith('</start>')}
+          <!-- Special full-width centered message for start tag -->
+          <div class="w-full text-center text-neutral-500 opacity-50 py-2">
+            {msg.content.slice(7, -8)}
+          </div>
+        {:else if msg.content.startsWith('<end>') && msg.content.endsWith('</end>')}
+          <!-- Special full-width centered message for end tag -->
+          <div class="w-full text-center text-neutral-500 opacity-50 py-2">
+            {msg.content.slice(5, -6)}
+          </div>
+        {:else if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
+          <!-- Special full-width centered message for delete tag -->
+          <div 
+            onclick={() => handleUndoDelete(i)}
+            onkeydown={() => {}} 
+            role="button" 
+            tabindex="0"
+            class="w-full text-center text-neutral-500 opacity-50 py-2 cursor-pointer hover:opacity-80">
+            <div class="flex items-center justify-center gap-2">
+              <RotateCcw size={16} />
+              <span>{msg.content.replace(/<delete>.*?<\/delete>/, '')}</span>
+            </div>
+          </div>
+        {:else if msg.role === 'user'}
           {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
             <RecordingPanel recordingId={msg.content.slice(11, -12)} />
           {:else if msg.content.startsWith('<loading>') && msg.content.endsWith('</loading>')}
@@ -564,17 +857,56 @@
               <div
                 class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
               </div>
-              Saving...
+              {msg.content.slice(9, -10)}
             </Card>
+          {:else if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
+            <div 
+              onclick={() => handleUndoDelete(i)}
+              onkeydown={() => {}} 
+              role="button" 
+              tabindex="0"
+              class="cursor-pointer hover:opacity-90 w-full">
+              <Card
+                variant="primary"
+                padding="sm"
+                className="w-auto! flex! flex-row! items-center gap-3 max-w-2xl shadow-sm bg-neutral-600 text-white hover:bg-neutral-700">
+                <RotateCcw size={16} />
+                <div class="whitespace-pre-wrap tracking-wide">
+                  {msg.content.replace(/<delete>.*?<\/delete>/, '')}
+                </div>
+              </Card>
+            </div>
           {:else}
-            <Card
-              variant="primary"
-              padding="sm"
-              className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white">
-              <div class="whitespace-pre-wrap tracking-wide font-medium">
-                {msg.content}
-              </div>
-            </Card>
+            {#if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
+              <Card
+                variant="secondary"
+                padding="none"
+                className="w-auto! max-w-lg shadow-sm overflow-hidden {hoveredMessageIndex === i ? 'opacity-60' : 'opacity-100'} transition-opacity duration-300">
+                <img 
+                  src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`} 
+                  alt="Screenshot" 
+                  class="w-full h-auto" />
+              </Card>
+            {:else if msg.content.startsWith('<action>') && msg.content.endsWith('</action>')}
+              <Card
+                variant="primary"
+                padding="sm"
+                className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex === i ? 'opacity-60' : 'opacity-100'} transition-opacity duration-300">
+                <div class="flex items-center gap-2">
+                  <MousePointer size={16} />
+                  <pre class="font-mono text-sm whitespace-pre-wrap">{msg.content.slice(8, -9)}</pre>
+                </div>
+              </Card>
+            {:else}
+              <Card
+                variant="primary"
+                padding="sm"
+                className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex === i && msg.timestamp !== undefined ? 'opacity-50' : 'opacity-100'} transition-opacity duration-300">
+                <div class="whitespace-pre-wrap tracking-wide font-medium">
+                  {msg.content}
+                </div>
+              </Card>
+            {/if}
           {/if}
           <div
             class="shrink-0 w-8 h-8 rounded-full bg-secondary-100 text-white flex items-center justify-center shadow-md">
@@ -602,11 +934,21 @@
                     Uploading...
                   {:else}
                     <Upload size={16} />
-                    Upload Demonstration
+                    Upload Demonstration {deletedRanges.length > 0 ? `with ${deletedRanges.length} edit${deletedRanges.length === 1 ? '' : 's'}` : ''}
                   {/if}
                 </Button>
                 <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
               </div>
+            </Card>
+          {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
+            <Card
+              variant="secondary"
+              padding="none"
+              className="w-auto! max-w-lg shadow-sm overflow-hidden">
+              <img 
+                src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`} 
+                alt="Screenshot" 
+                class="w-full h-auto" />
             </Card>
           {:else}
             <Card
@@ -637,7 +979,7 @@
         {recordingState} />
     {/if}
 
-    {#if isWaitingForResponse}
+    {#if isWaitingForResponse || loadingSftData}
       <div class="flex gap-2">
         <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
           <img src={pfp} alt="V" class="w-full h-full object-cover" />
@@ -662,7 +1004,7 @@
     {/if}
   </div>
 </div>
-<div class="p-4 absolute bottom-0 w-full left-0 bg-white border-t border-gray-200">
+<!-- <div class="p-4 absolute bottom-0 w-full left-0 bg-white border-t border-gray-200">
   <div class="flex gap-3 items-center max-w-4xl mx-auto">
     {#if recordingState === 'recording' || recordingLoading}
       <Button
@@ -692,6 +1034,6 @@
       </Button>
     </form>
   </div>
-</div>
+</div> -->
 
 <UploadConfirmModal uploader={handleUploadClick} open={showUploadConfirmModal} />

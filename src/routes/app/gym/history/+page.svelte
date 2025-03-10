@@ -13,7 +13,8 @@
     Calendar,
     Folder,
     Trash2,
-    Eye
+    Eye,
+    Download
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
@@ -29,6 +30,7 @@
 
   let searchQuery = $state('');
   let exporting = $state(false);
+  let exportingZip = $state(false);
   let sortOrder: 'newest' | 'oldest' = $state('newest');
   let recordings: Recording[] = $state([]);
   let submissions: SubmissionStatus[] = $state([]);
@@ -222,6 +224,45 @@
 
     activeRecordingId = recordingId;
     showMenu = true;
+  }
+
+  // Export recording as zip
+  async function exportRecordingZip(recordingId: string) {
+    if (!recordingId) return;
+    
+    try {
+      exportingZip = true;
+      
+      // Create the zip file using the Rust backend
+      const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
+      
+      // Convert to Blob and create a download link
+      const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
+      const url = URL.createObjectURL(zipBlob);
+      
+      // Create a timestamp for the filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `export_zip_${timestamp}.zip`;
+      
+      // Create a download link and click it
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+    } catch (error) {
+      console.error('Failed to export zip:', error);
+      alert(`Error exporting zip: ${error}`);
+    } finally {
+      exportingZip = false;
+    }
   }
 
   // Delete recording function
@@ -440,6 +481,16 @@
         showMenu = false;
       }}>
       Open Folder
+    </MenuItem>
+    <MenuItem
+      icon={Download}
+      on:click={() => {
+        if (activeRecordingId) {
+          exportRecordingZip(activeRecordingId);
+        }
+        showMenu = false;
+      }}>
+      {exportingZip ? 'Exporting...' : 'Export Zip'}
     </MenuItem>
     {#if !submissions.find((s) => s.meta.id === activeRecordingId)}
       <MenuItem

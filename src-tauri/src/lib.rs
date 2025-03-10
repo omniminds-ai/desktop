@@ -31,7 +31,7 @@ use permissions::{has_ax_perms, has_record_perms, request_ax_perms, request_reco
 use record::{
     create_recording_zip, delete_recording, get_app_data_dir, get_recording_file, list_recordings,
     open_recording_folder, process_recording, start_recording, stop_recording, write_file,
-    QuestState,
+    write_recording_file, QuestState,
 };
 use settings::{
     get_onboarding_complete, get_upload_data_allowed, set_onboarding_complete,
@@ -196,6 +196,7 @@ pub fn run() {
             set_onboarding_complete,
             get_app_data_dir,
             write_file,
+            write_recording_file,
             open_recording_folder,
             process_recording,
             create_recording_zip,

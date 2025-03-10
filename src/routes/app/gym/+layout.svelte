@@ -38,8 +38,8 @@
   onMount(() => {
     checkPendingRewards();
     
-    // Set up interval to periodically check for pending rewards
-    const interval = setInterval(checkPendingRewards, 60000); // Check every minute
+    // Set up interval to periodically check for pending rewards 
+    const interval = setInterval(checkPendingRewards, 5000);
     
     return () => {
       clearInterval(interval);
