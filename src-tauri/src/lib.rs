@@ -5,6 +5,8 @@ use serde_json;
 use std::{
     io::{Cursor, Write},
     path::Path,
+    thread::sleep,
+    time,
 };
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
@@ -253,6 +255,7 @@ pub fn run() {
             }
 
             // Create transparent overlay window
+            sleep(time::Duration::from_millis(500));
             let overlay_window = match tauri::WebviewWindowBuilder::new(
                 app,
                 "overlay",
@@ -267,7 +270,8 @@ pub fn run() {
             .inner_size(primary.width as f64, primary.height as f64)
             .skip_taskbar(true)
             .visible_on_all_workspaces(true)
-            .build() {
+            .build()
+            {
                 Ok(window) => {
                     // Successfully created overlay window
                     if let Err(e) = window.set_ignore_cursor_events(true) {
@@ -278,16 +282,6 @@ pub fn run() {
                 }
                 Err(e) => {
                     error!("Failed to create overlay window: {}", e);
-                    
-                    // Show alert to user
-                    let main_window = app.get_webview_window("main").unwrap();
-                    let _ = main_window.eval(
-                        r#"
-                        alert("Warning: Failed to create overlay window. Some features may not work correctly. Error: WebView2 resource quota exceeded.");
-                        console.error("Failed to create overlay window. Error: WebView2 resource quota exceeded.");
-                        "#
-                    );
-                    
                     None
                 }
             };

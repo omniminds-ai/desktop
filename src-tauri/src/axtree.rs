@@ -274,7 +274,7 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
                             let reader = BufReader::new(stdout);
                             for line in reader.lines() {
                                 if let Ok(line) = line {
-                                    info!("[AxTree] STDOUT line: {}", line);
+                                    // info!("[AxTree] STDOUT line: {}", line);
                                     // Try to parse as JSON
                                     if let Ok(mut json) = serde_json::from_str::<Value>(&line) {
                                         // Modify the event field
