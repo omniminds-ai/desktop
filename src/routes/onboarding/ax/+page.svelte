@@ -58,7 +58,7 @@
   // Restart the app
   async function restartApp() {
     try {
-      await invoke('set_onboarding_complete');
+      await invoke('set_onboarding_complete', { confirmed: true });
       await relaunch();
     } catch (error) {
       console.error('Error restarting app:', error);
