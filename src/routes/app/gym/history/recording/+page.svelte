@@ -882,7 +882,8 @@
                   {/if}
                 </Button>
                 {#if recording.status === 'completed'}
-                  <!-- <Button
+                  {#if !sftHtml}
+                  <Button
                     variant="secondary"
                     onclick={handleProcess}
                     class="flex! items-center"
@@ -900,7 +901,8 @@
                     {:else}
                       Process
                     {/if}
-                  </Button> -->
+                  </Button>
+                  {/if}
                   <Button
                     variant="secondary"
                     onclick={exportZipCreation}
