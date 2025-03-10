@@ -253,7 +253,7 @@ pub fn run() {
             }
 
             // Create transparent overlay window
-            let overlay_window = tauri::WebviewWindowBuilder::new(
+            let overlay_window = match tauri::WebviewWindowBuilder::new(
                 app,
                 "overlay",
                 tauri::WebviewUrl::App("overlay".into()),
@@ -267,9 +267,30 @@ pub fn run() {
             .inner_size(primary.width as f64, primary.height as f64)
             .skip_taskbar(true)
             .visible_on_all_workspaces(true)
-            .build()?;
-
-            overlay_window.set_ignore_cursor_events(true)?;
+            .build() {
+                Ok(window) => {
+                    // Successfully created overlay window
+                    if let Err(e) = window.set_ignore_cursor_events(true) {
+                        error!("Failed to set ignore cursor events: {}", e);
+                        // Non-critical error, continue
+                    }
+                    Some(window)
+                }
+                Err(e) => {
+                    error!("Failed to create overlay window: {}", e);
+                    
+                    // Show alert to user
+                    let main_window = app.get_webview_window("main").unwrap();
+                    let _ = main_window.eval(
+                        r#"
+                        alert("Warning: Failed to create overlay window. Some features may not work correctly. Error: WebView2 resource quota exceeded.");
+                        console.error("Failed to create overlay window. Error: WebView2 resource quota exceeded.");
+                        "#
+                    );
+                    
+                    None
+                }
+            };
 
             // Emit initial recording status
             app.emit(
@@ -285,7 +306,10 @@ pub fn run() {
             let overlay_handle = overlay_window.clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::Destroyed = event {
-                    let _ = overlay_handle.close();
+                    // Only try to close the overlay if it was successfully created
+                    if let Some(overlay) = &overlay_handle {
+                        let _ = overlay.close();
+                    }
                     window_handle.app_handle().exit(0);
                 }
             });
