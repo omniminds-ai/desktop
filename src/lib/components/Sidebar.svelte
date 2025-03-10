@@ -22,7 +22,7 @@
       <img src={logo} alt="ViralMind Logo" class="h-8 w-8 object-contain" />
     </div>
 
-    <a
+    <!-- <a
       href="/app/chat"
       class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname ===
       '/app/chat'
@@ -30,7 +30,7 @@
         : 'hover:bg-white/10 text-gray-300'}"
       title="Chat">
       <MessageSquare size={20} />
-    </a>
+    </a> -->
 
     <!-- <a
       href="/app/datasets"
