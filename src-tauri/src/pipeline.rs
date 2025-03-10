@@ -114,7 +114,14 @@ pub fn process_recording(app: &AppHandle, recording_id: &str) -> Result<(), Stri
 
     // Run the pipeline command from the temp directory so it can find ffmpeg/ffprobe
     let temp_dir = get_temp_dir();
-    let output = Command::new(pipeline)
+
+    let mut command = Command::new(pipeline);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
+    }
+    let output = command
         .current_dir(temp_dir)
         .arg("-f")
         .arg("desktop")
