@@ -25,11 +25,7 @@
       return goto('/app/gym');
     }
 
-    accessibilityGranted = await invoke('has_ax_perms');
-    screenRecordingGranted = await invoke('has_record_perms');
-
-    if (accessibilityGranted && screenRecordingGranted) {
-      await invoke('set_onboarding_complete', { confirmed: true });
+    if (await invoke('get_onboarding_complete')) {
       return goto('/app/gym');
     }
   });
