@@ -144,7 +144,7 @@
       
       <button
         class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50"
-        on:click={() => (showFilters = !showFilters)}>
+        onclick={() => (showFilters = !showFilters)}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="w-4 h-4 transition-transform"
@@ -169,7 +169,7 @@
               class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.size === 0
                 ? 'bg-secondary-300 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
-              on:click={() => (selectedCategories = new Set())}>
+              onclick={() => (selectedCategories = new Set())}>
               All
             </button>
             {#each allCategories as category}
@@ -177,7 +177,7 @@
                 class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.has(category)
                   ? 'bg-secondary-300 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
-                on:click={() => toggleCategory(category)}>
+                onclick={() => toggleCategory(category)}>
                 {category}
               </button>
             {/each}

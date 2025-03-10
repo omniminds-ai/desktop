@@ -155,7 +155,7 @@
           {activeTab === 'overview'
           ? 'text-secondary-600 border-b-2 border-secondary-500'
           : 'text-gray-500 hover:text-gray-700'}"
-        on:click={() => setTab('overview')}>
+        onclick={() => setTab('overview')}>
         <LayoutDashboard size={16} />
         Overview
       </button>
@@ -164,7 +164,7 @@
           {activeTab === 'settings'
           ? 'text-secondary-600 border-b-2 border-secondary-500'
           : 'text-gray-500 hover:text-gray-700'}"
-        on:click={() => setTab('settings')}>
+        onclick={() => setTab('settings')}>
         <Sliders size={16} />
         Settings
       </button>
@@ -173,7 +173,7 @@
           {activeTab === 'tasks'
           ? 'text-secondary-600 border-b-2 border-secondary-500'
           : 'text-gray-500 hover:text-gray-700'}"
-        on:click={() => setTab('tasks')}>
+        onclick={() => setTab('tasks')}>
         <ListTodo size={16} />
         Tasks
       </button>
@@ -182,7 +182,7 @@
           {activeTab === 'uploads'
           ? 'text-secondary-600 border-b-2 border-secondary-500'
           : 'text-gray-500 hover:text-gray-700'}"
-        on:click={() => setTab('uploads')}>
+        onclick={() => setTab('uploads')}>
         <Upload size={16} />
         Uploads
       </button>

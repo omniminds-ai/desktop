@@ -140,7 +140,7 @@
         <!-- Logout Button -->
         <button
           class="flex items-center gap-1.5 text-gray-400 cursor-pointer hover:text-white transition-colors mt-1 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 -mx-1"
-          on:click={disconnectWallet}>
+          onclick={disconnectWallet}>
           <LogOut size={12} />
           <span>Disconnect Wallet</span>
         </button>
@@ -156,7 +156,7 @@
       : 'justify-center'} rounded-full {theme === 'light'
       ? 'bg-white/90 text-gray-800 hover:bg-white'
       : 'bg-white/5 text-gray-300 hover:bg-white/10'} relative group transition-colors"
-    on:click={() => startPolling()}>
+    onclick={() => startPolling()}>
     <div class="flex items-center gap-2">
       <Wallet size={16} />
       {#if variant === 'large'}
