@@ -779,10 +779,10 @@ fn process_video_with_private_ranges(
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        command.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
+        ffmpeg_command.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
     }
 
-    let status = command
+    let status = ffmpeg_command
         .args([
             "-i",
             input_path.to_str().unwrap(),
