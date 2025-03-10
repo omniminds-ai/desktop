@@ -5,6 +5,8 @@ use serde_json;
 use std::{
     io::{Cursor, Write},
     path::Path,
+    thread::sleep,
+    time,
 };
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
@@ -167,6 +169,11 @@ pub fn run() {
             tauri_plugin_log::Builder::new()
                 .level_for("app_finder::platform::platform", log::LevelFilter::Error)
                 .level_for("tao::platform_impl::platform", log::LevelFilter::Error)
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("logs".to_string()),
+                    },
+                ))
                 .build(),
         )
         .plugin(tauri_plugin_process::init())
@@ -248,7 +255,8 @@ pub fn run() {
             }
 
             // Create transparent overlay window
-            let overlay_window = tauri::WebviewWindowBuilder::new(
+            sleep(time::Duration::from_millis(500));
+            let overlay_window = match tauri::WebviewWindowBuilder::new(
                 app,
                 "overlay",
                 tauri::WebviewUrl::App("overlay".into()),
@@ -262,9 +270,21 @@ pub fn run() {
             .inner_size(primary.width as f64, primary.height as f64)
             .skip_taskbar(true)
             .visible_on_all_workspaces(true)
-            .build()?;
-
-            overlay_window.set_ignore_cursor_events(true)?;
+            .build()
+            {
+                Ok(window) => {
+                    // Successfully created overlay window
+                    if let Err(e) = window.set_ignore_cursor_events(true) {
+                        error!("Failed to set ignore cursor events: {}", e);
+                        // Non-critical error, continue
+                    }
+                    Some(window)
+                }
+                Err(e) => {
+                    error!("Failed to create overlay window: {}", e);
+                    None
+                }
+            };
 
             // Emit initial recording status
             app.emit(
@@ -280,7 +300,10 @@ pub fn run() {
             let overlay_handle = overlay_window.clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::Destroyed = event {
-                    let _ = overlay_handle.close();
+                    // Only try to close the overlay if it was successfully created
+                    if let Some(overlay) = &overlay_handle {
+                        let _ = overlay.close();
+                    }
                     window_handle.app_handle().exit(0);
                 }
             });
