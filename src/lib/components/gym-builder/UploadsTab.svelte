@@ -2,7 +2,7 @@
   import Card from '../Card.svelte';
   import Button from '../Button.svelte';
   import DownloadScriptsModal from '../DownloadScriptsModal.svelte';
-  import { Code, Download, Clock, Monitor, Laptop, Server, Smartphone, Globe, Languages } from 'lucide-svelte';
+  import { Code, Download, Clock, Monitor, Laptop, Server, Smartphone, Globe, Languages, Check, Trash } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
   import { getPoolSubmissions, type PoolSubmission } from '$lib/api/forge';
   import { onMount } from 'svelte';
@@ -14,6 +14,7 @@
   };
 
   let submissions: PoolSubmission[] = [];
+  let selectedSubmissions: Set<string> = new Set();
   let loading = true;
   let error: string | null = null;
 
@@ -105,6 +106,34 @@
     }
   }
 
+  // Toggle selection for a single submission
+  function toggleSelection(submissionId: string) {
+    if (selectedSubmissions.has(submissionId)) {
+      selectedSubmissions.delete(submissionId);
+    } else {
+      selectedSubmissions.add(submissionId);
+    }
+    selectedSubmissions = selectedSubmissions; // Trigger reactivity
+  }
+
+  // Toggle selection for all submissions
+  function toggleSelectAll() {
+    if (selectedSubmissions.size === submissions.length) {
+      // If all are selected, deselect all
+      selectedSubmissions.clear();
+    } else {
+      // Otherwise, select all
+      selectedSubmissions = new Set(submissions.map(s => s._id));
+    }
+    selectedSubmissions = selectedSubmissions; // Trigger reactivity
+  }
+
+  // Check if all submissions are selected
+  $: allSelected = submissions.length > 0 && selectedSubmissions.size === submissions.length;
+  
+  // Count of selected submissions
+  $: selectedCount = selectedSubmissions.size;
+
   // Download scripts modal
   let showDownloadModal = false;
 </script>
@@ -113,15 +142,29 @@
 <div class="flex justify-between items-center border-gray-200 pb-3">
   <div class="flex items-center">
     <h2 class="text-xl font-bold text-gray-800">Uploads</h2>
+    {#if selectedCount > 0}
+      <span class="ml-2 px-2 py-0.5 bg-secondary-100 text-white text-xs rounded-full">
+        {selectedCount} selected
+      </span>
+    {/if}
   </div>
-  <div class="flex items-center">
-    <button
-      class="px-3 py-1.5 text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
-      on:click={() => (showDownloadModal = true)}
-      disabled={submissions.length === 0}>
-      <Code size={15} class="mr-1" />
-      Export All Uploads
-    </button>
+  <div class="flex items-center space-x-2">
+    {#if selectedCount > 0}
+      <button
+        class="px-3 py-1.5 text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
+        on:click={() => (showDownloadModal = true)}>
+        <Download size={15} class="mr-1" />
+        Export Selected
+      </button>
+    {:else}
+      <button
+        class="px-3 py-1.5 text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
+        on:click={() => (showDownloadModal = true)}
+        disabled={submissions.length === 0}>
+        <Code size={15} class="mr-1" />
+        Export All Uploads
+      </button>
+    {/if}
   </div>
 </div>
 
@@ -160,6 +203,17 @@
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
+          <th class="w-10 px-3 py-3">
+            <div class="flex items-center">
+              <input 
+                type="checkbox" 
+                class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
+                checked={allSelected}
+                on:change={toggleSelectAll}
+                disabled={submissions.length === 0}
+              />
+            </div>
+          </th>
           <th class="w-16 px-2 py-3"></th>
           <th
             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -181,7 +235,17 @@
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
         {#each submissions as submission}
-          <tr>
+          <tr class={selectedSubmissions.has(submission._id) ? 'bg-secondary-50' : ''}>
+            <td class="px-3 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <input 
+                  type="checkbox" 
+                  class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
+                  checked={selectedSubmissions.has(submission._id)}
+                  on:change={() => toggleSelection(submission._id)}
+                />
+              </div>
+            </td>
             <td class="px-2 py-4 whitespace-nowrap text-gray-500">
               <div class="flex items-center gap-2">
                 <!-- <span class="flex items-center gap-1 bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
@@ -233,6 +297,6 @@
 
 <DownloadScriptsModal 
   open={showDownloadModal}
-  submissions={submissions}
+  submissions={selectedCount > 0 ? submissions.filter(s => selectedSubmissions.has(s._id)) : submissions}
   onClose={() => (showDownloadModal = false)}
 />
