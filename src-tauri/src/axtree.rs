@@ -260,13 +260,19 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
             info!("[AxTree] Starting new dump-tree process");
 
             // Run dump-tree and capture output
-            let process = Command::new(&dump_tree)
+            let mut command = Command::new(&dump_tree);
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                command.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
+            }
+            let proc = command
                 .arg("-e")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn();
 
-            match process {
+            match proc {
                 Ok(mut child) => {
                     // Create separate threads for handling stdout and stderr
                     let stdout_thread = if let Some(stdout) = child.stdout.take() {

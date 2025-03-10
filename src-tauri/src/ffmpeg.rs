@@ -58,7 +58,13 @@ pub fn init_ffmpeg() -> Result<(), String> {
 
     info!("[FFmpeg] Initializing FFmpeg");
     // First check if ffmpeg is in PATH
-    if let Ok(output) = Command::new("ffmpeg").arg("-version").output() {
+    let mut command = Command::new("ffmpeg");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
+    }
+    if let Ok(output) = command.arg("-version").output() {
         if output.status.success() {
             info!("[FFmpeg] Found FFmpeg in system PATH");
             FFMPEG_PATH.set("ffmpeg".into()).unwrap();
@@ -86,13 +92,25 @@ pub fn init_ffmpeg() -> Result<(), String> {
 
     if ffmpeg_path.exists() && ffprobe_path.exists() {
         // Try to verify both binaries work
-        let ffmpeg_ok = Command::new(&ffmpeg_path)
+        let mut command_path = Command::new(&ffmpeg_path);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command_path.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
+        }
+        let ffmpeg_ok = command_path
             .arg("-version")
             .output()
             .map(|output| output.status.success())
             .unwrap_or(false);
 
-        let ffprobe_ok = Command::new(&ffprobe_path)
+        let mut command_probe = Command::new(&ffprobe_path);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command_probe.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
+        }
+        let ffprobe_ok = command_probe
             .arg("-version")
             .output()
             .map(|output| output.status.success())
@@ -382,8 +400,13 @@ impl FFmpegRecorder {
         ]);
 
         info!("[FFmpeg] Command: {} {}", ffmpeg.display(), args.join(" "));
-
-        let mut process = Command::new(ffmpeg)
+        let mut command = Command::new(ffmpeg);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
+        }
+        let mut process = command
             .args(&args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
