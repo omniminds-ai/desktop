@@ -44,3 +44,8 @@
   --color-accent-500: #bdbdbd;
   --color-accent-600: #9f9f9f;
 }
+
+
+button {
+  cursor: pointer;
+}

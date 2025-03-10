@@ -16,29 +16,29 @@
   };
   export let unsavedChanges: boolean;
   export let regenerateTasks: () => void;
-  
-  let viewMode = "edit"; // edit or preview
+
+  let viewMode = 'edit'; // edit or preview
   let editingAppId = '';
   let editingTaskId = '';
   let editingField = '';
   let editValue = '';
-  let currentTaskForAppChange: { appIndex: number, taskIndex: number } | null = null;
+  let currentTaskForAppChange: { appIndex: number; taskIndex: number } | null = null;
   let newAppName = '';
   let newAppDomain = '';
   let showNewAppForm = false;
   let apps: ForgeApp[] = [];
   let loadingApps = true;
-  
+
   onMount(async () => {
     await loadApps();
   });
-  
+
   async function loadApps() {
     loadingApps = true;
     try {
       apps = await getAppsForGym(pool._id);
     } catch (error) {
-      console.error("Failed to load apps:", error);
+      console.error('Failed to load apps:', error);
       apps = [];
     } finally {
       loadingApps = false;
@@ -64,7 +64,7 @@
   }
 
   function saveEditing() {
-    const appIndex = apps.findIndex(app => app.name === editingAppId);
+    const appIndex = apps.findIndex((app) => app.name === editingAppId);
     if (appIndex === -1) return;
 
     if (editingField === 'domain') {
@@ -87,26 +87,26 @@
     unsavedChanges = true;
     cancelEditing();
   }
-  
+
   function changeTaskApp(newAppIndex: number) {
     if (!currentTaskForAppChange) return;
-    
+
     const { appIndex, taskIndex } = currentTaskForAppChange;
     const task = { ...apps[appIndex].tasks[taskIndex] };
-    
+
     // Remove task from current app
     apps[appIndex].tasks = apps[appIndex].tasks.filter((_, idx) => idx !== taskIndex);
-    
+
     // Add task to new app
     apps[newAppIndex].tasks.push(task);
-    
+
     unsavedChanges = true;
     currentTaskForAppChange = null;
   }
-  
+
   function addNewApp() {
     if (!newAppName) return;
-    
+
     const newApp: ForgeApp = {
       name: newAppName,
       domain: newAppDomain,
@@ -120,18 +120,18 @@
         pricePerDemo: pool.pricePerDemo || 1
       }
     };
-    
+
     apps.push(newApp);
-    
+
     // If we were moving a task to this new app
     if (currentTaskForAppChange) {
       changeTaskApp(apps.length - 1);
     }
-    
+
     unsavedChanges = true;
     resetNewAppForm();
   }
-  
+
   function resetNewAppForm() {
     newAppName = '';
     newAppDomain = '';
@@ -140,7 +140,7 @@
 
   function getIconUrl(domain: string) {
     if (!domain) return '';
-    
+
     // Handle domains with or without protocol prefix
     const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '');
     return `https://www.google.com/s2/favicons?domain=${cleanDomain}&sz=32`;
@@ -154,27 +154,27 @@
   </div>
   <div class="flex items-center">
     <div class="bg-gray-100 rounded-lg p-1 flex items-center">
-      <button 
-        class="px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1
-          {viewMode === 'edit' 
-            ? 'bg-white text-secondary-600 shadow-sm' 
-            : 'text-gray-600 hover:text-gray-800'}"
-        onclick={() => viewMode = 'edit'}>
+      <button
+        class="px-3 py-1.5 text-sm rounded-md transition-colors cursor-pointer flex items-center gap-1
+          {viewMode === 'edit'
+          ? 'bg-white text-secondary-600 shadow-sm'
+          : 'text-gray-600 hover:text-gray-800'}"
+        onclick={() => (viewMode = 'edit')}>
         <Pencil size={15} class="mr-1" />
         Edit
       </button>
       <button
-        class="px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1
-          {viewMode === 'preview' 
-            ? 'bg-white text-secondary-600 shadow-sm' 
-            : 'text-gray-600 hover:text-gray-800'}"
-        onclick={() => viewMode = 'preview'}>
+        class="px-3 py-1.5 text-sm rounded-md cursor-pointer transition-colors flex items-center gap-1
+          {viewMode === 'preview'
+          ? 'bg-white text-secondary-600 shadow-sm'
+          : 'text-gray-600 hover:text-gray-800'}"
+        onclick={() => (viewMode = 'preview')}>
         <Eye size={15} class="mr-1" />
         Preview
       </button>
     </div>
     <button
-      class="ml-2 px-3 py-1.5 text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
+      class="ml-2 px-3 py-1.5 cursor-pointer text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
       onclick={regenerateTasks}>
       <Sparkles size={15} class="mr-1" />
       Generate Tasks
@@ -187,18 +187,19 @@
   <!-- Tasks Tab Content -->
   {#if loadingApps}
     <div class="flex items-center justify-center h-40">
-      <div class="animate-spin h-8 w-8 border-4 border-secondary-500 rounded-full border-t-transparent"></div>
+      <div
+        class="animate-spin h-8 w-8 border-4 border-secondary-500 rounded-full border-t-transparent">
+      </div>
     </div>
   {:else if viewMode === 'preview'}
     <!-- Preview Mode using AvailableTasks component -->
     <AvailableTasks
-      apps={apps}
-      loadingApps={loadingApps}
+      {apps}
+      {loadingApps}
       viewMode="preview"
       isGymBuilder={true}
       poolId={pool._id}
-      onGenerateTasks={regenerateTasks}
-    />
+      onGenerateTasks={regenerateTasks} />
   {:else if apps.length === 0}
     <div class="text-center py-12 text-gray-500">
       <p>No apps available yet.</p>
@@ -215,8 +216,8 @@
                 <!-- App Icon -->
                 {#if editingAppId === app.name && editingField === 'domain'}
                   <div class="flex items-center gap-1">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       class="w-36 px-2 py-1 text-sm border rounded"
                       bind:value={editValue} />
                     <button class="text-green-500 hover:text-green-700" onclick={saveEditing}>
@@ -227,14 +228,16 @@
                     </button>
                   </div>
                 {:else}
-                  <div class="w-8 h-8 flex items-center justify-center rounded bg-gray-100 cursor-pointer relative group"
-                      onclick={() => startEditing(app.name, '', 'domain', app.domain)}>
+                  <div
+                    class="w-8 h-8 flex items-center justify-center rounded bg-gray-100 cursor-pointer relative group"
+                    onclick={() => startEditing(app.name, '', 'domain', app.domain)}>
                     {#if app.domain}
                       <img src={getIconUrl(app.domain)} alt={app.name} class="w-6 h-6" />
                     {:else}
                       <div class="w-6 h-6 bg-gray-300 rounded"></div>
                     {/if}
-                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded flex items-center justify-center">
+                    <div
+                      class="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded flex items-center justify-center">
                       <Pencil size={12} class="text-gray-700 opacity-0 group-hover:opacity-100" />
                     </div>
                   </div>
@@ -243,8 +246,8 @@
                 <!-- App Name -->
                 {#if editingAppId === app.name && editingField === 'name'}
                   <div class="flex items-center gap-1">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       class="w-36 px-2 py-1 text-sm border rounded"
                       bind:value={editValue} />
                     <button class="text-green-500 hover:text-green-700" onclick={saveEditing}>
@@ -255,10 +258,12 @@
                     </button>
                   </div>
                 {:else}
-                  <div class="text-lg font-medium text-gray-800 group relative cursor-pointer"
-                      onclick={() => startEditing(app.name, '', 'name', app.name)}>
+                  <div
+                    class="text-lg font-medium text-gray-800 group relative cursor-pointer"
+                    onclick={() => startEditing(app.name, '', 'name', app.name)}>
                     <span>{app.name}</span>
-                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded flex items-center justify-center">
+                    <div
+                      class="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded flex items-center justify-center">
                       <Pencil size={12} class="text-gray-700 opacity-0 group-hover:opacity-100" />
                     </div>
                   </div>
@@ -268,8 +273,8 @@
               <!-- Price -->
               {#if editingAppId === app.name && editingField === 'price'}
                 <div class="flex items-center gap-1">
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.1"
                     min="1"
                     class="w-20 px-2 py-1 text-sm border rounded"
@@ -283,11 +288,15 @@
                   </button>
                 </div>
               {:else}
-                <div class="text-sm font-bold text-secondary-600 flex items-center gap-1 group relative cursor-pointer"
-                    onclick={() => startEditing(app.name, '', 'price', (pool.pricePerDemo || 1).toString())}>
+                <div
+                  class="text-sm font-bold text-secondary-600 flex items-center gap-1 group relative cursor-pointer"
+                  onclick={() =>
+                    startEditing(app.name, '', 'price', (pool.pricePerDemo || 1).toString())}>
                   <DollarSign size={14} />
-                  {pool.pricePerDemo} {pool.token.symbol}
-                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded flex items-center justify-center">
+                  {pool.pricePerDemo}
+                  {pool.token.symbol}
+                  <div
+                    class="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded flex items-center justify-center">
                     <Pencil size={12} class="text-gray-700 opacity-0 group-hover:opacity-100" />
                   </div>
                 </div>
@@ -297,32 +306,38 @@
             <!-- App tasks section -->
             <div class="mt-4 pt-3">
               <div class="text-sm font-medium text-gray-700 mb-2">Tasks</div>
-              
+
               {#if app.tasks && app.tasks.length > 0}
                 <div class="space-y-2 ml-1">
                   {#each app.tasks as task, taskIndex}
                     {#if editingAppId === app.name && editingTaskId === taskIndex.toString() && editingField === 'prompt'}
                       <div class="mb-2">
-                        <TextArea
-                          class="w-full text-sm"
-                          variant="light"
-                          bind:value={editValue}>
+                        <TextArea class="w-full text-sm" variant="light" bind:value={editValue}>
                         </TextArea>
                         <div class="flex justify-end mt-2 gap-2">
-                          <button class="text-green-500 hover:text-green-700 p-1" onclick={saveEditing}>
+                          <button
+                            class="text-green-500 hover:text-green-700 p-1"
+                            onclick={saveEditing}>
                             <Check size={16} />
                           </button>
-                          <button class="text-red-500 hover:text-red-700 p-1" onclick={cancelEditing}>
+                          <button
+                            class="text-red-500 hover:text-red-700 p-1"
+                            onclick={cancelEditing}>
                             <X size={16} />
                           </button>
                         </div>
                       </div>
                     {:else}
-                      <div class="relative group cursor-pointer bg-gray-50 p-2 rounded-md hover:bg-gray-100 hover:shadow-sm transition-all duration-300"
-                          onclick={() => startEditing(app.name, taskIndex.toString(), 'prompt', task.prompt)}>
+                      <div
+                        class="relative group cursor-pointer bg-gray-50 p-2 rounded-md hover:bg-gray-100 hover:shadow-sm transition-all duration-300"
+                        onclick={() =>
+                          startEditing(app.name, taskIndex.toString(), 'prompt', task.prompt)}>
                         <p class="text-gray-800 text-sm">{task.prompt}</p>
-                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded flex items-center justify-center">
-                          <Pencil size={14} class="text-gray-700 opacity-0 group-hover:opacity-100" />
+                        <div
+                          class="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded flex items-center justify-center">
+                          <Pencil
+                            size={14}
+                            class="text-gray-700 opacity-0 group-hover:opacity-100" />
                         </div>
                       </div>
                     {/if}
