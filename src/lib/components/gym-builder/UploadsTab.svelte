@@ -209,7 +209,7 @@
                 type="checkbox" 
                 class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
                 checked={allSelected}
-                on:change={toggleSelectAll}
+                onchange={toggleSelectAll}
                 disabled={submissions.length === 0}
               />
             </div>
@@ -242,7 +242,7 @@
                   type="checkbox" 
                   class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
                   checked={selectedSubmissions.has(submission._id)}
-                  on:change={() => toggleSelection(submission._id)}
+                  onchange={() => toggleSelection(submission._id)}
                 />
               </div>
             </td>
