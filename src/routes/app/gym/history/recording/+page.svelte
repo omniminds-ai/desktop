@@ -4,7 +4,7 @@
   import Button from '$lib/components/Button.svelte';
   import EventTimestamp from '$lib/components/gym/EventTimestamp.svelte';
   import AxTreeOverlay from '$lib/components/gym/AxTreeOverlay.svelte';
-  import { Copy, ExternalLink, Asterisk, Equal, EyeOff, Eye, ChevronUp, ChevronDown, Trash2 } from 'lucide-svelte';
+  import { Copy, ExternalLink, Asterisk, Equal, EyeOff, Eye, ChevronUp, ChevronDown, Trash2, MousePointer, Keyboard } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import type { Recording } from '$lib/gym';
@@ -528,6 +528,50 @@
   let eventTypes: Set<string> = new Set();
   let enabledEventTypes: Set<string> = new Set();
   let visibleAxTree: number | null = null;
+  let timelineElement: HTMLElement | null = null;
+  let progressPercentage = 0;
+  let showScrubber = false;
+  let scrubberPosition = 0;
+  let isVideoOverMaskedRange = false;
+
+  // Function to handle video time updates
+  function handleTimeUpdate() {
+    if (!videoElement) return;
+    
+    // Update progress percentage
+    progressPercentage = (videoElement.currentTime / videoElement.duration) * 100;
+    
+    // Check if current time is within any masked range
+    isVideoOverMaskedRange = privateRanges.some(range => {
+      const rangeStartTime = range.start / 1000; // Convert ms to seconds
+      const rangeEndTime = range.end / 1000; // Convert ms to seconds
+      return (videoElement?.currentTime || 0) >= rangeStartTime && (videoElement?.currentTime || 0) <= rangeEndTime;
+    });
+  }
+  
+  // Function to handle mouse movement over the timeline
+  function handleTimelineHover(event: MouseEvent) {
+    if (!timelineElement || !videoElement) return;
+    
+    showScrubber = true;
+    
+    // Calculate position as percentage
+    const rect = timelineElement.getBoundingClientRect();
+    const position = (event.clientX - rect.left) / rect.width;
+    scrubberPosition = position * 100;
+  }
+  
+  // Function to handle clicks on the timeline
+  function handleTimelineClick(event: MouseEvent) {
+    if (!timelineElement || !videoElement) return;
+    
+    // Calculate position as percentage
+    const rect = timelineElement.getBoundingClientRect();
+    const position = (event.clientX - rect.left) / rect.width;
+    
+    // Set video time
+    videoElement.currentTime = position * videoElement.duration;
+  }
 
   async function copyEventData(event: any) {
     await writeText(JSON.stringify(event, null, 2));
@@ -632,6 +676,14 @@
   function formatJson(event: { time: number; event: string; data: any }) {
     return JSON.stringify(event, null, 2);
   }
+  
+  // Function to process assistant message content to remove ```python prefix
+  function processAssistantMessage(content: string): string {
+    if (typeof content !== 'string') return JSON.stringify(content, null, 2);
+    
+    // Replace ```python blocks with just ``` blocks
+    return content.replace(/```python\n/g, '').replace(/\n```/g, '');
+  }
 </script>
 
 <div class="h-full max-w-7xl mx-auto">
@@ -640,10 +692,15 @@
       <div class="flex gap-3 xl:flex-row flex-col h-[calc(100vh-8rem)]">
         <!-- Video Section -->
         <div class="w-full flex flex-col">
-          <Card padding="none" className="mb-6">
+          <Card padding="none" className="mb-0 bg-black!">
             <div class="relative w-full">
               <!-- svelte-ignore a11y_media_has_caption -->
-              <video bind:this={videoElement} controls class="w-full h-full" src={videoSrc || ''}>
+              <video 
+                bind:this={videoElement} 
+                controls 
+                class="w-full h-full {isVideoOverMaskedRange ? 'blur-sm opacity-50' : ''}" 
+                src={videoSrc || ''}
+                ontimeupdate={handleTimeUpdate}>
                 Your browser does not support the video tag.
               </video>
               {#if visibleAxTree !== null}
@@ -659,8 +716,45 @@
                   {/if}
                 {/each}
               {/if}
+              
             </div>
           </Card>
+          <!-- Timeline component -->
+          <div 
+            class="relative w-full h-2 bg-gray-200 mt-2 cursor-pointer mb-6 rounded" 
+            bind:this={timelineElement}
+            onmousemove={handleTimelineHover}
+            onmouseleave={() => showScrubber = false}
+            onclick={handleTimelineClick}>
+            
+            <!-- Progress bar -->
+            <div 
+              class="absolute top-0 left-0 h-full bg-secondary-300 rounded" 
+              style="width: {progressPercentage}%">
+            </div>
+            
+            <!-- Masked ranges -->
+            {#each privateRanges as range}
+              <div 
+                class="absolute top-0 h-full bg-black opacity-70 rounded" 
+                style="left: {(range.start / 1000 / (videoElement?.duration || 1)) * 100}%; 
+                       width: {((range.end - range.start) / 1000 / (videoElement?.duration || 1)) * 100}%;">
+                {#if videoElement}
+                  <div class="absolute top-0 right-1/2 transform translate-x-1/2 -translate-y-1/4 bg-black p-1 rounded">
+                    <EyeOff class="w-3 h-3 text-white" />
+                  </div>
+                {/if}
+              </div>
+            {/each}
+            
+            <!-- Scrubber -->
+            {#if showScrubber}
+              <div 
+                class="absolute top-0 w-4 h-4 bg-white border-2 border-secondary-400 rounded-full -mt-1 -ml-2"
+                style="left: {scrubberPosition}%">
+              </div>
+            {/if}
+          </div>
 
           {#if submission?.grade_result}
             <Card padding="lg" className="mb-6">
@@ -918,10 +1012,12 @@
                     <div
                       class={`flex gap-2 items-start min-w-0 p-2 rounded ${i % 2 === 0 ? 'bg-gray-100' : ''}`}>
                       <div class="flex flex-col gap-1 min-w-[50px] select-none">
-                        <EventTimestamp
-                          timestamp={event.time}
-                          startTime={startTimestamp || 0}
-                          {videoElement} />
+                        <div class="flex items-center gap-1">
+                          <EventTimestamp
+                            timestamp={event.time}
+                            startTime={startTimestamp || 0}
+                            {videoElement} />
+                        </div>
                         {#if event.event === 'axtree'}
                           <Button
                             variant="secondary"
@@ -1077,6 +1173,8 @@
                                     src={`data:image/jpeg;base64,${item.content.slice(5, -6)}`} 
                                     alt="Screenshot" 
                                     class="max-w-full rounded mt-2" />
+                                {:else if item.role === 'assistant'}
+                                  {processAssistantMessage(item.content)}
                                 {:else}
                                   {item.content}
                                 {/if}
