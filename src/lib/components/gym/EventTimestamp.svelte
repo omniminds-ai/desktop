@@ -23,7 +23,7 @@
 
 <button
   class="px-2 py-0.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-200 cursor-pointer transition-colors"
-  on:click={handleClick}
+  onclick={handleClick}
   title="Click to seek video to this timestamp">
   {formattedTime}
 </button>

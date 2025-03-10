@@ -152,14 +152,14 @@
     {#if selectedCount > 0}
       <button
         class="px-3 py-1.5 text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
-        on:click={() => (showDownloadModal = true)}>
+        onclick={() => (showDownloadModal = true)}>
         <Download size={15} class="mr-1" />
         Export Selected
       </button>
     {:else}
       <button
         class="px-3 py-1.5 text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
-        on:click={() => (showDownloadModal = true)}
+        onclick={() => (showDownloadModal = true)}
         disabled={submissions.length === 0}>
         <Code size={15} class="mr-1" />
         Export All Uploads
@@ -181,7 +181,7 @@
       <div class="text-sm font-medium">{error}</div>
       <button
         class="mt-2 text-secondary-600 hover:text-secondary-900 text-sm hover:underline cursor-pointer"
-        on:click={() => {
+        onclick={() => {
           loading = true;
           getPoolSubmissions(pool._id)
             .then((data) => {
@@ -209,7 +209,7 @@
                 type="checkbox" 
                 class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
                 checked={allSelected}
-                on:change={toggleSelectAll}
+                onchange={toggleSelectAll}
                 disabled={submissions.length === 0}
               />
             </div>
@@ -242,7 +242,7 @@
                   type="checkbox" 
                   class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
                   checked={selectedSubmissions.has(submission._id)}
-                  on:change={() => toggleSelection(submission._id)}
+                  onchange={() => toggleSelection(submission._id)}
                 />
               </div>
             </td>
