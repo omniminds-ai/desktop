@@ -3,13 +3,18 @@
   import '../../app.css';
   import { checkForUpdate, updateApp } from '$lib/utils';
   import Button from '$lib/components/Button.svelte';
+  import { platform } from '@tauri-apps/plugin-os';
 
   let { children } = $props();
 
   let canceled = $state(false);
+  
+  // Detect platform (windows or darwin for Mac)
+  const currentPlatform = platform();
+  const bgClass = currentPlatform === 'macos' ? 'bg-primary-600/50' : 'bg-primary-500';
 </script>
 
-<div class="h-screen flex bg-primary-600/75 overflow-hidden backdrop-blur-md">
+<div class="h-screen flex {bgClass} overflow-hidden">
   <Sidebar />
   <div class="flex-1 p-2">
     <div class="h-full overflow-hidden bg-gray-50 border border-gray-500 rounded-md">
