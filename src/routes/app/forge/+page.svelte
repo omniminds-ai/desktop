@@ -170,6 +170,33 @@
   {:else if loading}
     <div class="text-center text-gray-400 py-8">Loading AI agent gyms...</div>
   {:else if trainingPools.length === 0}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <!-- Create New Gym Card -->
+      <Card
+        variant="secondary"
+        padding="md"
+        className="h-full flex flex-col border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-secondary-300 transition-all duration-300">
+        <div
+          class="flex flex-col h-full items-center justify-center cursor-pointer"
+          role="button"
+          tabindex="0"
+          onkeydown={() => (showGenerateGymModal = true)}
+          onclick={() => (showGenerateGymModal = true)}>
+          <div
+            class="rounded-full bg-gray-200 w-24 h-24 flex items-center justify-center mb-4 duration-300 transform transition-all">
+            <span class="text-5xl text-gray-500 font-light transition-colors duration-300">+</span>
+          </div>
+          <div
+            class="text-lg font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-300">
+            Create New Gym
+          </div>
+          <p
+            class="text-sm text-gray-500 text-center mt-2 group-hover:text-gray-600 transition-colors duration-300">
+            Start collecting demonstrations for your AI agent training
+          </p>
+        </div>
+      </Card>
+    </div>
     <div class="text-center text-gray-400 py-8">
       No AI agent gyms found. Create one to get started!
     </div>
@@ -180,13 +207,13 @@
         // First sort by status (live first)
         if (a.status === TrainingPoolStatus.live && b.status !== TrainingPoolStatus.live) return -1;
         if (a.status !== TrainingPoolStatus.live && b.status === TrainingPoolStatus.live) return 1;
-        
+
         // Then sort by createdAt (newest first)
         const dateA = new Date(a.createdAt || 0);
         const dateB = new Date(b.createdAt || 0);
         return dateB.getTime() - dateA.getTime();
       })}
-      
+
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <!-- Create New Gym Card -->
         <Card
@@ -201,7 +228,9 @@
             onclick={() => (showGenerateGymModal = true)}>
             <div
               class="rounded-full bg-gray-200 w-24 h-24 flex items-center justify-center mb-4 duration-300 transform transition-all">
-              <span class="text-5xl text-gray-500 font-light transition-colors duration-300">+</span>
+              <span class="text-5xl text-gray-500 font-light transition-colors duration-300">
+                +
+              </span>
             </div>
             <div
               class="text-lg font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-300">
@@ -274,7 +303,9 @@
 
                   <!-- Possible demos calculation -->
                   {#if pool.pricePerDemo && pool.pricePerDemo > 0}
-                    {@const possibleDemos = Math.floor((pool.tokenBalance || 0) / pool.pricePerDemo)}
+                    {@const possibleDemos = Math.floor(
+                      (pool.tokenBalance || 0) / pool.pricePerDemo
+                    )}
                     {@const totalDemos = pool.demonstrations + possibleDemos}
                     {@const demoPercentage =
                       totalDemos > 0 ? Math.min(100, (pool.demonstrations / totalDemos) * 100) : 0}
@@ -327,11 +358,11 @@
   on:save={async (event) => {
     try {
       if (!$walletAddress) return;
-      
+
       const generatedResponse = event.detail.generatedResponse;
       if (generatedResponse?.content) {
         const { name, apps } = generatedResponse.content;
-        
+
         // Create pool with the generated apps and name
         await createPoolWithApps({
           name,
@@ -344,7 +375,7 @@
           apps,
           ownerAddress: $walletAddress
         });
-        
+
         currentSkills = '';
         showGenerateGymModal = false;
         loadPools();
