@@ -10,7 +10,7 @@ use std::{
 };
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(any(target_os = "macos"))]
 use window_vibrancy::*;
 use xcap::{image::ImageFormat, Monitor};
 use zip::{write::FileOptions, ZipWriter};
@@ -225,9 +225,9 @@ pub fn run() {
             apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
-            #[cfg(target_os = "windows")]
-            apply_acrylic(&window, Some((0, 0, 0, 0)))
-                .expect("Unsupported platform! 'apply_acrylic' is only supported on Windows");
+            // #[cfg(target_os = "windows")]
+            // apply_acrylic(&window, Some((0, 0, 0, 0)))
+            //     .expect("Unsupported platform! 'apply_acrylic' is only supported on Windows");
 
             // TODO: multimonitor support
             // Get primary display info

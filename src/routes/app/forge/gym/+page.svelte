@@ -48,7 +48,7 @@
       error = null;
 
       // Get all pools for the user
-      const pools = await listPools($walletAddress);
+      const pools = await listPools();
 
       // Find the specific pool by ID
       const fetchedPool = pools.find((p) => p._id === gymId);
