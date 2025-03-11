@@ -9,7 +9,7 @@
   let canceled = $state(false);
 </script>
 
-<div class="h-screen flex bg-primary-600/75 overflow-hidden">
+<div class="h-screen flex bg-primary-600/75 overflow-hidden backdrop-blur-md">
   <Sidebar />
   <div class="flex-1 p-2">
     <div class="h-full overflow-hidden bg-gray-50 border border-gray-500 rounded-md">
