@@ -535,7 +535,7 @@ pub async fn delete_recording(app: tauri::AppHandle, recording_id: String) -> Re
 pub struct PrivateRange {
     start: f64,
     end: f64,
-    _count: i32,
+    count: i32,
 }
 
 // Helper function to read and parse a JSON file

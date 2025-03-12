@@ -283,7 +283,7 @@ export async function uploadRecording(
           reject(new Error('Invalid response format'));
         }
       } else {
-        reject(new Error(`Failed to upload recording: ${xhr.status} ${xhr.statusText}`));
+        reject(new Error(`Failed to upload recording to backend: ${xhr.status} ${xhr.statusText}`));
       }
     });
 
