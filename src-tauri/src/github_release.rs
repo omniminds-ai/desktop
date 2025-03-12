@@ -2,8 +2,8 @@ use chrono::DateTime;
 use log::info;
 use serde_json::{json, Value};
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::os::unix::fs::PermissionsExt;
+use std::path::{Path, PathBuf};
 
 /// Metadata for a binary file downloaded from GitHub
 pub struct BinaryMetadata {
@@ -46,7 +46,7 @@ fn save_metadata(path: &Path, metadata: &BinaryMetadata) -> Result<(), String> {
 
     fs::write(path, content).map_err(|e| format!("Failed to write metadata file: {}", e))?;
 
-    info!("[GitHub Release] Saved metadata to {}", path.display());
+    println!("[GitHub Release] Saved metadata to {}", path.display());
     Ok(())
 }
 
@@ -66,8 +66,14 @@ fn load_metadata(path: &Path) -> Result<Option<BinaryMetadata>, String> {
 }
 
 /// Fetch latest release metadata from GitHub API
-fn fetch_latest_release_metadata(repo_owner: &str, repo_name: &str) -> Result<BinaryMetadata, String> {
-    info!("[GitHub Release] Fetching latest release metadata for {}/{}", repo_owner, repo_name);
+fn fetch_latest_release_metadata(
+    repo_owner: &str,
+    repo_name: &str,
+) -> Result<BinaryMetadata, String> {
+    println!(
+        "[GitHub Release] Fetching latest release metadata for {}/{}",
+        repo_owner, repo_name
+    );
 
     let github_api_url = format!(
         "https://api.github.com/repos/{}/{}/releases/latest",
@@ -109,7 +115,7 @@ fn fetch_latest_release_metadata(repo_owner: &str, repo_name: &str) -> Result<Bi
         dt.timestamp() as u64
     };
 
-    info!(
+    println!(
         "[GitHub Release] Latest release: version={}, published_at={} ({})",
         version, published_at, timestamp
     );
@@ -119,28 +125,31 @@ fn fetch_latest_release_metadata(repo_owner: &str, repo_name: &str) -> Result<Bi
 
 /// Download a file from a URL to a local path
 fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    info!(
+    println!(
         "[GitHub Release] Downloading file from {} to {}",
         url,
         path.display()
     );
     let client = reqwest::blocking::Client::new();
     let resp = client.get(url).send().map_err(|e| {
-        info!("[GitHub Release] Error: Failed to download file: {}", e);
+        println!("[GitHub Release] Error: Failed to download file: {}", e);
         format!("Failed to download file: {}", e)
     })?;
 
     let bytes = resp.bytes().map_err(|e| {
-        info!("[GitHub Release] Error: Failed to get response bytes: {}", e);
+        println!(
+            "[GitHub Release] Error: Failed to get response bytes: {}",
+            e
+        );
         format!("Failed to get response bytes: {}", e)
     })?;
 
     fs::write(path, bytes).map_err(|e| {
-        info!("[GitHub Release] Error: Failed to write file: {}", e);
+        println!("[GitHub Release] Error: Failed to write file: {}", e);
         format!("Failed to write file: {}", e)
     })?;
 
-    info!(
+    println!(
         "[GitHub Release] Successfully downloaded file to {}",
         path.display()
     );
@@ -148,17 +157,17 @@ fn download_file(url: &str, path: &Path) -> Result<(), String> {
 }
 
 /// Get the latest release of a binary from GitHub
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `repo_owner` - The owner of the GitHub repository
 /// * `repo_name` - The name of the GitHub repository
 /// * `asset_url` - The URL of the asset to download
 /// * `target_dir` - The directory to store the downloaded file
 /// * `make_executable` - Whether to make the file executable (for Linux/macOS)
-/// 
+///
 /// # Returns
-/// 
+///
 /// The path to the downloaded file
 pub fn get_latest_release(
     repo_owner: &str,
@@ -167,11 +176,17 @@ pub fn get_latest_release(
     target_dir: &Path,
     make_executable: bool,
 ) -> Result<PathBuf, String> {
-    info!("[GitHub Release] Getting latest release for {}/{}", repo_owner, repo_name);
+    println!(
+        "[GitHub Release] Getting latest release for {}/{}",
+        repo_owner, repo_name
+    );
 
     // Create target directory if it doesn't exist
     fs::create_dir_all(target_dir).map_err(|e| {
-        info!("[GitHub Release] Error: Failed to create target directory: {}", e);
+        println!(
+            "[GitHub Release] Error: Failed to create target directory: {}",
+            e
+        );
         format!("Failed to create target directory: {}", e)
     })?;
 
@@ -187,7 +202,7 @@ pub fn get_latest_release(
 
     // Check if we need to download the binary
     let should_download = if !asset_path.exists() {
-        info!("[GitHub Release] Asset does not exist, downloading");
+        println!("[GitHub Release] Asset does not exist, downloading");
         true
     } else {
         // Load existing metadata
@@ -197,7 +212,7 @@ pub fn get_latest_release(
             Some(metadata) => {
                 // Compare build timestamps
                 if metadata.build_timestamp < latest_metadata.build_timestamp {
-                    info!(
+                    println!(
                         "[GitHub Release] New version available: current={} ({}), latest={} ({})",
                         metadata.version,
                         metadata.build_timestamp,
@@ -206,19 +221,22 @@ pub fn get_latest_release(
                     );
                     true
                 } else {
-                    info!("[GitHub Release] Asset is up to date");
+                    println!("[GitHub Release] Asset is up to date");
                     false
                 }
             }
             None => {
-                info!("[GitHub Release] No metadata found, downloading latest version");
+                println!("[GitHub Release] No metadata found, downloading latest version");
                 true
             }
         }
     };
 
     if should_download {
-        info!("[GitHub Release] Downloading new version: {}", asset_filename);
+        println!(
+            "[GitHub Release] Downloading new version: {}",
+            asset_filename
+        );
         download_file(asset_url, &asset_path)?;
 
         // Set executable permissions if needed
@@ -232,6 +250,6 @@ pub fn get_latest_release(
         save_metadata(&metadata_path, &latest_metadata)?;
     }
 
-    info!("[GitHub Release] Using asset at {}", asset_path.display());
+    println!("[GitHub Release] Using asset at {}", asset_path.display());
     Ok(asset_path)
 }

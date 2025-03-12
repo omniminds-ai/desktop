@@ -59,6 +59,7 @@ pub fn init_dump_tree() -> Result<(), String> {
 
     println!("[AxTree] Using dump-tree at {}", dump_tree_path.display());
     DUMP_TREE_PATH.set(dump_tree_path).unwrap();
+
     Ok(())
 }
 

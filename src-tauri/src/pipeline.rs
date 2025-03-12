@@ -1,3 +1,4 @@
+use crate::ffmpeg::{get_ffmpeg_dir, get_ffprobe_dir};
 use crate::github_release;
 use log::info;
 use std::fs;
@@ -89,17 +90,17 @@ pub fn process_recording(app: &AppHandle, recording_id: &str) -> Result<(), Stri
     }
 
     //todo: check if ffmpeg and ffprobe exist in the path before getting the custom dir.
-    let ffmpeg_dir = temp_dir.join("ffmpeg");
-    let ffprobe_dir = temp_dir.join("ffprobe");
+    let ffmpeg_dir = get_ffmpeg_dir();
+    let ffprobe_dir = get_ffprobe_dir();
     let output = command
         .current_dir(temp_dir)
         .arg("-f")
         .arg("desktop")
         .arg("-i")
         .arg(&recordings_dir)
-        .arg("-ffmpeg")
+        .arg("--ffmpeg")
         .arg(ffmpeg_dir)
-        .arg("-ffprobe")
+        .arg("--ffprobe")
         .arg(ffprobe_dir)
         .output()
         .map_err(|e| format!("Failed to execute pipeline: {}", e))?;

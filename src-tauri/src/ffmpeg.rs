@@ -55,13 +55,9 @@ fn download_file(url: &str, path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub fn init_ffmpeg() -> Result<(), String> {
-    if FFMPEG_PATH.get().is_some() {
-        println!("[FFmpeg] Already initialized");
-        return Ok(());
-    }
-
-    println!("[FFmpeg] Initializing FFmpeg");
+/// Checks for ffmpeg in the PATH and in the temp directory
+/// Returns a PathBuf containing the full file path if found, or an empty PathBuf if not found
+pub fn get_ffmpeg_dir() -> PathBuf {
     // First check if ffmpeg is in PATH
     let mut command = Command::new("ffmpeg");
     #[cfg(windows)]
@@ -72,18 +68,105 @@ pub fn init_ffmpeg() -> Result<(), String> {
     if let Ok(output) = command.arg("-version").output() {
         if output.status.success() {
             println!("[FFmpeg] Found FFmpeg in system PATH");
-            FFMPEG_PATH.set("ffmpeg".into()).unwrap();
-            return Ok(());
+            return "ffmpeg".into();
         }
     }
-    println!("[FFmpeg] FFmpeg not found in PATH, proceeding with download");
+    println!("[FFmpeg] FFmpeg not found in PATH, checking temp directory");
 
+    // Check if ffmpeg exists in temp directory
+    let temp_dir = get_temp_dir();
+    if !temp_dir.exists() {
+        return PathBuf::new();
+    }
+
+    let ffmpeg_path = temp_dir.join(if cfg!(windows) {
+        "ffmpeg.exe"
+    } else {
+        "ffmpeg"
+    });
+
+    if ffmpeg_path.exists() {
+        return ffmpeg_path;
+    }
+
+    // Not found or not working
+    PathBuf::new()
+}
+
+/// Checks for ffprobe in the PATH and in the temp directory
+/// Returns a PathBuf containing the full file path if found, or an empty PathBuf if not found
+pub fn get_ffprobe_dir() -> PathBuf {
+    // First check if ffprobe is in PATH
+    let mut command = Command::new("ffprobe");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
+    }
+    if let Ok(output) = command.arg("-version").output() {
+        if output.status.success() {
+            println!("[FFmpeg] Found FFprobe in system PATH");
+            return "ffprobe".into();
+        }
+    }
+    println!("[FFmpeg] FFprobe not found in PATH, checking temp directory");
+
+    // Check if ffprobe exists in temp directory
+    let temp_dir = get_temp_dir();
+    if !temp_dir.exists() {
+        return PathBuf::new();
+    }
+
+    let ffprobe_path = temp_dir.join(if cfg!(windows) {
+        "ffprobe.exe"
+    } else {
+        "ffprobe"
+    });
+
+    if ffprobe_path.exists() {
+        // Verify the binary works
+        return ffprobe_path;
+    }
+
+    // Not found or not working
+    PathBuf::new()
+}
+
+pub fn init_ffmpeg() -> Result<(), String> {
+    if FFMPEG_PATH.get().is_some() {
+        println!("[FFmpeg] Already initialized");
+        return Ok(());
+    }
+
+    println!("[FFmpeg] Initializing FFmpeg");
+
+    // Check for existing ffmpeg and ffprobe
+    let ffmpeg_path = get_ffmpeg_dir();
+    let ffprobe_path = get_ffprobe_dir();
+
+    // If both binaries are found and working, use them
+    if !ffmpeg_path.as_os_str().is_empty() && !ffprobe_path.as_os_str().is_empty() {
+        println!(
+            "[FFmpeg] Using existing binaries at {} and {}",
+            ffmpeg_path.display(),
+            ffprobe_path.display()
+        );
+        FFMPEG_PATH.set(ffmpeg_path).unwrap();
+        FFPROBE_PATH.set(ffprobe_path).unwrap();
+        return Ok(());
+    }
+
+    // Need to download at least one of the binaries
+    println!("[FFmpeg] Need to download FFmpeg and/or FFprobe binaries");
+
+    // Ensure temp directory exists
     let temp_dir = get_temp_dir();
     fs::create_dir_all(&temp_dir).map_err(|e| {
         println!("[FFmpeg] Error: Failed to create temp directory: {}", e);
         format!("Failed to create temp directory: {}", e)
     })?;
 
+    // Define paths for the binaries we'll download
     let ffmpeg_path = temp_dir.join(if cfg!(windows) {
         "ffmpeg.exe"
     } else {
@@ -95,46 +178,14 @@ pub fn init_ffmpeg() -> Result<(), String> {
         "ffprobe"
     });
 
-    if ffmpeg_path.exists() && ffprobe_path.exists() {
-        // Try to verify both binaries work
-        let mut command_path = Command::new(&ffmpeg_path);
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            command_path.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
-        }
-        let ffmpeg_ok = command_path
-            .arg("-version")
-            .output()
-            .map(|output| output.status.success())
-            .unwrap_or(false);
-
-        let mut command_probe = Command::new(&ffprobe_path);
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            command_probe.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
-        }
-        let ffprobe_ok = command_probe
-            .arg("-version")
-            .output()
-            .map(|output| output.status.success())
-            .unwrap_or(false);
-
-        if ffmpeg_ok && ffprobe_ok {
-            println!(
-                "[FFmpeg] Using existing binaries at {} and {}",
-                ffmpeg_path.display(),
-                ffprobe_path.display()
-            );
-            FFMPEG_PATH.set(ffmpeg_path.clone()).unwrap();
-            FFPROBE_PATH.set(ffprobe_path.clone()).unwrap();
-            return Ok(());
-        }
-
-        // Remove corrupted binaries
-        println!("[FFmpeg] Warning: Existing binaries appear corrupted, removing and downloading fresh copy");
+    // Remove any existing binaries that might be corrupted
+    if ffmpeg_path.exists() {
+        println!("[FFmpeg] Removing existing FFmpeg binary for fresh download");
         let _ = fs::remove_file(&ffmpeg_path);
+    }
+
+    if ffprobe_path.exists() {
+        println!("[FFmpeg] Removing existing FFprobe binary for fresh download");
         let _ = fs::remove_file(&ffprobe_path);
     }
 
@@ -170,7 +221,9 @@ pub fn init_ffmpeg() -> Result<(), String> {
             format!("Failed to read zip: {}", e)
         })?;
 
-        let mut found = false;
+        let mut found_ffmpeg = false;
+        let mut found_ffprobe = false;
+
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).map_err(|e| {
                 println!("[FFmpeg] Error: Failed to read zip entry: {}", e);
@@ -189,7 +242,7 @@ pub fn init_ffmpeg() -> Result<(), String> {
                     println!("[FFmpeg] Error: Failed to extract ffmpeg: {}", e);
                     format!("Failed to extract ffmpeg: {}", e)
                 })?;
-                found = true;
+                found_ffmpeg = true;
             } else if name.contains("/bin/ffprobe.exe") {
                 println!("[FFmpeg] Found FFprobe binary in zip: {}", name);
                 let mut outfile = fs::File::create(&ffprobe_path).map_err(|e| {
@@ -200,13 +253,18 @@ pub fn init_ffmpeg() -> Result<(), String> {
                     println!("[FFmpeg] Error: Failed to extract ffprobe: {}", e);
                     format!("Failed to extract ffprobe: {}", e)
                 })?;
-                found = true;
+                found_ffprobe = true;
             }
         }
 
-        if !found {
+        if !found_ffmpeg {
             println!("[FFmpeg] Error: Could not find ffmpeg.exe in zip archive");
             return Err("Could not find ffmpeg.exe in zip archive".to_string());
+        }
+
+        if !found_ffprobe {
+            println!("[FFmpeg] Error: Could not find ffprobe.exe in zip archive");
+            return Err("Could not find ffprobe.exe in zip archive".to_string());
         }
     } else if os.starts_with("macos") {
         let file = fs::File::open(&archive_path).map_err(|e| {
@@ -290,7 +348,9 @@ pub fn init_ffmpeg() -> Result<(), String> {
         let tar = xz2::read::XzDecoder::new(file);
         let mut archive = tar::Archive::new(tar);
 
-        let mut found = false;
+        let mut found_ffmpeg = false;
+        let mut found_ffprobe = false;
+
         for entry in archive.entries().map_err(|e| {
             println!("[FFmpeg] Error: Failed to read tar entries: {}", e);
             format!("Failed to read tar entries: {}", e)
@@ -315,7 +375,7 @@ pub fn init_ffmpeg() -> Result<(), String> {
                     println!("[FFmpeg] Error: Failed to extract ffmpeg: {}", e);
                     format!("Failed to extract ffmpeg: {}", e)
                 })?;
-                found = true;
+                found_ffmpeg = true;
             } else if path_str.contains("ffprobe") {
                 println!("[FFmpeg] Found FFprobe binary in tar.xz");
                 let mut outfile = fs::File::create(&ffprobe_path).map_err(|e| {
@@ -326,13 +386,18 @@ pub fn init_ffmpeg() -> Result<(), String> {
                     println!("[FFmpeg] Error: Failed to extract ffprobe: {}", e);
                     format!("Failed to extract ffprobe: {}", e)
                 })?;
-                found = true;
+                found_ffprobe = true;
             }
         }
 
-        if !found {
+        if !found_ffmpeg {
             println!("[FFmpeg] Error: Could not find ffmpeg binary in tar.xz archive");
             return Err("Could not find ffmpeg binary in tar.xz archive".to_string());
+        }
+
+        if !found_ffprobe {
+            println!("[FFmpeg] Error: Could not find ffprobe binary in tar.xz archive");
+            return Err("Could not find ffprobe binary in tar.xz archive".to_string());
         }
     }
 
