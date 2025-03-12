@@ -1,9 +1,8 @@
-use chrono::DateTime;
+use crate::github_release;
 use log::info;
 use serde_json::{json, Value};
-use std::fs;
 use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
@@ -30,138 +29,6 @@ fn get_temp_dir() -> PathBuf {
     temp
 }
 
-struct BinaryMetadata {
-    version: String,
-    build_timestamp: u64,
-}
-
-impl BinaryMetadata {
-    fn new(version: String, build_timestamp: u64) -> Self {
-        Self {
-            version,
-            build_timestamp,
-        }
-    }
-
-    fn to_json(&self) -> Value {
-        json!({
-            "version": self.version,
-            "build_timestamp": self.build_timestamp,
-        })
-    }
-
-    fn from_json(json: &Value) -> Option<Self> {
-        if let (Some(version), Some(build_timestamp)) = (
-            json.get("version").and_then(Value::as_str),
-            json.get("build_timestamp").and_then(Value::as_u64),
-        ) {
-            Some(Self::new(version.to_string(), build_timestamp))
-        } else {
-            None
-        }
-    }
-}
-
-fn save_metadata(path: &Path, metadata: &BinaryMetadata) -> Result<(), String> {
-    let json = metadata.to_json();
-    let content = serde_json::to_string_pretty(&json)
-        .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
-
-    fs::write(path, content).map_err(|e| format!("Failed to write metadata file: {}", e))?;
-
-    info!("[AxTree] Saved metadata to {}", path.display());
-    Ok(())
-}
-
-fn load_metadata(path: &Path) -> Result<Option<BinaryMetadata>, String> {
-    if !path.exists() {
-        return Ok(None);
-    }
-
-    let content =
-        fs::read_to_string(path).map_err(|e| format!("Failed to read metadata file: {}", e))?;
-
-    let json: Value =
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse metadata: {}", e))?;
-
-    Ok(BinaryMetadata::from_json(&json))
-}
-
-fn fetch_latest_release_metadata() -> Result<BinaryMetadata, String> {
-    info!("[AxTree] Fetching latest release metadata from GitHub API");
-
-    let client = reqwest::blocking::Client::builder()
-        .user_agent("viralmind-desktop")
-        .build()
-        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
-
-    let response = client
-        .get(GITHUB_API_URL)
-        .header("Accept", "application/vnd.github.v3+json")
-        .send()
-        .map_err(|e| format!("Failed to fetch release info: {}", e))?;
-
-    let json: Value = response
-        .json()
-        .map_err(|e| format!("Failed to parse GitHub API response: {}", e))?;
-
-    let version = json
-        .get("tag_name")
-        .and_then(Value::as_str)
-        .ok_or_else(|| "No tag name in release".to_string())?
-        .to_string();
-
-    // Use published_at timestamp from GitHub API
-    let published_at = json
-        .get("published_at")
-        .and_then(Value::as_str)
-        .ok_or_else(|| "No published_at in release".to_string())?;
-
-    // Convert ISO 8601 date string to Unix timestamp
-    let timestamp = {
-        let dt = DateTime::parse_from_rfc3339(published_at)
-            .map_err(|e| format!("Failed to parse published_at date: {}", e))?;
-
-        dt.timestamp() as u64
-    };
-
-    info!(
-        "[AxTree] Latest release: version={}, published_at={} ({})",
-        version, published_at, timestamp
-    );
-
-    Ok(BinaryMetadata::new(version, timestamp))
-}
-
-fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    info!(
-        "[AxTree] Downloading file from {} to {}",
-        url,
-        path.display()
-    );
-    let client = reqwest::blocking::Client::new();
-    let resp = client.get(url).send().map_err(|e| {
-        info!("[AxTree] Error: Failed to download dump-tree: {}", e);
-        format!("Failed to download dump-tree: {}", e)
-    })?;
-
-    let bytes = resp.bytes().map_err(|e| {
-        info!("[AxTree] Error: Failed to get response bytes: {}", e);
-        format!("Failed to get response bytes: {}", e)
-    })?;
-
-    fs::write(path, bytes).map_err(|e| {
-        info!("[AxTree] Error: Failed to write file: {}", e);
-        format!("Failed to write file: {}", e)
-    })?;
-
-    info!(
-        "[AxTree] Successfully downloaded file to {}",
-        path.display()
-    );
-    Ok(())
-}
-
 pub fn init_dump_tree() -> Result<(), String> {
     if DUMP_TREE_PATH.get().is_some() {
         println!("[AxTree] Already initialized");
@@ -173,68 +40,22 @@ pub fn init_dump_tree() -> Result<(), String> {
     // Initialize polling state
     POLLING_ACTIVE.get_or_init(|| Arc::new(Mutex::new(false)));
 
+    // Extract repo owner and name from the GitHub API URL
+    let url_parts: Vec<&str> = GITHUB_API_URL.split('/').collect();
+    let repo_owner = url_parts[4];
+    let repo_name = url_parts[5];
+
+    // Get the temp directory
     let temp_dir = get_temp_dir();
-    fs::create_dir_all(&temp_dir).map_err(|e| {
-        info!("[AxTree] Error: Failed to create temp directory: {}", e);
-        format!("Failed to create temp directory: {}", e)
-    })?;
 
-    // Get the filename from the URL for proper version tracking
-    let dump_tree_split: Vec<&str> = DUMP_TREE_URL.split("/").collect();
-    let dump_tree_filename = dump_tree_split[DUMP_TREE_URL.split("/").count() - 1];
-
-    let dump_tree_path = temp_dir.join(dump_tree_filename);
-    let metadata_path = temp_dir.join(format!("{}.metadata.json", dump_tree_filename));
-
-    // Fetch latest release metadata from GitHub
-    let latest_metadata = fetch_latest_release_metadata()?;
-
-    // Check if we need to download the binary
-    let should_download = if !dump_tree_path.exists() {
-        println!("[AxTree] Binary does not exist, downloading");
-        true
-    } else {
-        // Load existing metadata
-        let current_metadata = load_metadata(&metadata_path)?;
-
-        match current_metadata {
-            Some(metadata) => {
-                // Compare build timestamps
-                if metadata.build_timestamp < latest_metadata.build_timestamp {
-                    println!(
-                        "[AxTree] New version available: current={} ({}), latest={} ({})",
-                        metadata.version,
-                        metadata.build_timestamp,
-                        latest_metadata.version,
-                        latest_metadata.build_timestamp
-                    );
-                    true
-                } else {
-                    println!("[AxTree] Binary is up to date");
-                    false
-                }
-            }
-            None => {
-                println!("[AxTree] No metadata found, downloading latest version");
-                true
-            }
-        }
-    };
-
-    if should_download {
-        println!("[AxTree] Downloading new version: {}", dump_tree_filename);
-        download_file(DUMP_TREE_URL, &dump_tree_path)?;
-
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(&dump_tree_path, fs::Permissions::from_mode(0o755))
-                .map_err(|e| format!("Failed to set executable permissions: {}", e))?;
-        }
-
-        // Save the metadata
-        save_metadata(&metadata_path, &latest_metadata)?;
-    }
+    // Use the github_release module to get the latest release
+    let dump_tree_path = github_release::get_latest_release(
+        repo_owner,
+        repo_name,
+        DUMP_TREE_URL,
+        &temp_dir,
+        true, // Make executable on Linux/macOS
+    )?;
 
     println!("[AxTree] Using dump-tree at {}", dump_tree_path.display());
     DUMP_TREE_PATH.set(dump_tree_path).unwrap();

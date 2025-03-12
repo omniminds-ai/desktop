@@ -16,6 +16,7 @@ use xcap::{image::ImageFormat, Monitor};
 use zip::{write::FileOptions, ZipWriter};
 mod axtree;
 mod ffmpeg;
+mod github_release;
 mod input;
 mod logger;
 #[cfg(not(target_os = "linux"))]

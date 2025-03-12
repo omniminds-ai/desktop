@@ -1,3 +1,4 @@
+use crate::github_release;
 use log::info;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -25,35 +26,6 @@ fn get_temp_dir() -> PathBuf {
     temp
 }
 
-fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    info!(
-        "[Pipeline] Downloading file from {} to {}",
-        url,
-        path.display()
-    );
-    let client = reqwest::blocking::Client::new();
-    let resp = client.get(url).send().map_err(|e| {
-        info!("[Pipeline] Error: Failed to download pipeline: {}", e);
-        format!("Failed to download pipeline: {}", e)
-    })?;
-
-    let bytes = resp.bytes().map_err(|e| {
-        info!("[Pipeline] Error: Failed to get response bytes: {}", e);
-        format!("Failed to get response bytes: {}", e)
-    })?;
-
-    fs::write(path, bytes).map_err(|e| {
-        info!("[Pipeline] Error: Failed to write file: {}", e);
-        format!("Failed to write file: {}", e)
-    })?;
-
-    info!(
-        "[Pipeline] Successfully downloaded file to {}",
-        path.display()
-    );
-    Ok(())
-}
-
 pub fn init_pipeline() -> Result<(), String> {
     if PIPELINE_PATH.get().is_some() {
         info!("[Pipeline] Already initialized");
@@ -62,32 +34,26 @@ pub fn init_pipeline() -> Result<(), String> {
 
     info!("[Pipeline] Initializing pipeline");
 
-    let temp_dir = get_temp_dir();
-    fs::create_dir_all(&temp_dir).map_err(|e| {
-        info!("[Pipeline] Error: Failed to create temp directory: {}", e);
-        format!("Failed to create temp directory: {}", e)
-    })?;
-
+    // Extract repo owner and name from the URL
     let url_parser = Url::parse(PIPELINE_URL).map_err(|e| format!("Failed to parse URL: {}", e))?;
+    let path_segments: Vec<&str> = url_parser.path_segments().unwrap().collect();
 
-    let pipeline_filename = url_parser
-        .path_segments()
-        .and_then(|segments| segments.last())
-        .ok_or_else(|| "Invalid URL format".to_string())?;
+    // For URLs like "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-win-x64.exe"
+    // path_segments will be ["viralmind-ai", "vm-pipeline", "releases", "latest", "download", "pipeline-win-x64.exe"]
+    let repo_owner = path_segments[0];
+    let repo_name = path_segments[1];
 
-    let pipeline_path = temp_dir.join(pipeline_filename);
+    // Get the temp directory
+    let temp_dir = get_temp_dir();
 
-    if !pipeline_path.exists() {
-        info!("[Pipeline] Downloading pipeline binary");
-        download_file(PIPELINE_URL, &pipeline_path)?;
-
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(&pipeline_path, fs::Permissions::from_mode(0o755))
-                .map_err(|e| format!("Failed to set executable permissions: {}", e))?;
-        }
-    }
+    // Use the github_release module to get the latest release
+    let pipeline_path = github_release::get_latest_release(
+        repo_owner,
+        repo_name,
+        PIPELINE_URL,
+        &temp_dir,
+        true, // Make executable on Linux/macOS
+    )?;
 
     info!("[Pipeline] Using pipeline at {}", pipeline_path.display());
     PIPELINE_PATH.set(pipeline_path).unwrap();
@@ -121,12 +87,20 @@ pub fn process_recording(app: &AppHandle, recording_id: &str) -> Result<(), Stri
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000); // CREATE_NO_WINDOW constant
     }
+
+    //todo: check if ffmpeg and ffprobe exist in the path before getting the custom dir.
+    let ffmpeg_dir = temp_dir.join("ffmpeg");
+    let ffprobe_dir = temp_dir.join("ffprobe");
     let output = command
         .current_dir(temp_dir)
         .arg("-f")
         .arg("desktop")
         .arg("-i")
         .arg(&recordings_dir)
+        .arg("-ffmpeg")
+        .arg(ffmpeg_dir)
+        .arg("-ffprobe")
+        .arg(ffprobe_dir)
         .output()
         .map_err(|e| format!("Failed to execute pipeline: {}", e))?;
 
