@@ -4,7 +4,19 @@
   import Button from '$lib/components/Button.svelte';
   import EventTimestamp from '$lib/components/gym/EventTimestamp.svelte';
   import AxTreeOverlay from '$lib/components/gym/AxTreeOverlay.svelte';
-  import { Copy, ExternalLink, Asterisk, Equal, EyeOff, Eye, ChevronUp, ChevronDown, Trash2, MousePointer, Keyboard } from 'lucide-svelte';
+  import {
+    Copy,
+    ExternalLink,
+    Asterisk,
+    Equal,
+    EyeOff,
+    Eye,
+    ChevronUp,
+    ChevronDown,
+    Trash2,
+    MousePointer,
+    Keyboard
+  } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import type { Recording } from '$lib/gym';
@@ -23,11 +35,11 @@
   const recordingId = new URLSearchParams(window.location.search).get('id');
   let selectedView: 'raw' | 'sft' | 'grpo' = 'sft';
   let privateRanges: { start: number; end: number; count: number }[] = [];
-  
+
   // Function to save private ranges to disk
   async function savePrivateRanges() {
     if (!recordingId) return;
-    
+
     try {
       await invoke('write_recording_file', {
         recordingId,
@@ -39,64 +51,61 @@
       console.error('Failed to save private ranges:', error);
     }
   }
-  
+
   // Function to delete a range
   async function deleteRange(range: { start: number; end: number; count: number }) {
-    privateRanges = privateRanges.filter(r => r.start !== range.start || r.end !== range.end);
-    
+    privateRanges = privateRanges.filter((r) => r.start !== range.start || r.end !== range.end);
+
     // Update processed data with new ranges
     if (sftJson) {
       processedSftData = processSftJsonWithPrivateRanges(sftJson, privateRanges);
     }
-    
+
     // Save changes to disk
     await savePrivateRanges();
   }
-  
+
   // Function to add a range around a message
   async function addRangeAroundMessage(message: SftMessage) {
     if (!processedSftData) return;
-    
+
     // Create a combined array of messages only (no range markers)
-    const messages = processedSftData.filter(item => 
-      item.role !== 'range_start' && item.role !== 'range_end'
+    const messages = processedSftData.filter(
+      (item) => item.role !== 'range_start' && item.role !== 'range_end'
     );
-    
+
     // Sort by timestamp
     messages.sort((a, b) => a.timestamp - b.timestamp);
-    
+
     // Find the current message index
-    const currentIndex = messages.findIndex(item => item.timestamp === message.timestamp);
-    
+    const currentIndex = messages.findIndex((item) => item.timestamp === message.timestamp);
+
     if (currentIndex === -1) return;
-    
+
     // Calculate start and end timestamps
     let startTimestamp = 0; // Default to 0 if it's the first message
     let endTimestamp = message.timestamp + 1000; // Default to message time + 1 second buffer
-    
+
     // If there's a previous message, set start time exactly halfway between previous and current
     if (currentIndex > 0) {
       const prevMessage = messages[currentIndex - 1];
       startTimestamp = Math.floor((prevMessage.timestamp + message.timestamp) / 2);
     }
-    
+
     // If there's a next message, set end time exactly halfway between current and next
     if (currentIndex < messages.length - 1) {
       const nextMessage = messages[currentIndex + 1];
       endTimestamp = Math.floor((message.timestamp + nextMessage.timestamp) / 2);
     }
-    
+
     // Add the new range
-    privateRanges = [
-      ...privateRanges,
-      { start: startTimestamp, end: endTimestamp, count: 1 }
-    ];
-    
+    privateRanges = [...privateRanges, { start: startTimestamp, end: endTimestamp, count: 1 }];
+
     // Update processed data with new ranges
     if (sftJson) {
       processedSftData = processSftJsonWithPrivateRanges(sftJson, privateRanges);
     }
-    
+
     // Save changes to disk
     await savePrivateRanges();
   }
@@ -104,30 +113,30 @@
   // Function to move a range marker up or down
   async function moveRangeMarker(timestamp: number, isStart: boolean, direction: 'up' | 'down') {
     if (!processedSftData) return;
-    
+
     // Create a combined array of messages only (no range markers)
-    const messages = processedSftData.filter(item => 
-      item.role !== 'range_start' && item.role !== 'range_end'
+    const messages = processedSftData.filter(
+      (item) => item.role !== 'range_start' && item.role !== 'range_end'
     );
-    
+
     // Sort by timestamp
     messages.sort((a, b) => a.timestamp - b.timestamp);
-    
+
     // Find the range that contains this timestamp
-    const rangeIndex = privateRanges.findIndex(range => 
+    const rangeIndex = privateRanges.findIndex((range) =>
       isStart ? range.start === timestamp : range.end === timestamp
     );
-    
+
     if (rangeIndex === -1) return;
-    
+
     // Get the current timestamp
-    const currentTimestamp = isStart ? 
-      privateRanges[rangeIndex].start : 
-      privateRanges[rangeIndex].end;
-    
+    const currentTimestamp = isStart
+      ? privateRanges[rangeIndex].start
+      : privateRanges[rangeIndex].end;
+
     // Find the appropriate message index based on the current timestamp
     let currentMessageIndex = -1;
-    
+
     if (direction === 'up') {
       // For moving up, find the first message that has a timestamp <= current timestamp
       for (let i = messages.length - 1; i >= 0; i--) {
@@ -145,19 +154,19 @@
         }
       }
     }
-    
+
     if (currentMessageIndex === -1) {
       // If no appropriate message found, use the first or last message
       currentMessageIndex = direction === 'up' ? messages.length - 1 : 0;
     }
-    
+
     // Calculate the new timestamp
     let newTimestamp;
-    
+
     // Special case: If moving up from the first message, set to 0
     if (direction === 'up' && currentMessageIndex === 0) {
       newTimestamp = 0;
-    } 
+    }
     // Special case: If moving down from the last message, set to last message timestamp + 1
     else if (direction === 'down' && currentMessageIndex === messages.length - 1) {
       newTimestamp = messages[currentMessageIndex].timestamp + 1;
@@ -165,47 +174,52 @@
     // Normal case: Calculate average between messages
     else {
       let targetMessageIndex;
-      
+
       if (direction === 'up') {
         targetMessageIndex = currentMessageIndex - 1;
         // Ensure target index is valid
         if (targetMessageIndex >= 0) {
           // Average between target (previous) and current message
-          newTimestamp = Math.floor((messages[targetMessageIndex].timestamp + messages[currentMessageIndex].timestamp) / 2);
+          newTimestamp = Math.floor(
+            (messages[targetMessageIndex].timestamp + messages[currentMessageIndex].timestamp) / 2
+          );
         } else {
           // If we can't move up further, set to 0
           newTimestamp = 0;
         }
-      } else { // direction === 'down'
+      } else {
+        // direction === 'down'
         targetMessageIndex = currentMessageIndex + 1;
         // Ensure target index is valid
         if (targetMessageIndex < messages.length) {
           // Average between current and target (next) message
-          newTimestamp = Math.floor((messages[currentMessageIndex].timestamp + messages[targetMessageIndex].timestamp) / 2);
+          newTimestamp = Math.floor(
+            (messages[currentMessageIndex].timestamp + messages[targetMessageIndex].timestamp) / 2
+          );
         } else {
           // If we can't move down further, set to last message + 1
           newTimestamp = messages[messages.length - 1].timestamp + 1;
         }
       }
     }
-    
+
     // Update the range
     const updatedRanges = [...privateRanges];
-    
+
     if (isStart) {
       updatedRanges[rangeIndex].start = newTimestamp;
     } else {
       updatedRanges[rangeIndex].end = newTimestamp;
     }
-    
+
     // Force reactivity by creating a new array
     privateRanges = [...updatedRanges];
-    
+
     // Update processed data with new ranges
     if (sftJson) {
       processedSftData = processSftJsonWithPrivateRanges(sftJson, privateRanges);
     }
-    
+
     // Save changes to disk
     await savePrivateRanges();
   }
@@ -223,44 +237,47 @@
   // Function to export zip creation
   async function exportZipCreation() {
     if (!recordingId) return;
-    
+
     try {
       exportingZip = true;
       exportZipPath = null;
       exportZipError = null;
-      
+
       // Create the zip file using the Rust backend
       // This will create the temp directory with masked video but won't delete it
       const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
-      
+
       // Get the recordings directory path
       const appDataDir = await invoke<string>('get_app_data_dir');
       const recordingsDir = `${appDataDir}/recordings/${recordingId}`;
-      
+
       // Log the temp directory location for export
-      console.log('Temp directory with masked content should be at:', `${recordingsDir}/temp_private`);
-      
+      console.log(
+        'Temp directory with masked content should be at:',
+        `${recordingsDir}/temp_private`
+      );
+
       // Convert to Blob and create a download link
       const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
       const url = URL.createObjectURL(zipBlob);
-      
+
       // Create a timestamp for the filename
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const filename = `export_zip_${timestamp}.zip`;
-      
+
       // Create a download link and click it
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      
+
       // Clean up
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 100);
-      
+
       exportZipPath = `Downloaded as ${filename}`;
       console.log('Export zip downloaded as:', filename);
       console.log('Check the temp_private directory for masked content');
@@ -331,34 +348,34 @@
     content: any;
     timestamp: number;
   };
-  
+
   let sftJson: SftMessage[] | null = null;
   let processedSftData: SftMessage[] | null = null;
   let combinedData: SftMessage[] = [];
-  
+
   // Reactive statement to update combinedData whenever privateRanges or processedSftData changes
   $: {
     // Create a combined array of messages and range markers
     combinedData = processedSftData ? [...processedSftData] : [];
-    
+
     // Add start markers
-    privateRanges.forEach(range => {
+    privateRanges.forEach((range) => {
       combinedData.push({
         role: 'range_start',
         timestamp: range.start,
         content: { range }
       });
     });
-    
+
     // Add end markers
-    privateRanges.forEach(range => {
+    privateRanges.forEach((range) => {
       combinedData.push({
         role: 'range_end',
         timestamp: range.end,
         content: { range }
       });
     });
-    
+
     // Sort by timestamp
     combinedData.sort((a, b) => a.timestamp - b.timestamp);
   }
@@ -398,7 +415,7 @@
       } catch (error) {
         grpoHtml = null;
       }
-      
+
       // Check for private ranges
       try {
         const privateRangesJson = await invoke<string>('get_recording_file', {
@@ -406,7 +423,7 @@
           filename: 'private_ranges.json'
         });
         privateRanges = JSON.parse(privateRangesJson);
-        
+
         // Update processed SFT data if we have both SFT data and private ranges
         if (sftJson) {
           processedSftData = processSftJsonWithPrivateRanges(sftJson, privateRanges);
@@ -421,62 +438,65 @@
 
   // Function to process SFT JSON data with private ranges
   function processSftJsonWithPrivateRanges(
-    data: SftMessage[] | null, 
+    data: SftMessage[] | null,
     ranges: { start: number; end: number; count: number }[]
   ): SftMessage[] | null {
     if (!data) return data;
-    
+
     // Create a copy of the data to avoid modifying the original
     const processedData = [...data];
-    
+
     // First, reset all masked properties to ensure clean state
-    processedData.forEach(message => {
+    processedData.forEach((message) => {
       delete (message as any).masked;
     });
-    
+
     // If no ranges, return unmasked data
     if (!ranges.length) return processedData;
-    
+
     // Add a 'masked' property to each message based on whether it falls within a private range
-    processedData.forEach(message => {
-      const isInPrivateRange = ranges.some(range => 
-        message.timestamp >= range.start && message.timestamp <= range.end
+    processedData.forEach((message) => {
+      const isInPrivateRange = ranges.some(
+        (range) => message.timestamp >= range.start && message.timestamp <= range.end
       );
-      
+
       if (isInPrivateRange) {
         // Add a masked property to the message
         (message as any).masked = true;
       }
     });
-    
+
     return processedData;
   }
 
   // Function to process SFT HTML with private ranges (fallback)
-  function processSftHtmlWithPrivateRanges(html: string, ranges: { start: number; end: number; count: number }[]): string {
+  function processSftHtmlWithPrivateRanges(
+    html: string,
+    ranges: { start: number; end: number; count: number }[]
+  ): string {
     if (!html || !ranges.length) return html;
-    
+
     // Create a DOM parser to work with the HTML
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    
+
     // Find all elements with timestamps
     const elements = doc.querySelectorAll('[data-timestamp]');
-    
+
     // Apply masking to elements within private ranges
-    elements.forEach(element => {
+    elements.forEach((element) => {
       const timestamp = parseInt(element.getAttribute('data-timestamp') || '0', 10);
-      
+
       // Check if this timestamp falls within any private range
-      const isInPrivateRange = ranges.some(range => 
-        timestamp >= range.start && timestamp <= range.end
+      const isInPrivateRange = ranges.some(
+        (range) => timestamp >= range.start && timestamp <= range.end
       );
-      
+
       if (isInPrivateRange) {
         element.classList.add('masked-content');
       }
     });
-    
+
     return doc.body.innerHTML;
   }
 
@@ -537,38 +557,41 @@
   // Function to handle video time updates
   function handleTimeUpdate() {
     if (!videoElement) return;
-    
+
     // Update progress percentage
     progressPercentage = (videoElement.currentTime / videoElement.duration) * 100;
-    
+
     // Check if current time is within any masked range
-    isVideoOverMaskedRange = privateRanges.some(range => {
+    isVideoOverMaskedRange = privateRanges.some((range) => {
       const rangeStartTime = range.start / 1000; // Convert ms to seconds
       const rangeEndTime = range.end / 1000; // Convert ms to seconds
-      return (videoElement?.currentTime || 0) >= rangeStartTime && (videoElement?.currentTime || 0) <= rangeEndTime;
+      return (
+        (videoElement?.currentTime || 0) >= rangeStartTime &&
+        (videoElement?.currentTime || 0) <= rangeEndTime
+      );
     });
   }
-  
+
   // Function to handle mouse movement over the timeline
   function handleTimelineHover(event: MouseEvent) {
     if (!timelineElement || !videoElement) return;
-    
+
     showScrubber = true;
-    
+
     // Calculate position as percentage
     const rect = timelineElement.getBoundingClientRect();
     const position = (event.clientX - rect.left) / rect.width;
     scrubberPosition = position * 100;
   }
-  
+
   // Function to handle clicks on the timeline
   function handleTimelineClick(event: MouseEvent) {
     if (!timelineElement || !videoElement) return;
-    
+
     // Calculate position as percentage
     const rect = timelineElement.getBoundingClientRect();
     const position = (event.clientX - rect.left) / rect.width;
-    
+
     // Set video time
     videoElement.currentTime = position * videoElement.duration;
   }
@@ -676,11 +699,11 @@
   function formatJson(event: { time: number; event: string; data: any }) {
     return JSON.stringify(event, null, 2);
   }
-  
+
   // Function to process assistant message content to remove ```python prefix
   function processAssistantMessage(content: string): string {
     if (typeof content !== 'string') return JSON.stringify(content, null, 2);
-    
+
     // Replace ```python blocks with just ``` blocks
     return content.replace(/```python\n/g, '').replace(/\n```/g, '');
   }
@@ -695,10 +718,10 @@
           <Card padding="none" className="mb-0 bg-black!">
             <div class="relative w-full">
               <!-- svelte-ignore a11y_media_has_caption -->
-              <video 
-                bind:this={videoElement} 
-                controls 
-                class="w-full h-full {isVideoOverMaskedRange ? 'blur-sm opacity-50' : ''}" 
+              <video
+                bind:this={videoElement}
+                controls
+                class="w-full h-full {isVideoOverMaskedRange ? 'blur-sm opacity-50' : ''}"
                 src={videoSrc || ''}
                 ontimeupdate={handleTimeUpdate}>
                 Your browser does not support the video tag.
@@ -716,40 +739,40 @@
                   {/if}
                 {/each}
               {/if}
-              
             </div>
           </Card>
           <!-- Timeline component -->
-          <div 
-            class="relative w-full h-2 bg-gray-200 mt-2 cursor-pointer mb-6 rounded" 
+          <div
+            class="relative w-full h-2 bg-gray-200 mt-2 cursor-pointer mb-6 rounded"
             bind:this={timelineElement}
             onmousemove={handleTimelineHover}
-            onmouseleave={() => showScrubber = false}
+            onmouseleave={() => (showScrubber = false)}
             onclick={handleTimelineClick}>
-            
             <!-- Progress bar -->
-            <div 
-              class="absolute top-0 left-0 h-full bg-secondary-300 rounded" 
+            <div
+              class="absolute top-0 left-0 h-full bg-secondary-300 rounded"
               style="width: {progressPercentage}%">
             </div>
-            
+
             <!-- Masked ranges -->
             {#each privateRanges as range}
-              <div 
-                class="absolute top-0 h-full bg-black opacity-70 rounded" 
+              <div
+                class="absolute top-0 h-full bg-black opacity-70 rounded"
                 style="left: {(range.start / 1000 / (videoElement?.duration || 1)) * 100}%; 
-                       width: {((range.end - range.start) / 1000 / (videoElement?.duration || 1)) * 100}%;">
+                       width: {((range.end - range.start) / 1000 / (videoElement?.duration || 1)) *
+                  100}%;">
                 {#if videoElement}
-                  <div class="absolute top-0 right-1/2 transform translate-x-1/2 -translate-y-1/4 bg-black p-1 rounded">
+                  <div
+                    class="absolute top-0 right-1/2 transform translate-x-1/2 -translate-y-1/4 bg-black p-1 rounded">
                     <EyeOff class="w-3 h-3 text-white" />
                   </div>
                 {/if}
               </div>
             {/each}
-            
+
             <!-- Scrubber -->
             {#if showScrubber}
-              <div 
+              <div
                 class="absolute top-0 w-4 h-4 bg-white border-2 border-secondary-400 rounded-full -mt-1 -ml-2"
                 style="left: {scrubberPosition}%">
               </div>
@@ -767,7 +790,14 @@
                         class="text-lg font-medium"
                         class:text-red-500={submission.clampedScore < 50}
                         class:text-secondary-300={submission.clampedScore >= 50}>
-                        ({getLetterGrade(submission.clampedScore || submission.grade_result.score)})
+                        ({getLetterGrade(submission.clampedScore)})
+                      </div>
+                    {:else if submission?.grade_result.score}
+                      <div
+                        class="text-lg font-medium"
+                        class:text-red-500={submission.grade_result.score < 50}
+                        class:text-secondary-300={submission.grade_result.score >= 50}>
+                        ({getLetterGrade(submission.grade_result.score)})
                       </div>
                     {/if}
                   </div>
@@ -810,7 +840,15 @@
                         <div class="text-sm text-gray-500">Quality Score</div>
                         <div class="text-secondary-300 font-medium">{submission.clampedScore}%</div>
                       </div>
+                    {:else if submission?.grade_result.score}
+                      <div class="bg-gray-100 rounded-lg px-3 py-2">
+                        <div class="text-sm text-gray-500">Quality Score</div>
+                        <div class="text-secondary-300 font-medium">
+                          {submission.grade_result.score}%
+                        </div>
+                      </div>
                     {/if}
+
                     <Equal class="w-4 h-4 text-gray-400" />
                     {#if submission?.reward}
                       <div class="bg-gray-100 rounded-lg px-3 py-2">
@@ -818,6 +856,11 @@
                         <div class="text-secondary-300 font-medium">
                           {formatNumber(submission.reward)} VIRAL
                         </div>
+                      </div>
+                    {:else}
+                      <div class="bg-gray-100 rounded-lg px-3 py-2">
+                        <div class="text-sm text-gray-500">Earned</div>
+                        <div class="text-secondary-300 font-medium">0 VIRAL</div>
                       </div>
                     {/if}
                   </div>
@@ -883,25 +926,25 @@
                 </Button>
                 {#if recording.status === 'completed'}
                   {#if !sftHtml}
-                  <Button
-                    variant="secondary"
-                    onclick={handleProcess}
-                    class="flex! items-center"
-                    disabled={processing || checkingData}>
-                    {#if processing}
-                      <div
-                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
-                      </div>
-                      Processing...
-                    {:else if checkingData}
-                      <div
-                        class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
-                      </div>
-                      Checking...
-                    {:else}
-                      Process
-                    {/if}
-                  </Button>
+                    <Button
+                      variant="secondary"
+                      onclick={handleProcess}
+                      class="flex! items-center"
+                      disabled={processing || checkingData}>
+                      {#if processing}
+                        <div
+                          class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
+                        </div>
+                        Processing...
+                      {:else if checkingData}
+                        <div
+                          class="w-3.5 h-3.5 mr-1.5 border-2 border-t-transparent border-white rounded-full animate-spin">
+                        </div>
+                        Checking...
+                      {:else}
+                        Process
+                      {/if}
+                    </Button>
                   {/if}
                   <Button
                     variant="secondary"
@@ -949,12 +992,14 @@
             {#if submissionError}
               <p class="text-red-500 text-sm mt-2">Upload Error: {submissionError}</p>
             {/if}
-            
+
             {#if exportZipPath}
               <p class="text-green-500 text-sm mt-2">Export Zip: {exportZipPath}</p>
-              <p class="text-gray-500 text-xs mt-1">Check the temp_private directory in the recording folder for masked content.</p>
+              <p class="text-gray-500 text-xs mt-1">
+                Check the temp_private directory in the recording folder for masked content.
+              </p>
             {/if}
-            
+
             {#if exportZipError}
               <p class="text-red-500 text-sm mt-2">Export Error: {exportZipError}</p>
             {/if}
@@ -1097,59 +1142,74 @@
                 {#if processedSftData && processedSftData.length > 0}
                   <div class="relative">
                     {#if submission?.status === 'completed'}
-                      <div class="sticky top-0 bg-white py-2 mb-2 z-5 border-b border-red-200 text-sm text-red-500 font-medium">
+                      <div
+                        class="sticky top-0 bg-white py-2 mb-2 z-5 border-b border-red-200 text-sm text-red-500 font-medium">
                         <div>⚠️ Recording already submitted</div>
                         <div>New privacy masks will not be included</div>
                       </div>
                     {/if}
                     {#if privateRanges.length > 0}
-                      <div class="sticky top-0 bg-white py-2 mb-2 z-5 border-b border-gray-200 text-sm text-gray-500">
-                        {privateRanges.length} masked {privateRanges.length === 1 ? 'range' : 'ranges'} in this recording
+                      <div
+                        class="sticky top-0 bg-white py-2 mb-2 z-5 border-b border-gray-200 text-sm text-gray-500">
+                        {privateRanges.length} masked {privateRanges.length === 1
+                          ? 'range'
+                          : 'ranges'} in this recording
                       </div>
                     {/if}
-                    
-                    <div class="relative before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-10 before:bg-gradient-to-b before:opacity-50 before:from-white before:to-transparent before:pointer-events-none before:z-10">
+
+                    <div
+                      class="relative before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-10 before:bg-gradient-to-b before:opacity-50 before:from-white before:to-transparent before:pointer-events-none before:z-10">
                       <!-- Use the reactive combinedData array -->
                       {#each combinedData as item}
                         {#if item.role === 'range_start' || item.role === 'range_end'}
-                          <div class="flex items-center justify-between py-1 px-2 mb-1 bg-gray-100 rounded border border-gray-200">
+                          <div
+                            class="flex items-center justify-between py-1 px-2 mb-1 bg-gray-100 rounded border border-gray-200">
                             <div class="flex items-center gap-3">
-                              <EventTimestamp 
-                                timestamp={item.role === 'range_start' ? item.content.range.start : item.content.range.end} 
-                                startTime={0} 
-                                {videoElement} 
-                              />
+                              <EventTimestamp
+                                timestamp={item.role === 'range_start'
+                                  ? item.content.range.start
+                                  : item.content.range.end}
+                                startTime={0}
+                                {videoElement} />
                               <div class="flex items-center gap-1">
-                                <button 
+                                <button
                                   class="text-gray-500 hover:text-red-500 transition-colors"
                                   onclick={() => deleteRange(item.content.range)}>
                                   <EyeOff class="w-4 h-4" />
                                 </button>
-                                <span class="text-xs text-gray-500">{item.role === 'range_start' ? 'Start' : 'End'}</span>
+                                <span class="text-xs text-gray-500">
+                                  {item.role === 'range_start' ? 'Start' : 'End'}
+                                </span>
                               </div>
                             </div>
                             <div class="flex items-center gap-2">
                               <div class="flex flex-col">
-                                <button 
-                                  class="text-gray-400 hover:text-gray-600 transition-colors" 
-                                  onclick={() => moveRangeMarker(
-                                    item.role === 'range_start' ? item.content.range.start : item.content.range.end, 
-                                    item.role === 'range_start',
-                                    'up'
-                                  )}>
+                                <button
+                                  class="text-gray-400 hover:text-gray-600 transition-colors"
+                                  onclick={() =>
+                                    moveRangeMarker(
+                                      item.role === 'range_start'
+                                        ? item.content.range.start
+                                        : item.content.range.end,
+                                      item.role === 'range_start',
+                                      'up'
+                                    )}>
                                   <ChevronUp class="w-4 h-4" />
                                 </button>
-                                <button 
-                                  class="text-gray-400 hover:text-gray-600 transition-colors" 
-                                  onclick={() => moveRangeMarker(
-                                    item.role === 'range_start' ? item.content.range.start : item.content.range.end, 
-                                    item.role === 'range_start',
-                                    'down'
-                                  )}>
+                                <button
+                                  class="text-gray-400 hover:text-gray-600 transition-colors"
+                                  onclick={() =>
+                                    moveRangeMarker(
+                                      item.role === 'range_start'
+                                        ? item.content.range.start
+                                        : item.content.range.end,
+                                      item.role === 'range_start',
+                                      'down'
+                                    )}>
                                   <ChevronDown class="w-4 h-4" />
                                 </button>
                               </div>
-                              <button 
+                              <button
                                 class="text-gray-400 hover:text-red-500 transition-colors"
                                 onclick={() => deleteRange(item.content.range)}>
                                 <Trash2 class="w-4 h-4" />
@@ -1157,10 +1217,14 @@
                             </div>
                           </div>
                         {:else}
-                          <div class={`p-2 mb-2 rounded bg-gray-50 ${(item as any).masked ? 'opacity-50 line-through' : ''}`}>
+                          <div
+                            class={`p-2 mb-2 rounded bg-gray-50 ${(item as any).masked ? 'opacity-50 line-through' : ''}`}>
                             <div class="mb-1 flex items-center justify-between">
-                              <EventTimestamp timestamp={item.timestamp} startTime={0} {videoElement} />
-                              <button 
+                              <EventTimestamp
+                                timestamp={item.timestamp}
+                                startTime={0}
+                                {videoElement} />
+                              <button
                                 class="text-gray-400 hover:text-gray-600 transition-colors"
                                 title="Add privacy range around this message"
                                 onclick={() => addRangeAroundMessage(item)}>
@@ -1171,9 +1235,9 @@
                             <div class="whitespace-pre-wrap break-words font-mono">
                               {#if typeof item.content === 'string'}
                                 {#if item.content.startsWith('<img>') && item.content.endsWith('</img>')}
-                                  <img 
-                                    src={`data:image/jpeg;base64,${item.content.slice(5, -6)}`} 
-                                    alt="Screenshot" 
+                                  <img
+                                    src={`data:image/jpeg;base64,${item.content.slice(5, -6)}`}
+                                    alt="Screenshot"
                                     class="max-w-full rounded mt-2" />
                                 {:else if item.role === 'assistant'}
                                   {processAssistantMessage(item.content)}
@@ -1181,9 +1245,9 @@
                                   {item.content}
                                 {/if}
                               {:else if item.content?.type === 'image' && item.content?.data}
-                                <img 
-                                  src={`data:image/jpeg;base64,${item.content.data}`} 
-                                  alt="Screenshot" 
+                                <img
+                                  src={`data:image/jpeg;base64,${item.content.data}`}
+                                  alt="Screenshot"
                                   class="max-w-full rounded mt-2" />
                               {:else}
                                 {JSON.stringify(item.content, null, 2)}
@@ -1195,7 +1259,8 @@
                     </div>
                   </div>
                 {:else if sftHtml}
-                  <div class="relative before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-10 before:bg-gradient-to-b before:from-white before:to-transparent before:pointer-events-none before:z-10">
+                  <div
+                    class="relative before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-10 before:bg-gradient-to-b before:from-white before:to-transparent before:pointer-events-none before:z-10">
                     <style>
                       .masked-content {
                         opacity: 0.5;

@@ -91,9 +91,9 @@
     }
   }
 
-  async function typeMessage(content: string, messageIndex: number) {
+  async function typeMessage(content: string, messageIndex: number, delay: boolean = true) {
     if (!content) return;
-    await new Promise((resolve) => setTimeout(resolve, TYPE_START_DELAY));
+    if (delay) await new Promise((resolve) => setTimeout(resolve, TYPE_START_DELAY));
 
     const baseDelay = 1000 / 15 / 2; // 33.33ms per char
     const chunkSize = 2;
@@ -115,12 +115,15 @@
       }
 
       scrollToBottom();
-      await new Promise((resolve) => setTimeout(resolve, variation));
+      if (delay) await new Promise((resolve) => setTimeout(resolve, variation));
     }
     typingMessage = null;
   }
 
-  async function addMessage(msg: Message, playAudio: boolean = true) {
+  async function addMessage(
+    msg: Message,
+    options: { audio: boolean; delay: boolean } = { audio: true, delay: true }
+  ) {
     const messageIndex = chatMessages.length;
 
     // Check if the message is an image
@@ -138,12 +141,12 @@
       scrollToBottom();
 
       // Then animate typing
-      await typeMessage(msg.content, messageIndex);
+      await typeMessage(msg.content, messageIndex, options.delay);
 
       // Finally update with full message
       chatMessages = chatMessages.map((m, i) => (i === messageIndex ? msg : m));
     } else {
-      if (blipAudio && playAudio) {
+      if (blipAudio && options.audio) {
         blipAudio.currentTime = 0;
         blipAudio.play().catch(() => {});
       }
@@ -540,7 +543,7 @@
                   content: `<img>${msg.content.data}</img>`,
                   timestamp: msg.timestamp
                 },
-                false
+                { audio: false, delay: false }
               );
 
               // Add a small delay between images for better pacing
@@ -564,16 +567,19 @@
                   content: content,
                   timestamp: msg.timestamp
                 },
-                false
+                { audio: false, delay: false }
               );
             }
           }
 
           // Add end replay message
-          await addMessage({
-            role: 'assistant',
-            content: '<end>--- end of replay ---</end>'
-          });
+          await addMessage(
+            {
+              role: 'assistant',
+              content: '<end>--- end of replay ---</end>'
+            },
+            { audio: true, delay: false }
+          );
 
           // Finish with completion message
           await addMessage({
@@ -611,10 +617,13 @@
       });
 
       // Add upload button message
-      await addMessage({
-        role: 'assistant',
-        content: `<upload-button></upload-button>`
-      });
+      await addMessage(
+        {
+          role: 'assistant',
+          content: `<upload-button></upload-button>`
+        },
+        { audio: true, delay: false }
+      );
     }
   }
 
@@ -838,180 +847,543 @@
   <div
     bind:this={chatContent}
     class="flex-1 max-w-7xl w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
-    {#each chatMessages as msg, i}
-      <div
-        class="flex gap-2 transition-all duration-200 relative group {msg.role === 'user'
-          ? 'justify-end'
-          : ''}"
-        onmouseenter={() => handleHover(i)}
-        onmouseleave={handleHoverEnd}
-        role="listitem">
-        <!-- Delete overlay for the entire message -->
-        {#if hoveredMessageIndex === i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
-          <div
-            class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
-            style="opacity: {hoveredMessageIndex === i ? '1' : '0'}"
-            onclick={() => handleDeleteMessage(i, msg)}>
+    {#if true}
+      {@const demoStartIndex = chatMessages.findIndex(
+        (m) => m.content.startsWith('<start>') && m.content.endsWith('</start>')
+      )}
+      {@const demoEndIndex = chatMessages.findIndex(
+        (m) => m.content.startsWith('<end>') && m.content.endsWith('</end>')
+      )}
+      {@const inDemoSection =
+        demoStartIndex !== -1 && demoEndIndex !== -1 && demoEndIndex > demoStartIndex}
+      <!-- Render messages before demo section normally -->
+      {#each chatMessages.slice(0, inDemoSection ? demoStartIndex + 1 : chatMessages.length) as msg, i}
+        <div
+          class="flex gap-2 transition-all duration-200 relative group {msg.role === 'user'
+            ? 'justify-end'
+            : ''}"
+          onmouseenter={() => handleHover(i)}
+          onmouseleave={handleHoverEnd}
+          role="listitem">
+          <!-- Delete overlay for the entire message -->
+          {#if hoveredMessageIndex === i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
             <div
-              class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
-              <Trash2 size={24} />
-            </div>
-          </div>
-        {/if}
-
-        {#if msg.content.startsWith('<start>') && msg.content.endsWith('</start>')}
-          <!-- Special full-width centered message for start tag -->
-          <div class="w-full text-center text-neutral-500 opacity-50 py-2">
-            {msg.content.slice(7, -8)}
-          </div>
-        {:else if msg.content.startsWith('<end>') && msg.content.endsWith('</end>')}
-          <!-- Special full-width centered message for end tag -->
-          <div class="w-full text-center text-neutral-500 opacity-50 py-2">
-            {msg.content.slice(5, -6)}
-          </div>
-        {:else if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
-          <!-- Special full-width centered message for delete tag -->
-          <div
-            onclick={() => handleUndoDelete(i)}
-            onkeydown={() => {}}
-            role="button"
-            tabindex="0"
-            class="w-full text-center text-neutral-500 opacity-50 py-2 cursor-pointer hover:opacity-80">
-            <div class="flex items-center justify-center gap-2">
-              <RotateCcw size={16} />
-              <span>{msg.content.replace(/<delete>.*?<\/delete>/, '')}</span>
-            </div>
-          </div>
-        {:else if msg.role === 'user'}
-          {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
-            <RecordingPanel recordingId={msg.content.slice(11, -12)} />
-          {:else if msg.content.startsWith('<loading>') && msg.content.endsWith('</loading>')}
-            <Card
-              variant="primary"
-              padding="sm"
-              className="w-auto! flex! flex-row! gap-2 max-w-2xl shadow-sm bg-secondary-300 text-white">
+              class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
+              style="opacity: {hoveredMessageIndex === i ? '1' : '0'}"
+              onclick={() => handleDeleteMessage(i, msg)}>
               <div
-                class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
+                class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
+                <Trash2 size={24} />
               </div>
-              {msg.content.slice(9, -10)}
-            </Card>
+            </div>
+          {/if}
+
+          {#if msg.content.startsWith('<start>') && msg.content.endsWith('</start>')}
+            <!-- Special full-width centered message for start tag -->
+            <div class="w-full text-center text-neutral-500 opacity-50 py-2">
+              {msg.content.slice(7, -8)}
+            </div>
+          {:else if msg.content.startsWith('<end>') && msg.content.endsWith('</end>')}
+            <!-- Special full-width centered message for end tag -->
+            <div class="w-full text-center text-neutral-500 opacity-50 py-2">
+              {msg.content.slice(5, -6)}
+            </div>
           {:else if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
+            <!-- Special full-width centered message for delete tag -->
             <div
               onclick={() => handleUndoDelete(i)}
               onkeydown={() => {}}
               role="button"
               tabindex="0"
-              class="cursor-pointer hover:opacity-90 w-full">
+              class="w-full text-center text-neutral-500 opacity-50 py-2 cursor-pointer hover:opacity-80">
+              <div class="flex items-center justify-center gap-2">
+                <RotateCcw size={16} />
+                <span>{msg.content.replace(/<delete>.*?<\/delete>/, '')}</span>
+              </div>
+            </div>
+          {:else if msg.role === 'user'}
+            {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
+              <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+            {:else if msg.content.startsWith('<loading>') && msg.content.endsWith('</loading>')}
               <Card
                 variant="primary"
                 padding="sm"
-                className="w-auto! flex! flex-row! items-center gap-3 max-w-2xl shadow-sm bg-neutral-600 text-white hover:bg-neutral-700">
-                <RotateCcw size={16} />
-                <div class="whitespace-pre-wrap tracking-wide">
-                  {msg.content.replace(/<delete>.*?<\/delete>/, '')}
+                className="w-auto! flex! flex-row! gap-2 max-w-2xl shadow-sm bg-secondary-300 text-white">
+                <div
+                  class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
+                </div>
+                {msg.content.slice(9, -10)}
+              </Card>
+            {:else if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
+              <div
+                onclick={() => handleUndoDelete(i)}
+                onkeydown={() => {}}
+                role="button"
+                tabindex="0"
+                class="cursor-pointer hover:opacity-90 w-full">
+                <Card
+                  variant="primary"
+                  padding="sm"
+                  className="w-auto! flex! flex-row! items-center gap-3 max-w-2xl shadow-sm bg-neutral-600 text-white hover:bg-neutral-700">
+                  <RotateCcw size={16} />
+                  <div class="whitespace-pre-wrap tracking-wide">
+                    {msg.content.replace(/<delete>.*?<\/delete>/, '')}
+                  </div>
+                </Card>
+              </div>
+            {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
+              <Card
+                variant="secondary"
+                padding="none"
+                className="w-auto! max-w-lg shadow-sm overflow-hidden {hoveredMessageIndex === i
+                  ? 'opacity-60'
+                  : 'opacity-100'} transition-opacity duration-300">
+                <img
+                  src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
+                  alt="Screenshot"
+                  class="w-full h-auto" />
+              </Card>
+            {:else if msg.content.startsWith('<action>') && msg.content.endsWith('</action>')}
+              <Card
+                variant="primary"
+                padding="sm"
+                className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
+                i
+                  ? 'opacity-60'
+                  : 'opacity-100'} transition-opacity duration-300">
+                <div class="flex items-center gap-2">
+                  <MousePointer size={16} />
+                  <pre class="font-mono text-sm whitespace-pre-wrap">{msg.content.slice(
+                      8,
+                      -9
+                    )}</pre>
                 </div>
               </Card>
-            </div>
-          {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
-            <Card
-              variant="secondary"
-              padding="none"
-              className="w-auto! max-w-lg shadow-sm overflow-hidden {hoveredMessageIndex === i
-                ? 'opacity-60'
-                : 'opacity-100'} transition-opacity duration-300">
-              <img
-                src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
-                alt="Screenshot"
-                class="w-full h-auto" />
-            </Card>
-          {:else if msg.content.startsWith('<action>') && msg.content.endsWith('</action>')}
-            <Card
-              variant="primary"
-              padding="sm"
-              className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
-              i
-                ? 'opacity-60'
-                : 'opacity-100'} transition-opacity duration-300">
-              <div class="flex items-center gap-2">
-                <MousePointer size={16} />
-                <pre class="font-mono text-sm whitespace-pre-wrap">{msg.content.slice(8, -9)}</pre>
-              </div>
-            </Card>
-          {:else}
-            <Card
-              variant="primary"
-              padding="sm"
-              className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
-                i && msg.timestamp !== undefined
-                ? 'opacity-50'
-                : 'opacity-100'} transition-opacity duration-300">
-              <div class="whitespace-pre-wrap tracking-wide font-medium">
-                {msg.content}
-              </div>
-            </Card>
-          {/if}
-          <div
-            class="shrink-0 w-8 h-8 rounded-full bg-secondary-100 text-white flex items-center justify-center shadow-md">
-            <User size={18} />
-          </div>
-        {:else}
-          <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
-            <img src={pfp} alt="V" class="w-full h-full object-cover" />
-          </div>
-          {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
-            <RecordingPanel recordingId={msg.content.slice(11, -12)} />
-          {:else if msg.content === '<upload-button></upload-button>'}
-            <Card
-              variant="secondary"
-              padding="sm"
-              className="w-auto! shadow-sm space-y-4 relative bg-black/5">
-              <div class="flex flex-col items-start gap-2">
-                <div class="text-sm font-medium mb-1">Ready to submit your demonstration?</div>
-                <Button
-                  variant="primary"
-                  onclick={handleUploadClick}
-                  disabled={isUploading}
-                  class="flex! items-center gap-1 w-full justify-center">
-                  {#if isUploading}
-                    Uploading...
-                  {:else}
-                    <Upload size={16} />
-                    Upload Demonstration {deletedRanges.length > 0
-                      ? `with ${deletedRanges.length} edit${deletedRanges.length === 1 ? '' : 's'}`
-                      : ''}
-                  {/if}
-                </Button>
-                <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
-              </div>
-            </Card>
-          {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
-            <Card
-              variant="secondary"
-              padding="none"
-              className="w-auto! max-w-lg shadow-sm overflow-hidden">
-              <img
-                src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
-                alt="Screenshot"
-                class="w-full h-auto" />
-            </Card>
-          {:else}
-            <Card
-              variant="secondary"
-              padding="sm"
-              className="w-auto! shadow-sm space-y-4 relative bg-black/5">
-              <div class="whitespace-pre-wrap break-words">
-                {#if typingMessage && typingMessage.messageIndex === i}
-                  {typingMessage.content}
-                  <span class="animate-pulse">▋</span>
-                {:else}
+            {:else}
+              <Card
+                variant="primary"
+                padding="sm"
+                className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
+                  i && msg.timestamp !== undefined
+                  ? 'opacity-50'
+                  : 'opacity-100'} transition-opacity duration-300">
+                <div class="whitespace-pre-wrap tracking-wide font-medium">
                   {msg.content}
+                </div>
+              </Card>
+            {/if}
+            <div
+              class="shrink-0 w-8 h-8 rounded-full bg-secondary-100 text-white flex items-center justify-center shadow-md">
+              <User size={18} />
+            </div>
+          {:else}
+            <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
+              <img src={pfp} alt="V" class="w-full h-full object-cover" />
+            </div>
+            {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
+              <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+            {:else if msg.content === '<upload-button></upload-button>'}
+              <Card
+                variant="secondary"
+                padding="sm"
+                className="w-auto! shadow-sm space-y-4 relative bg-black/5">
+                <div class="flex flex-col items-start gap-2">
+                  <div class="text-sm font-medium mb-1">Ready to submit your demonstration?</div>
+                  <Button
+                    variant="primary"
+                    onclick={handleUploadClick}
+                    disabled={isUploading}
+                    class="flex! items-center gap-1 w-full justify-center">
+                    {#if isUploading}
+                      Uploading...
+                    {:else}
+                      <Upload size={16} />
+                      Upload Demonstration {deletedRanges.length > 0
+                        ? `with ${deletedRanges.length} edit${deletedRanges.length === 1 ? '' : 's'}`
+                        : ''}
+                    {/if}
+                  </Button>
+                  <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+                </div>
+              </Card>
+            {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
+              <Card
+                variant="secondary"
+                padding="none"
+                className="w-auto! max-w-lg shadow-sm overflow-hidden">
+                <img
+                  src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
+                  alt="Screenshot"
+                  class="w-full h-auto" />
+              </Card>
+            {:else}
+              <Card
+                variant="secondary"
+                padding="sm"
+                className="w-auto! shadow-sm space-y-4 relative bg-black/5">
+                <div class="whitespace-pre-wrap break-words">
+                  {#if typingMessage && typingMessage.messageIndex === i}
+                    {typingMessage.content}
+                    <span class="animate-pulse">▋</span>
+                  {:else}
+                    {msg.content}
+                  {/if}
+                </div>
+              </Card>
+            {/if}
+          {/if}
+        </div>
+      {/each}
+
+      <!-- Render demo section in a scrollable container -->
+      {#if inDemoSection}
+        <div class="w-full border border-gray-200 rounded-lg bg-black/5 mb-3">
+          <div class="max-h-[50vh] overflow-y-auto p-3 space-y-3">
+            {#each chatMessages.slice(demoStartIndex + 1, demoEndIndex) as msg, i (demoStartIndex + 1 + i)}
+              <div
+                class="flex gap-2 transition-all duration-200 relative group {msg.role === 'user'
+                  ? 'justify-end'
+                  : ''}"
+                onmouseenter={() => handleHover(demoStartIndex + 1 + i)}
+                onmouseleave={handleHoverEnd}
+                role="listitem">
+                <!-- Delete overlay for the entire message -->
+                {#if hoveredMessageIndex === demoStartIndex + 1 + i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
+                  <div
+                    class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
+                    style="opacity: {hoveredMessageIndex === demoStartIndex + 1 + i ? '1' : '0'}"
+                    onclick={() => handleDeleteMessage(demoStartIndex + 1 + i, msg)}>
+                    <div
+                      class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
+                      <Trash2 size={24} />
+                    </div>
+                  </div>
+                {/if}
+
+                {#if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
+                  <!-- Special full-width centered message for delete tag -->
+                  <div
+                    onclick={() => handleUndoDelete(demoStartIndex + 1 + i)}
+                    onkeydown={() => {}}
+                    role="button"
+                    tabindex="0"
+                    class="w-full text-center text-neutral-500 opacity-50 py-2 cursor-pointer hover:opacity-80">
+                    <div class="flex items-center justify-center gap-2">
+                      <RotateCcw size={16} />
+                      <span>{msg.content.replace(/<delete>.*?<\/delete>/, '')}</span>
+                    </div>
+                  </div>
+                {:else if msg.role === 'user'}
+                  {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
+                    <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+                  {:else if msg.content.startsWith('<loading>') && msg.content.endsWith('</loading>')}
+                    <Card
+                      variant="primary"
+                      padding="sm"
+                      className="w-auto! flex! flex-row! gap-2 max-w-2xl shadow-sm bg-secondary-300 text-white">
+                      <div
+                        class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
+                      </div>
+                      {msg.content.slice(9, -10)}
+                    </Card>
+                  {:else if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
+                    <div
+                      onclick={() => handleUndoDelete(demoStartIndex + 1 + i)}
+                      onkeydown={() => {}}
+                      role="button"
+                      tabindex="0"
+                      class="cursor-pointer hover:opacity-90 w-full">
+                      <Card
+                        variant="primary"
+                        padding="sm"
+                        className="w-auto! flex! flex-row! items-center gap-3 max-w-2xl shadow-sm bg-neutral-600 text-white hover:bg-neutral-700">
+                        <RotateCcw size={16} />
+                        <div class="whitespace-pre-wrap tracking-wide">
+                          {msg.content.replace(/<delete>.*?<\/delete>/, '')}
+                        </div>
+                      </Card>
+                    </div>
+                  {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
+                    <Card
+                      variant="secondary"
+                      padding="none"
+                      className="w-auto! max-w-lg shadow-sm overflow-hidden {hoveredMessageIndex ===
+                      demoStartIndex + 1 + i
+                        ? 'opacity-60'
+                        : 'opacity-100'} transition-opacity duration-300">
+                      <img
+                        src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
+                        alt="Screenshot"
+                        class="w-full h-auto" />
+                    </Card>
+                  {:else if msg.content.startsWith('<action>') && msg.content.endsWith('</action>')}
+                    <Card
+                      variant="primary"
+                      padding="sm"
+                      className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
+                      demoStartIndex + 1 + i
+                        ? 'opacity-60'
+                        : 'opacity-100'} transition-opacity duration-300">
+                      <div class="flex items-center gap-2">
+                        <MousePointer size={16} />
+                        <pre class="font-mono text-sm whitespace-pre-wrap">{msg.content.slice(
+                            8,
+                            -9
+                          )}</pre>
+                      </div>
+                    </Card>
+                  {:else}
+                    <Card
+                      variant="primary"
+                      padding="sm"
+                      className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
+                        demoStartIndex + 1 + i && msg.timestamp !== undefined
+                        ? 'opacity-50'
+                        : 'opacity-100'} transition-opacity duration-300">
+                      <div class="whitespace-pre-wrap tracking-wide font-medium">
+                        {msg.content}
+                      </div>
+                    </Card>
+                  {/if}
+                  <div
+                    class="shrink-0 w-8 h-8 rounded-full bg-secondary-100 text-white flex items-center justify-center shadow-md">
+                    <User size={18} />
+                  </div>
+                {:else}
+                  <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
+                    <img src={pfp} alt="V" class="w-full h-full object-cover" />
+                  </div>
+                  {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
+                    <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+                  {:else if msg.content === '<upload-button></upload-button>'}
+                    <Card
+                      variant="secondary"
+                      padding="sm"
+                      className="w-auto! shadow-sm space-y-4 relative bg-black/5">
+                      <div class="flex flex-col items-start gap-2">
+                        <div class="text-sm font-medium mb-1">
+                          Ready to submit your demonstration?
+                        </div>
+                        <Button
+                          variant="primary"
+                          onclick={handleUploadClick}
+                          disabled={isUploading}
+                          class="flex! items-center gap-1 w-full justify-center">
+                          {#if isUploading}
+                            Uploading...
+                          {:else}
+                            <Upload size={16} />
+                            Upload Demonstration {deletedRanges.length > 0
+                              ? `with ${deletedRanges.length} edit${deletedRanges.length === 1 ? '' : 's'}`
+                              : ''}
+                          {/if}
+                        </Button>
+                        <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+                      </div>
+                    </Card>
+                  {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
+                    <Card
+                      variant="secondary"
+                      padding="none"
+                      className="w-auto! max-w-lg shadow-sm overflow-hidden">
+                      <img
+                        src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
+                        alt="Screenshot"
+                        class="w-full h-auto" />
+                    </Card>
+                  {:else}
+                    <Card
+                      variant="secondary"
+                      padding="sm"
+                      className="w-auto! shadow-sm space-y-4 relative bg-black/5">
+                      <div class="whitespace-pre-wrap break-words">
+                        {#if typingMessage && typingMessage.messageIndex === demoStartIndex + 1 + i}
+                          {typingMessage.content}
+                          <span class="animate-pulse">▋</span>
+                        {:else}
+                          {msg.content}
+                        {/if}
+                      </div>
+                    </Card>
+                  {/if}
                 {/if}
               </div>
-            </Card>
-          {/if}
-        {/if}
-      </div>
-    {/each}
+            {/each}
+          </div>
+        </div>
+
+        <!-- Render messages after demo section normally -->
+        {#each chatMessages.slice(demoEndIndex + 1) as msg, i (demoEndIndex + 1 + i)}
+          <div
+            class="flex gap-2 transition-all duration-200 relative group {msg.role === 'user'
+              ? 'justify-end'
+              : ''}"
+            onmouseenter={() => handleHover(demoEndIndex + 1 + i)}
+            onmouseleave={handleHoverEnd}
+            role="listitem">
+            <!-- Delete overlay for the entire message -->
+            {#if hoveredMessageIndex === demoEndIndex + 1 + i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
+              <div
+                class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
+                style="opacity: {hoveredMessageIndex === demoEndIndex + 1 + i ? '1' : '0'}"
+                onclick={() => handleDeleteMessage(demoEndIndex + 1 + i, msg)}>
+                <div
+                  class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
+                  <Trash2 size={24} />
+                </div>
+              </div>
+            {/if}
+
+            {#if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
+              <!-- Special full-width centered message for delete tag -->
+              <div
+                onclick={() => handleUndoDelete(demoEndIndex + 1 + i)}
+                onkeydown={() => {}}
+                role="button"
+                tabindex="0"
+                class="w-full text-center text-neutral-500 opacity-50 py-2 cursor-pointer hover:opacity-80">
+                <div class="flex items-center justify-center gap-2">
+                  <RotateCcw size={16} />
+                  <span>{msg.content.replace(/<delete>.*?<\/delete>/, '')}</span>
+                </div>
+              </div>
+            {:else if msg.role === 'user'}
+              {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
+                <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+              {:else if msg.content.startsWith('<loading>') && msg.content.endsWith('</loading>')}
+                <Card
+                  variant="primary"
+                  padding="sm"
+                  className="w-auto! flex! flex-row! gap-2 max-w-2xl shadow-sm bg-secondary-300 text-white">
+                  <div
+                    class="h-5 w-5 rounded-full border-2 border-white border-t-transparent! animate-spin">
+                  </div>
+                  {msg.content.slice(9, -10)}
+                </Card>
+              {:else if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
+                <div
+                  onclick={() => handleUndoDelete(demoEndIndex + 1 + i)}
+                  onkeydown={() => {}}
+                  role="button"
+                  tabindex="0"
+                  class="cursor-pointer hover:opacity-90 w-full">
+                  <Card
+                    variant="primary"
+                    padding="sm"
+                    className="w-auto! flex! flex-row! items-center gap-3 max-w-2xl shadow-sm bg-neutral-600 text-white hover:bg-neutral-700">
+                    <RotateCcw size={16} />
+                    <div class="whitespace-pre-wrap tracking-wide">
+                      {msg.content.replace(/<delete>.*?<\/delete>/, '')}
+                    </div>
+                  </Card>
+                </div>
+              {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
+                <Card
+                  variant="secondary"
+                  padding="none"
+                  className="w-auto! max-w-lg shadow-sm overflow-hidden {hoveredMessageIndex ===
+                  demoEndIndex + 1 + i
+                    ? 'opacity-60'
+                    : 'opacity-100'} transition-opacity duration-300">
+                  <img
+                    src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
+                    alt="Screenshot"
+                    class="w-full h-auto" />
+                </Card>
+              {:else if msg.content.startsWith('<action>') && msg.content.endsWith('</action>')}
+                <Card
+                  variant="primary"
+                  padding="sm"
+                  className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
+                  demoEndIndex + 1 + i
+                    ? 'opacity-60'
+                    : 'opacity-100'} transition-opacity duration-300">
+                  <div class="flex items-center gap-2">
+                    <MousePointer size={16} />
+                    <pre class="font-mono text-sm whitespace-pre-wrap">{msg.content.slice(
+                        8,
+                        -9
+                      )}</pre>
+                  </div>
+                </Card>
+              {:else}
+                <Card
+                  variant="primary"
+                  padding="sm"
+                  className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
+                    demoEndIndex + 1 + i && msg.timestamp !== undefined
+                    ? 'opacity-50'
+                    : 'opacity-100'} transition-opacity duration-300">
+                  <div class="whitespace-pre-wrap tracking-wide font-medium">
+                    {msg.content}
+                  </div>
+                </Card>
+              {/if}
+              <div
+                class="shrink-0 w-8 h-8 rounded-full bg-secondary-100 text-white flex items-center justify-center shadow-md">
+                <User size={18} />
+              </div>
+            {:else}
+              <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
+                <img src={pfp} alt="V" class="w-full h-full object-cover" />
+              </div>
+              {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
+                <RecordingPanel recordingId={msg.content.slice(11, -12)} />
+              {:else if msg.content === '<upload-button></upload-button>'}
+                <Card
+                  variant="secondary"
+                  padding="sm"
+                  className="w-auto! shadow-sm space-y-4 relative bg-black/5">
+                  <div class="flex flex-col items-start gap-2">
+                    <div class="text-sm font-medium mb-1">Ready to submit your demonstration?</div>
+                    <Button
+                      variant="primary"
+                      onclick={handleUploadClick}
+                      disabled={isUploading}
+                      class="flex! items-center gap-1 w-full justify-center">
+                      {#if isUploading}
+                        Uploading...
+                      {:else}
+                        <Upload size={16} />
+                        Upload Demonstration {deletedRanges.length > 0
+                          ? `with ${deletedRanges.length} edit${deletedRanges.length === 1 ? '' : 's'}`
+                          : ''}
+                      {/if}
+                    </Button>
+                    <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+                  </div>
+                </Card>
+              {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
+                <Card
+                  variant="secondary"
+                  padding="none"
+                  className="w-auto! max-w-lg shadow-sm overflow-hidden">
+                  <img
+                    src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
+                    alt="Screenshot"
+                    class="w-full h-auto" />
+                </Card>
+              {:else}
+                <Card
+                  variant="secondary"
+                  padding="sm"
+                  className="w-auto! shadow-sm space-y-4 relative bg-black/5">
+                  <div class="whitespace-pre-wrap break-words">
+                    {#if typingMessage && typingMessage.messageIndex === demoEndIndex + 1 + i}
+                      {typingMessage.content}
+                      <span class="animate-pulse">▋</span>
+                    {:else}
+                      {msg.content}
+                    {/if}
+                  </div>
+                </Card>
+              {/if}
+            {/if}
+          </div>
+        {/each}
+      {/if}
+    {/if}
+
     {#if activeQuest}
       <QuestPanel
         title={activeQuest.title}

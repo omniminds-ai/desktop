@@ -71,23 +71,15 @@
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  async function loadSubmissions(address: string) {
-    try {
-      submissions = await listSubmissions();
-    } catch (error) {
-      console.error('Failed to fetch submissions:', error);
-    }
-  }
-
   onMount(async () => {
     try {
       if ($walletAddress) {
-        loadSubmissions($walletAddress);
+        listSubmissions();
       }
       recordings = await invoke('list_recordings');
 
       $uploadManager.on('statusChange', '*', async () => {
-        if ($walletAddress) await loadSubmissions($walletAddress);
+        if ($walletAddress) await listSubmissions();
         recordings = await invoke('list_recordings');
       });
     } catch (error) {
@@ -98,7 +90,7 @@
   // Subscribe to wallet address changes
   walletAddress.subscribe((val) => {
     if (val !== $walletAddress && val) {
-      loadSubmissions(val);
+      listSubmissions(val);
     }
   });
 
@@ -229,34 +221,33 @@
   // Export recording as zip
   async function exportRecordingZip(recordingId: string) {
     if (!recordingId) return;
-    
+
     try {
       exportingZip = true;
-      
+
       // Create the zip file using the Rust backend
       const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
-      
+
       // Convert to Blob and create a download link
       const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
       const url = URL.createObjectURL(zipBlob);
-      
+
       // Create a timestamp for the filename
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const filename = `export_zip_${timestamp}.zip`;
-      
+
       // Create a download link and click it
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      
+
       // Clean up
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 100);
-      
     } catch (error) {
       console.error('Failed to export zip:', error);
       alert(`Error exporting zip: ${error}`);
@@ -278,7 +269,7 @@
       try {
         await invoke('delete_recording', { recordingId });
         // Refresh recordings list
-        if ($walletAddress) await loadSubmissions($walletAddress);
+        if ($walletAddress) await listSubmissions();
         recordings = await invoke('list_recordings');
         //todo: figure out why this doesn't remove the existing recording from the list
       } catch (error) {

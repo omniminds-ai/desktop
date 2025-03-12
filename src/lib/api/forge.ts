@@ -296,7 +296,7 @@ export async function uploadRecording(
     });
 
     xhr.open('POST', `${API_BASE}/upload-race`);
-    xhr.setRequestHeader('x-connect-token', token || '');
+    xhr.setRequestHeader('x-connect-token', token || 'unknown');
     xhr.send(formData);
   });
 }
@@ -315,7 +315,7 @@ export async function listSubmissions(): Promise<SubmissionStatus[]> {
   const token = get(connectionToken);
   const response = await fetch(`${API_BASE}/submissions`, {
     headers: {
-      'x-connect-token': token || ''
+      'x-connect-token': token || 'unknown'
     }
   });
 
@@ -323,7 +323,9 @@ export async function listSubmissions(): Promise<SubmissionStatus[]> {
     throw new Error('Failed to list submissions');
   }
 
-  return response.json();
+  const json = await response.json();
+
+  return json;
 }
 
 export async function refreshPool(poolId: string): Promise<TrainingPool> {
@@ -348,7 +350,7 @@ export interface GenerateResponse {
   content: {
     name: string;
     apps: ForgeApp[];
-  }
+  };
 }
 
 export async function generateApps(prompt: string): Promise<GenerateResponse> {
