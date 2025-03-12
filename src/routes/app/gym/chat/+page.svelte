@@ -6,7 +6,17 @@
   import { getReward, getSubmissionStatus } from '$lib/api/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { get } from 'svelte/store';
-  import { Send, User, Video, Square, Upload, MousePointer, ArrowRight, Trash2, RotateCcw } from 'lucide-svelte';
+  import {
+    Send,
+    User,
+    Video,
+    Square,
+    Upload,
+    MousePointer,
+    ArrowRight,
+    Trash2,
+    RotateCcw
+  } from 'lucide-svelte';
   import { emit } from '@tauri-apps/api/event';
   import { invoke } from '@tauri-apps/api/core';
   import Card from '$lib/components/Card.svelte';
@@ -110,7 +120,7 @@
     typingMessage = null;
   }
 
-  async function addMessage(msg: Message) {
+  async function addMessage(msg: Message, playAudio: boolean = true) {
     const messageIndex = chatMessages.length;
 
     // Check if the message is an image
@@ -133,7 +143,7 @@
       // Finally update with full message
       chatMessages = chatMessages.map((m, i) => (i === messageIndex ? msg : m));
     } else {
-      if (blipAudio) {
+      if (blipAudio && playAudio) {
         blipAudio.currentTime = 0;
         blipAudio.play().catch(() => {});
       }
@@ -326,18 +336,18 @@
   // Function to save deleted ranges to a JSON file
   async function savePrivateRanges() {
     if (!currentRecordingId) return;
-    
+
     try {
       // Convert deletedRanges to JSON string
       const rangesJson = JSON.stringify(deletedRanges, null, 2);
-      
+
       // Use invoke to save the file to the recording folder
       await invoke('write_recording_file', {
         recordingId: currentRecordingId,
         filename: 'private_ranges.json',
         content: rangesJson
       });
-      
+
       console.log('Saved private ranges to file');
     } catch (error) {
       console.error('Failed to save private ranges:', error);
@@ -346,14 +356,16 @@
 
   function handleDeleteMessage(index: number, msg: Message) {
     if (msg.timestamp === undefined || !originalSftData) return;
-    
+
     // Find previous and next messages in originalSftData
-    const sortedMessages = [...originalSftData].sort((a, b) => a.timestamp - b.timestamp).filter(msg => msg.role === 'assistant');
-    const currentIndex = sortedMessages.findIndex(m => m.timestamp === msg.timestamp);
-    
+    const sortedMessages = [...originalSftData]
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .filter((msg) => msg.role === 'assistant');
+    const currentIndex = sortedMessages.findIndex((m) => m.timestamp === msg.timestamp);
+
     let start_timestamp: number;
     let end_timestamp: number;
-    
+
     // Calculate start timestamp by averaging with previous message if available
     if (currentIndex > 0) {
       const prevMsg = sortedMessages[currentIndex - 1];
@@ -362,7 +374,7 @@
       // No previous message, use fallback
       start_timestamp = msg.timestamp - 5000;
     }
-    
+
     // Calculate end timestamp by averaging with next message if available
     if (currentIndex < sortedMessages.length - 1) {
       const nextMsg = sortedMessages[currentIndex + 1];
@@ -371,52 +383,65 @@
       // No next message, use fallback
       end_timestamp = msg.timestamp + 5000;
     }
-    
-    const count = originalSftData.filter(m => m.timestamp >= start_timestamp && m.timestamp <= end_timestamp).length;
-    deletedRanges = [...deletedRanges, { 
-      start: start_timestamp, 
-      end: end_timestamp, 
-      count 
-    }];
-    
+
+    const count = originalSftData.filter(
+      (m) => m.timestamp >= start_timestamp && m.timestamp <= end_timestamp
+    ).length;
+    deletedRanges = [
+      ...deletedRanges,
+      {
+        start: start_timestamp,
+        end: end_timestamp,
+        count
+      }
+    ];
+
     // Save the updated ranges to file
     savePrivateRanges();
-    
+
     chatMessages = [
-      ...chatMessages.slice(0, index), 
-      { 
-        role: 'user', 
-        content: `<delete>${start_timestamp} ${end_timestamp} ${count}</delete>` 
-      }, 
+      ...chatMessages.slice(0, index),
+      {
+        role: 'user',
+        content: `<delete>${start_timestamp} ${end_timestamp} ${count}</delete>`
+      },
       ...chatMessages.slice(index + 1)
     ];
   }
-  
+
   function handleUndoDelete(clickedMessageIndex?: number) {
     // Parse the start, end, and count from the delete message
     if (clickedMessageIndex !== undefined && originalSftData) {
       const deleteMsg = chatMessages[clickedMessageIndex];
-      if (deleteMsg && deleteMsg.content.startsWith('<delete>') && deleteMsg.content.endsWith('</delete>')) {
+      if (
+        deleteMsg &&
+        deleteMsg.content.startsWith('<delete>') &&
+        deleteMsg.content.endsWith('</delete>')
+      ) {
         // Extract values from <delete>start end count</delete>
         const content = deleteMsg.content.slice(8, -9); // Remove the <delete> and </delete> tags
         const [start, end, count] = content.split(' ').map(Number);
-        
+
         // Remove the range from deletedRanges
-        deletedRanges = deletedRanges.filter(r => r.start !== start);
-        
+        deletedRanges = deletedRanges.filter((r) => r.start !== start);
+
         // Save the updated ranges to file
         savePrivateRanges();
-        
+
         // Find messages in originalSftData that fall within this time range
         const messagesToRestore = originalSftData.filter(
-          msg => msg.timestamp >= start && msg.timestamp <= end
+          (msg) => msg.timestamp >= start && msg.timestamp <= end
         );
-        
+
         // Create new messages to insert
         const newMessages: Message[] = [];
-        
+
         for (const msg of messagesToRestore) {
-          if (msg.role === 'user' && typeof msg.content === 'object' && msg.content?.type === 'image') {
+          if (
+            msg.role === 'user' &&
+            typeof msg.content === 'object' &&
+            msg.content?.type === 'image'
+          ) {
             // VM sends the desktop screenshot
             newMessages.push({
               role: 'assistant',
@@ -434,7 +459,7 @@
             } else if (typeof content !== 'string') {
               content = JSON.stringify(content);
             }
-            
+
             // User sends the action
             newMessages.push({
               role: 'user',
@@ -443,7 +468,7 @@
             });
           }
         }
-        
+
         // Replace the delete message with the restored messages
         chatMessages = [
           ...chatMessages.slice(0, clickedMessageIndex),
@@ -452,7 +477,7 @@
         ];
       }
     }
-    
+
     scrollToBottom();
   }
 
@@ -483,36 +508,43 @@
       });
 
       // Wait briefly to ensure processing has completed
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Remove the loading message
       await removeMessage();
-      
+
       // Try to load SFT data
       if (recordingId) {
         const sftData = await loadSftData(recordingId);
         if (sftData?.length) {
           // Store original SFT data for filtering
           originalSftData = [...sftData];
-          
+
           // Add styled start replay message
           await addMessage({
             role: 'assistant',
-            content: "<start>--- demonstration replay ---</start>"
+            content: '<start>--- demonstration replay ---</start>'
           });
-          
+
           // Process SFT messages properly alternating between VM (assistant) and user
           for (const msg of sftData) {
-            if (msg.role === 'user' && typeof msg.content === 'object' && msg.content?.type === 'image') {
+            if (
+              msg.role === 'user' &&
+              typeof msg.content === 'object' &&
+              msg.content?.type === 'image'
+            ) {
               // VM sends the desktop screenshot
-              await addMessage({
-                role: 'assistant',
-                content: `<img>${msg.content.data}</img>`,
-                timestamp: msg.timestamp
-              });
-              
+              await addMessage(
+                {
+                  role: 'assistant',
+                  content: `<img>${msg.content.data}</img>`,
+                  timestamp: msg.timestamp
+                },
+                false
+              );
+
               // Add a small delay between images for better pacing
-              await new Promise(resolve => setTimeout(resolve, 800));
+              await new Promise((resolve) => setTimeout(resolve, 800));
             } else if (msg.role === 'assistant') {
               // Extract code block content when applicable
               let content = msg.content;
@@ -524,28 +556,31 @@
               } else if (typeof content !== 'string') {
                 content = JSON.stringify(content);
               }
-              
+
               // User sends the action
-              await addMessage({
-                role: 'user',
-                content: content,
-                timestamp: msg.timestamp
-              });
+              await addMessage(
+                {
+                  role: 'user',
+                  content: content,
+                  timestamp: msg.timestamp
+                },
+                false
+              );
             }
           }
-          
+
           // Add end replay message
           await addMessage({
             role: 'assistant',
-            content: "<end>--- end of replay ---</end>"
+            content: '<end>--- end of replay ---</end>'
           });
-          
+
           // Finish with completion message
           await addMessage({
             role: 'user',
             content: 'I completed the task! 🎉'
           });
-          
+
           await addMessage({
             role: 'assistant',
             content: 'Great job completing the task!'
@@ -556,12 +591,12 @@
             role: 'user',
             content: `<recording>${recordingId}</recording>`
           });
-          
+
           await addMessage({
             role: 'user',
             content: 'I completed the task! 🎉'
           });
-          
+
           await addMessage({
             role: 'assistant',
             content: 'Great job completing the task!'
@@ -572,7 +607,7 @@
       await addMessage({
         role: 'assistant',
         content:
-          'Review your demonstration before uploading. You can hover over messages to delete any sections containing sensitive information. Once you\'re ready, upload to get scored or do it later from the history page.'
+          "Review your demonstration before uploading. You can hover over messages to delete any sections containing sensitive information. Once you're ready, upload to get scored or do it later from the history page."
       });
 
       // Add upload button message
@@ -789,11 +824,11 @@
       console.error('Failed to cleanup:', error);
     }
   });
-  
+
   function handleHover(index: number) {
     hoveredMessageIndex = index;
   }
-  
+
   function handleHoverEnd() {
     hoveredMessageIndex = null;
   }
@@ -805,24 +840,25 @@
     class="flex-1 max-w-7xl w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
     {#each chatMessages as msg, i}
       <div
-        class="flex gap-2 transition-all duration-200 relative group {msg.role === 'user' ? 'justify-end' : ''}"
+        class="flex gap-2 transition-all duration-200 relative group {msg.role === 'user'
+          ? 'justify-end'
+          : ''}"
         onmouseenter={() => handleHover(i)}
-        onmouseleave={handleHoverEnd} 
+        onmouseleave={handleHoverEnd}
         role="listitem">
-
         <!-- Delete overlay for the entire message -->
         {#if hoveredMessageIndex === i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
-          <div 
+          <div
             class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
             style="opacity: {hoveredMessageIndex === i ? '1' : '0'}"
             onclick={() => handleDeleteMessage(i, msg)}>
-            <div 
+            <div
               class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
               <Trash2 size={24} />
             </div>
           </div>
         {/if}
-        
+
         {#if msg.content.startsWith('<start>') && msg.content.endsWith('</start>')}
           <!-- Special full-width centered message for start tag -->
           <div class="w-full text-center text-neutral-500 opacity-50 py-2">
@@ -835,10 +871,10 @@
           </div>
         {:else if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
           <!-- Special full-width centered message for delete tag -->
-          <div 
+          <div
             onclick={() => handleUndoDelete(i)}
-            onkeydown={() => {}} 
-            role="button" 
+            onkeydown={() => {}}
+            role="button"
             tabindex="0"
             class="w-full text-center text-neutral-500 opacity-50 py-2 cursor-pointer hover:opacity-80">
             <div class="flex items-center justify-center gap-2">
@@ -860,10 +896,10 @@
               {msg.content.slice(9, -10)}
             </Card>
           {:else if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
-            <div 
+            <div
               onclick={() => handleUndoDelete(i)}
-              onkeydown={() => {}} 
-              role="button" 
+              onkeydown={() => {}}
+              role="button"
               tabindex="0"
               class="cursor-pointer hover:opacity-90 w-full">
               <Card
@@ -876,37 +912,43 @@
                 </div>
               </Card>
             </div>
+          {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
+            <Card
+              variant="secondary"
+              padding="none"
+              className="w-auto! max-w-lg shadow-sm overflow-hidden {hoveredMessageIndex === i
+                ? 'opacity-60'
+                : 'opacity-100'} transition-opacity duration-300">
+              <img
+                src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
+                alt="Screenshot"
+                class="w-full h-auto" />
+            </Card>
+          {:else if msg.content.startsWith('<action>') && msg.content.endsWith('</action>')}
+            <Card
+              variant="primary"
+              padding="sm"
+              className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
+              i
+                ? 'opacity-60'
+                : 'opacity-100'} transition-opacity duration-300">
+              <div class="flex items-center gap-2">
+                <MousePointer size={16} />
+                <pre class="font-mono text-sm whitespace-pre-wrap">{msg.content.slice(8, -9)}</pre>
+              </div>
+            </Card>
           {:else}
-            {#if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
-              <Card
-                variant="secondary"
-                padding="none"
-                className="w-auto! max-w-lg shadow-sm overflow-hidden {hoveredMessageIndex === i ? 'opacity-60' : 'opacity-100'} transition-opacity duration-300">
-                <img 
-                  src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`} 
-                  alt="Screenshot" 
-                  class="w-full h-auto" />
-              </Card>
-            {:else if msg.content.startsWith('<action>') && msg.content.endsWith('</action>')}
-              <Card
-                variant="primary"
-                padding="sm"
-                className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex === i ? 'opacity-60' : 'opacity-100'} transition-opacity duration-300">
-                <div class="flex items-center gap-2">
-                  <MousePointer size={16} />
-                  <pre class="font-mono text-sm whitespace-pre-wrap">{msg.content.slice(8, -9)}</pre>
-                </div>
-              </Card>
-            {:else}
-              <Card
-                variant="primary"
-                padding="sm"
-                className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex === i && msg.timestamp !== undefined ? 'opacity-50' : 'opacity-100'} transition-opacity duration-300">
-                <div class="whitespace-pre-wrap tracking-wide font-medium">
-                  {msg.content}
-                </div>
-              </Card>
-            {/if}
+            <Card
+              variant="primary"
+              padding="sm"
+              className="w-auto! max-w-2xl shadow-sm bg-secondary-300 text-white {hoveredMessageIndex ===
+                i && msg.timestamp !== undefined
+                ? 'opacity-50'
+                : 'opacity-100'} transition-opacity duration-300">
+              <div class="whitespace-pre-wrap tracking-wide font-medium">
+                {msg.content}
+              </div>
+            </Card>
           {/if}
           <div
             class="shrink-0 w-8 h-8 rounded-full bg-secondary-100 text-white flex items-center justify-center shadow-md">
@@ -934,7 +976,9 @@
                     Uploading...
                   {:else}
                     <Upload size={16} />
-                    Upload Demonstration {deletedRanges.length > 0 ? `with ${deletedRanges.length} edit${deletedRanges.length === 1 ? '' : 's'}` : ''}
+                    Upload Demonstration {deletedRanges.length > 0
+                      ? `with ${deletedRanges.length} edit${deletedRanges.length === 1 ? '' : 's'}`
+                      : ''}
                   {/if}
                 </Button>
                 <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
@@ -945,9 +989,9 @@
               variant="secondary"
               padding="none"
               className="w-auto! max-w-lg shadow-sm overflow-hidden">
-              <img 
-                src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`} 
-                alt="Screenshot" 
+              <img
+                src={`data:image/jpeg;base64,${msg.content.slice(5, -6)}`}
+                alt="Screenshot"
                 class="w-full h-auto" />
             </Card>
           {:else}
