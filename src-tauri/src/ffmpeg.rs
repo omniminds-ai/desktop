@@ -5,8 +5,6 @@ use std::sync::OnceLock;
 #[cfg(not(target_os = "macos"))]
 use {std::io::Write, std::process::Stdio, std::thread, std::time::Duration};
 
-use log::info;
-
 pub static FFMPEG_PATH: OnceLock<PathBuf> = OnceLock::new();
 pub static FFPROBE_PATH: OnceLock<PathBuf> = OnceLock::new();
 

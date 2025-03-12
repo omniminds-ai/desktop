@@ -1,5 +1,4 @@
 use chrono::DateTime;
-use log::info;
 use serde_json::{json, Value};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;

@@ -17,7 +17,7 @@
     MousePointer,
     Keyboard
   } from 'lucide-svelte';
-  import { invoke } from '@tauri-apps/api/core';
+  import { convertFileSrc, invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
   import type { Recording } from '$lib/gym';
   import { getPlatform } from '$lib/utils';
@@ -609,11 +609,17 @@
 
       // Load video
       try {
-        videoSrc = await invoke<string>('get_recording_file', {
+        // videoSrc = await invoke<string>('get_recording_file', {
+        //   recordingId,
+        //   filename: 'recording.mp4',
+        //   asBase64: true
+        // });
+        const temp = await invoke<string>('get_recording_file', {
           recordingId,
           filename: 'recording.mp4',
-          asBase64: true
+          asPath: true
         });
+        videoSrc = temp;
       } catch (error) {
         console.error('Failed to load video:', error);
         //todo: handle this error when data isn't around
@@ -714,18 +720,21 @@
     {#if recording}
       <div class="flex gap-3 xl:flex-row flex-col h-[calc(100vh-8rem)]">
         <!-- Video Section -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div class="w-full flex flex-col">
           <Card padding="none" className="mb-0 bg-black!">
             <div class="relative w-full">
               <!-- svelte-ignore a11y_media_has_caption -->
-              <video
-                bind:this={videoElement}
-                controls
-                class="w-full h-full {isVideoOverMaskedRange ? 'blur-sm opacity-50' : ''}"
-                src={videoSrc || ''}
-                ontimeupdate={handleTimeUpdate}>
-                Your browser does not support the video tag.
-              </video>
+              {#if videoSrc}
+                <video
+                  bind:this={videoElement}
+                  controls
+                  class="w-full h-full {isVideoOverMaskedRange ? 'blur-sm opacity-50' : ''}"
+                  src={convertFileSrc(videoSrc)}
+                  ontimeupdate={handleTimeUpdate}>
+                  Your browser does not support the video tag.
+                </video>
+              {/if}
               {#if visibleAxTree !== null}
                 {#each filteredEvents as event}
                   {#if event.time === visibleAxTree && event.event === 'axtree'}
@@ -742,6 +751,7 @@
             </div>
           </Card>
           <!-- Timeline component -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
             class="relative w-full h-2 bg-gray-200 mt-2 cursor-pointer mb-6 rounded"
             bind:this={timelineElement}
@@ -846,6 +856,11 @@
                         <div class="text-secondary-300 font-medium">
                           {submission.grade_result.score}%
                         </div>
+                      </div>
+                    {:else}
+                      <div class="bg-gray-100 rounded-lg px-3 py-2">
+                        <div class="text-sm text-gray-500">Quality Score</div>
+                        <div class="text-secondary-300 font-medium">0%</div>
                       </div>
                     {/if}
 
@@ -1015,7 +1030,7 @@
                   variant={selectedView === 'sft' ? 'primary' : 'secondary'}
                   onclick={() => (selectedView = 'sft')}
                   class="flex-1">
-                  Trajectory Editor
+                  Editor
                 </Button>
                 <Button
                   variant={selectedView === 'raw' ? 'primary' : 'secondary'}

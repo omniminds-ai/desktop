@@ -648,7 +648,8 @@
         // Upload started successfully
         await addMessage({
           role: 'assistant',
-          content: 'Your demonstration is being processed. This may take a few minutes.'
+          content:
+            'Your demonstration is being processed. This may take a while. Feel free to complete more tasks or come back later when it is done processing!'
         });
 
         // Set up a one-time event listener for this specific recording ID

@@ -1,8 +1,7 @@
 use crate::ffmpeg::{get_ffmpeg_dir, get_ffprobe_dir};
 use crate::github_release;
 use log::info;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::sync::OnceLock;
 use tauri::{AppHandle, Manager, Url};

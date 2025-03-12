@@ -11,7 +11,7 @@ use chrono::Local;
 use display_info::DisplayInfo;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fs::{self, create_dir_all, File};
-use std::io::{self, BufRead, BufReader, BufWriter, Cursor, Read, Write};
+use std::io::{BufRead, BufReader, BufWriter, Cursor, Read, Write};
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
@@ -403,6 +403,7 @@ pub async fn get_recording_file(
     recording_id: String,
     filename: String,
     as_base64: Option<bool>,
+    as_path: Option<bool>,
 ) -> Result<String, String> {
     let recordings_dir = app
         .path()
@@ -425,6 +426,8 @@ pub async fn get_recording_file(
             .map_err(|e| format!("Failed to read file: {}", e))?;
 
         Ok(format!("data:video/mp4;base64,{}", BASE64.encode(&buffer)))
+    } else if as_path == Some(true) {
+        Ok(file_path.to_str().ok_or("Invalid path")?.to_string())
     } else {
         let mut contents = String::new();
         file.read_to_string(&mut contents)
@@ -532,7 +535,7 @@ pub async fn delete_recording(app: tauri::AppHandle, recording_id: String) -> Re
 pub struct PrivateRange {
     start: f64,
     end: f64,
-    count: i32,
+    _count: i32,
 }
 
 // Helper function to read and parse a JSON file
