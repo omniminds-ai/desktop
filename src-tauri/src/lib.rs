@@ -145,11 +145,9 @@ async fn list_apps(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize FFmpeg and dump-tree synchronously before starting Tauri on windows and linux
-    if !cfg!(target_os = "macos") {
-        if let Err(e) = ffmpeg::init_ffmpeg() {
-            error!("Failed to initialize FFmpeg: {}", e);
-            std::process::exit(1);
-        }
+    if let Err(e) = ffmpeg::init_ffmpeg() {
+        error!("Failed to initialize FFmpeg: {}", e);
+        std::process::exit(1);
     }
 
     if let Err(e) = axtree::init_dump_tree() {
