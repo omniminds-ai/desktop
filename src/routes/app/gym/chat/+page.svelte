@@ -547,7 +547,7 @@
               );
 
               // Add a small delay between images for better pacing
-              await new Promise((resolve) => setTimeout(resolve, 800));
+              // await new Promise((resolve) => setTimeout(resolve, 800));
             } else if (msg.role === 'assistant') {
               // Extract code block content when applicable
               let content = msg.content;

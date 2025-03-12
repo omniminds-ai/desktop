@@ -399,7 +399,7 @@
               </div>
               <div class="text-xs text-gray-500">Rating</div>
             </div>
-          {:else}
+          {:else if recording.submission}
             <div class="text-center px-2">
               <div class="text-lg font-bold text-secondary-300">0%</div>
               <div class="text-xs text-gray-500">Rating</div>
@@ -413,7 +413,7 @@
                 {formatNumber(recording.submission.reward)} VIRAL
               </div>
             </div>
-          {:else}
+          {:else if recording.submission}
             <div class="text-right min-w-[120px]">
               <div class="text-sm font-semibold text-secondary-300">0 VIRAL</div>
             </div>
