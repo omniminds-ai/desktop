@@ -560,15 +560,16 @@
                 content = JSON.stringify(content);
               }
 
-              // User sends the action
-              await addMessage(
-                {
-                  role: 'user',
-                  content: content,
-                  timestamp: msg.timestamp
-                },
-                { audio: false, delay: false }
-              );
+              // User sends the action (ignore scroll)
+              if (!content.includes('scroll'))
+                await addMessage(
+                  {
+                    role: 'user',
+                    content: content,
+                    timestamp: msg.timestamp
+                  },
+                  { audio: false, delay: false }
+                );
             }
           }
 

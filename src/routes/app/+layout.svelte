@@ -1,14 +1,86 @@
 <script lang="ts">
   import Sidebar from '$lib/components/Sidebar.svelte';
   import '../../app.css';
-  import { checkForUpdate, updateApp } from '$lib/utils';
+  import { checkForUpdate, toolsInitState, updateApp } from '$lib/utils';
   import Button from '$lib/components/Button.svelte';
   import { platform } from '@tauri-apps/plugin-os';
+  import { onMount, onDestroy } from 'svelte';
+  import { invoke } from '@tauri-apps/api/core';
 
   let { children } = $props();
 
   let canceled = $state(false);
-  
+  let timer: number | undefined;
+
+  async function checkToolsStatus() {
+    try {
+      const status = await invoke<{
+        ffmpeg: boolean;
+        ffprobe: boolean;
+        dump_tree: boolean;
+        pipeline: boolean;
+      }>('check_tools');
+
+      // Calculate percentage of initialized tools
+      const totalTools = 4; // ffmpeg, ffprobe, dump_tree, pipeline
+      const initializedTools = Object.values(status).filter(Boolean).length;
+      const progress = Math.round((initializedTools / totalTools) * 100);
+
+      $toolsInitState.progress = progress || 5;
+
+      // If all tools are initialized, stop checking
+      if (initializedTools === totalTools) {
+        console.log('All tools initialized:', status);
+
+        // Hide the progress bar after a short delay
+        setTimeout(() => {
+          $toolsInitState.initializing = false;
+        }, 500);
+
+        // Clear the interval if it's still active
+        if (timer) {
+          clearInterval(timer);
+          timer = undefined;
+        }
+
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Failed to check tools status:', error);
+      return false;
+    }
+  }
+
+  onMount(() => {
+    // Initialize ffmpeg, ffprobe, dump-tree, and pipeline
+    console.log('Initializing tools...');
+    $toolsInitState.initializing = true;
+
+    // Start the tools initialization process
+    invoke('init_tools')
+      .then(() => {
+        console.log('Tools initialization process started.');
+      })
+      .catch((error) => {
+        console.error('Failed to start tools initialization:', error);
+      });
+
+    // Check tools status immediately
+    checkToolsStatus();
+
+    // Set up interval to check tools status every 2 seconds
+    timer = setInterval(checkToolsStatus, 2000);
+  });
+
+  onDestroy(() => {
+    // Clean up timer if component is destroyed
+    if (timer) {
+      clearInterval(timer);
+    }
+  });
+
   // Detect platform (windows or darwin for Mac)
   const currentPlatform = platform();
   const bgClass = currentPlatform === 'macos' ? 'bg-primary-600/50' : 'bg-primary-500';

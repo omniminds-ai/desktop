@@ -145,35 +145,16 @@ async fn list_apps(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize FFmpeg, FFprobe, and dump-tree synchronously before starting Tauri on windows and linux
-    if let Err(e) = ffmpeg::init_ffmpeg() {
-        error!("Failed to initialize FFmpeg: {}", e);
-        std::process::exit(1);
-    }
-
-    if let Err(e) = ffmpeg::init_ffprobe() {
-        error!("Failed to initialize FFprobe: {}", e);
-        std::process::exit(1);
-    }
-
-    if let Err(e) = axtree::init_dump_tree() {
-        error!("Failed to initialize dump-tree: {}", e);
-        std::process::exit(1);
-    }
-
-    if let Err(e) = pipeline::init_pipeline() {
-        error!("Failed to initialize pipeline: {}", e);
-        std::process::exit(1);
-    }
-
     let _app = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(
             tauri_plugin_log::Builder::new()
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::Stdout,
-                ))
+                .level_for("tao::platform_impl::platform", log::LevelFilter::Error)
+                .level_for("reqwest::blocking::wait", log::LevelFilter::Error)
+                // .target(tauri_plugin_log::Target::new(
+                //     tauri_plugin_log::TargetKind::Stdout,
+                // ))
                 .target(tauri_plugin_log::Target::new(
                     tauri_plugin_log::TargetKind::LogDir {
                         file_name: Some("logs".to_string()),
@@ -206,6 +187,8 @@ pub fn run() {
             get_recording_file,
             get_onboarding_complete,
             set_onboarding_complete,
+            init_tools,
+            check_tools,
             get_app_data_dir,
             write_file,
             write_recording_file,
@@ -317,6 +300,125 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+// remember to call `.manage(MyState::default())`
+#[tauri::command]
+async fn init_tools() -> Result<(), String> {
+    use std::thread;
+    use std::sync::{Arc, Mutex};
+    
+    // Create a vector to store thread handles
+    let mut handles = Vec::new();
+    
+    // Create shared error storage
+    let errors = Arc::new(Mutex::new(Vec::new()));
+    
+    // Spawn thread for FFmpeg initialization
+    {
+        let errors = Arc::clone(&errors);
+        let handle = thread::spawn(move || {
+            if let Err(e) = ffmpeg::init_ffmpeg() {
+                let mut errors = errors.lock().unwrap();
+                errors.push(format!("Failed to initialize FFmpeg: {}", e));
+            }
+        });
+        handles.push(handle);
+    }
+    
+    // Spawn thread for FFprobe initialization
+    {
+        let errors = Arc::clone(&errors);
+        let handle = thread::spawn(move || {
+            if let Err(e) = ffmpeg::init_ffprobe() {
+                let mut errors = errors.lock().unwrap();
+                errors.push(format!("Failed to initialize FFprobe: {}", e));
+            }
+        });
+        handles.push(handle);
+    }
+    
+    // Spawn thread for dump-tree initialization
+    {
+        let errors = Arc::clone(&errors);
+        let handle = thread::spawn(move || {
+            if let Err(e) = axtree::init_dump_tree() {
+                let mut errors = errors.lock().unwrap();
+                errors.push(format!("Failed to initialize dump-tree: {}", e));
+            }
+        });
+        handles.push(handle);
+    }
+    
+    // Spawn thread for pipeline initialization
+    {
+        let errors = Arc::clone(&errors);
+        let handle = thread::spawn(move || {
+            if let Err(e) = pipeline::init_pipeline() {
+                let mut errors = errors.lock().unwrap();
+                errors.push(format!("Failed to initialize pipeline: {}", e));
+            }
+        });
+        handles.push(handle);
+    }
+    
+    // Wait for all threads to complete
+    for handle in handles {
+        if let Err(e) = handle.join() {
+            error!("Thread panicked: {:?}", e);
+        }
+    }
+    
+    // Check if there were any errors
+    let errors = errors.lock().unwrap();
+    if !errors.is_empty() {
+        for err in errors.iter() {
+            error!("{}", err);
+        }
+        std::process::exit(1);
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+async fn check_tools() -> Result<serde_json::Value, String> {
+    let temp_dir = std::env::temp_dir().join("viralmind-desktop");
+    
+    // Check for ffmpeg
+    let ffmpeg_path = temp_dir.join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" });
+    let ffmpeg_exists = ffmpeg_path.exists();
+    
+    // Check for ffprobe
+    let ffprobe_path = temp_dir.join(if cfg!(windows) { "ffprobe.exe" } else { "ffprobe" });
+    let ffprobe_exists = ffprobe_path.exists();
+    
+    // Check for dump-tree
+    let dump_tree_path = temp_dir.join(if cfg!(windows) {
+        "dump-tree-windows-x64.exe"
+    } else if cfg!(target_os = "macos") {
+        "dump-tree-macos-arm64"
+    } else {
+        "dump-tree-linux-x64-arm64.js"
+    });
+    let dump_tree_exists = dump_tree_path.exists();
+    
+    // Check for pipeline
+    let pipeline_path = temp_dir.join(if cfg!(windows) {
+        "pipeline-win-x64.exe"
+    } else if cfg!(target_os = "macos") {
+        "pipeline-macos-arm64"
+    } else {
+        "pipeline-linux-x64"
+    });
+    let pipeline_exists = pipeline_path.exists();
+    
+    // Return the status of each tool
+    Ok(serde_json::json!({
+        "ffmpeg": ffmpeg_exists,
+        "ffprobe": ffprobe_exists,
+        "dump_tree": dump_tree_exists,
+        "pipeline": pipeline_exists
+    }))
 }
 
 #[tauri::command]

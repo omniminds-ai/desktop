@@ -4,6 +4,8 @@
   import { invoke } from '@tauri-apps/api/core';
   import { connectionToken, walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
+  import { toolsInitState } from '$lib/utils';
+  import { slide } from 'svelte/transition';
 
   const { children } = $props();
 
@@ -57,6 +59,20 @@
 
 <div class="relative">
   <div class="p-2 sm:p-4">
+    {#if $toolsInitState.initializing}
+      <div class="px-4 rounded my-2 max-w-7xl mx-auto py-2 flex flex-col">
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-sm font-medium">Installing necessary demonstration tools...</span>
+          <span class="text-xs text-gray-500">{$toolsInitState.progress}%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-1.5">
+          <div
+            class="bg-secondary-400 h-1.5 rounded-full transition-all duration-300 ease-in-out"
+            style="width: {$toolsInitState.progress}%">
+          </div>
+        </div>
+      </div>
+    {/if}
     <GymHeader {hasPendingRewards} />
     {@render children()}
   </div>
