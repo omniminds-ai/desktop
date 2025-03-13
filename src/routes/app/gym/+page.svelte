@@ -12,7 +12,6 @@
   import AvailableTasks from '$lib/components/gym/AvailableTasks.svelte';
   import { Loader, Wallet, WandSparkles, History, Zap } from 'lucide-svelte';
   import WalletButton from '$lib/components/WalletButton.svelte';
-  import { toolsInitState } from '$lib/utils';
 
   const poolId = page.url.searchParams.get('poolId');
   const poolName = page.url.searchParams.get('poolName');

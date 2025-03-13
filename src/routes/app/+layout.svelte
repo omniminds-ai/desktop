@@ -44,6 +44,8 @@
         }
 
         return true;
+      } else {
+        $toolsInitState.initializing = true;
       }
 
       return false;
@@ -55,18 +57,9 @@
 
   onMount(() => {
     // Initialize ffmpeg, ffprobe, dump-tree, and pipeline
-    console.log('Initializing tools...');
-    $toolsInitState.initializing = true;
 
     // Start the tools initialization process
-    invoke('init_tools')
-      .then(() => {
-        console.log('Tools initialization process started.');
-      })
-      .catch((error) => {
-        console.error('Failed to start tools initialization:', error);
-      });
-
+    invoke('init_tools');
     // Check tools status immediately
     checkToolsStatus();
 

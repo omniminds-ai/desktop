@@ -2,6 +2,7 @@ import { check, Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { dev } from '$app/environment';
 import { platform } from '@tauri-apps/plugin-os';
+import { writable } from 'svelte/store';
 
 export function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -57,3 +58,8 @@ export const updateApp = async (updater: Update) => {
   console.log('[Tauri Updater] Update installed');
   await relaunch();
 };
+
+export const toolsInitState = writable<{ initializing: boolean; progress: number }>({
+  initializing: false,
+  progress: 5
+});

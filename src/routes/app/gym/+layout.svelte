@@ -5,7 +5,6 @@
   import { connectionToken, walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
   import { toolsInitState } from '$lib/utils';
-  import { slide } from 'svelte/transition';
 
   const { children } = $props();
 
