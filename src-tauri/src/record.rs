@@ -199,9 +199,12 @@ pub async fn start_recording(
         return Err("Recording already in progress".to_string());
     }
 
-    // Initialize FFmpeg if not already done
+    // Initialize FFmpeg and FFprobe if not already done
     #[cfg(not(target_os = "macos"))]
-    ffmpeg::init_ffmpeg()?;
+    {
+        ffmpeg::init_ffmpeg()?;
+        ffmpeg::init_ffprobe()?;
+    }
 
     let (session_dir, timestamp) = get_session_path(&app)?;
 
@@ -535,7 +538,7 @@ pub async fn delete_recording(app: tauri::AppHandle, recording_id: String) -> Re
 pub struct PrivateRange {
     start: f64,
     end: f64,
-    count: i32,
+    _count: i32,
 }
 
 // Helper function to read and parse a JSON file
@@ -567,7 +570,7 @@ fn process_video_with_private_ranges(
     let ffmpeg = "ffmpeg";
 
     // Get video duration using ffprobe
-    println!(
+    log::info!(
         "[process_video] Getting video duration for {}",
         input_path.display()
     );
@@ -598,7 +601,7 @@ fn process_video_with_private_ranges(
         .map_err(|e| format!("Failed to execute ffprobe for duration: {}", e))?;
 
     let duration_str = String::from_utf8_lossy(&duration_output.stdout);
-    println!("[process_video] Duration output: '{}'", duration_str.trim());
+    log::info!("[process_video] Duration output: '{}'", duration_str.trim());
 
     if duration_str.trim().is_empty() {
         return Err(format!(
@@ -613,10 +616,10 @@ fn process_video_with_private_ranges(
             e
         )
     })?;
-    println!("[process_video] Video duration: {} seconds", duration);
+    log::info!("[process_video] Video duration: {} seconds", duration);
 
     // Get video resolution using ffprobe
-    println!("[process_video] Getting video resolution");
+    log::info!("[process_video] Getting video resolution");
 
     let mut r_o_command = Command::new(ffprobe);
     #[cfg(windows)]
@@ -692,7 +695,7 @@ fn process_video_with_private_ranges(
     let mut last_end = 0.0;
     let mut segment_index = 0;
 
-    println!(
+    log::info!(
         "[process_video] Building filter graph for {} private ranges",
         merged_ranges.len()
     );
@@ -703,18 +706,20 @@ fn process_video_with_private_ranges(
         let end = end.max(0.0).min(duration);
 
         if start >= end {
-            println!(
+            log::info!(
                 "[process_video] Skipping invalid range: start={}, end={}",
-                start, end
+                start,
+                end
             );
             continue;
         }
 
         if start > last_end {
             // Add normal segment before private range
-            println!(
+            log::info!(
                 "[process_video] Adding normal segment: {}s to {}s",
-                last_end, start
+                last_end,
+                start
             );
             filter_parts.push(format!(
                 "[0:v]trim=start={}:end={},setpts=PTS-STARTPTS[v{}]",
@@ -726,9 +731,11 @@ fn process_video_with_private_ranges(
 
         // Add blacked out segment for private range
         let black_duration = end - start;
-        println!(
+        log::info!(
             "[process_video] Adding black segment: {}s to {}s (duration: {}s)",
-            start, end, black_duration
+            start,
+            end,
+            black_duration
         );
         filter_parts.push(format!(
             "color=c=black:s={}x{}:d={}[v{}]",
@@ -742,9 +749,10 @@ fn process_video_with_private_ranges(
 
     // Add final segment after last private range if needed
     if last_end < duration {
-        println!(
+        log::info!(
             "[process_video] Adding final segment: {}s to {}s",
-            last_end, duration
+            last_end,
+            duration
         );
         filter_parts.push(format!(
             "[0:v]trim=start={}:end={},setpts=PTS-STARTPTS[v{}]",
@@ -756,7 +764,7 @@ fn process_video_with_private_ranges(
 
     // If no segments were created (e.g., all ranges were invalid), just copy the video
     if segment_index == 0 {
-        println!("[process_video] No valid segments to process, copying video file");
+        log::info!("[process_video] No valid segments to process, copying video file");
         fs::copy(input_path, output_path)
             .map_err(|e| format!("Failed to copy video file: {}", e))?;
         return Ok(());
@@ -772,10 +780,10 @@ fn process_video_with_private_ranges(
     // Build complete filter graph
     let filter_graph = format!("{};{}", filter_parts.join(";"), concat_filter);
 
-    println!("[process_video] Filter graph: {}", filter_graph);
+    log::info!("[process_video] Filter graph: {}", filter_graph);
 
     // Execute FFmpeg command
-    println!("[process_video] Executing FFmpeg command");
+    log::info!("[process_video] Executing FFmpeg command");
 
     let mut ffmpeg_command = Command::new(ffmpeg);
 
@@ -848,7 +856,7 @@ fn filter_input_log(
         0 // Default if no lines
     };
 
-    println!(
+    log::info!(
         "[filter_input_log] Using reference timestamp: {}",
         reference_timestamp
     );
@@ -901,7 +909,7 @@ pub async fn create_recording_zip(
     app: tauri::AppHandle,
     recording_id: String,
 ) -> Result<Vec<u8>, String> {
-    println!(
+    log::info!(
         "[create_recording_zip] Starting to create zip for recording ID: {}",
         recording_id
     );
@@ -913,7 +921,7 @@ pub async fn create_recording_zip(
         .join("recordings")
         .join(&recording_id);
 
-    println!(
+    log::info!(
         "[create_recording_zip] Recording directory: {}",
         recordings_dir.display()
     );
@@ -922,12 +930,12 @@ pub async fn create_recording_zip(
     let buf = Cursor::new(Vec::new());
     let mut zip = ZipWriter::new(buf);
     let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
-    println!("[create_recording_zip] Initialized zip writer with Stored compression method");
+    log::info!("[create_recording_zip] Initialized zip writer with Stored compression method");
 
     // Check if private_ranges.json exists
     let private_ranges_path = recordings_dir.join("private_ranges.json");
     let has_private_ranges = private_ranges_path.exists();
-    println!(
+    log::info!(
         "[create_recording_zip] Private ranges file exists: {}",
         has_private_ranges
     );
@@ -935,7 +943,7 @@ pub async fn create_recording_zip(
     // Create temp directory for processed files if needed
     let temp_dir = if has_private_ranges {
         let temp_path = recordings_dir.join("temp_private");
-        println!(
+        log::info!(
             "[create_recording_zip] Creating temp directory for private ranges processing: {}",
             temp_path.display()
         );
@@ -949,12 +957,12 @@ pub async fn create_recording_zip(
     // Process files with private ranges if needed
     if let Some(temp_dir) = &temp_dir {
         // Read private ranges
-        println!(
+        log::info!(
             "[create_recording_zip] Reading private ranges from: {}",
             private_ranges_path.display()
         );
         let private_ranges: Vec<PrivateRange> = read_json_file(&private_ranges_path)?;
-        println!(
+        log::info!(
             "[create_recording_zip] Found {} private ranges to process",
             private_ranges.len()
         );
@@ -962,7 +970,7 @@ pub async fn create_recording_zip(
         // Filter input_log.jsonl
         let input_log_path = recordings_dir.join("input_log.jsonl");
         let temp_input_log_path = temp_dir.join("input_log.jsonl");
-        println!(
+        log::info!(
             "[create_recording_zip] Filtering input log from {} to {}",
             input_log_path.display(),
             temp_input_log_path.display()
@@ -972,7 +980,7 @@ pub async fn create_recording_zip(
         // Process video (blackout frames in private ranges)
         let video_path = recordings_dir.join("recording.mp4");
         let temp_video_path = temp_dir.join("recording.mp4");
-        println!(
+        log::info!(
             "[create_recording_zip] Processing video with private ranges from {} to {}",
             video_path.display(),
             temp_video_path.display()
@@ -982,7 +990,7 @@ pub async fn create_recording_zip(
 
     // Add files to zip
     let filenames = ["input_log.jsonl", "meta.json", "recording.mp4"];
-    println!(
+    log::info!(
         "[create_recording_zip] Adding {} files to zip archive",
         filenames.len()
     );
@@ -996,14 +1004,14 @@ pub async fn create_recording_zip(
             recordings_dir.join(filename)
         };
 
-        println!(
+        log::info!(
             "[create_recording_zip] Processing file: {} from path: {}",
             filename,
             file_path.display()
         );
 
         if !file_path.exists() {
-            println!(
+            log::info!(
                 "[create_recording_zip] ERROR: File not found: {}",
                 file_path.display()
             );
@@ -1014,9 +1022,10 @@ pub async fn create_recording_zip(
         let metadata = fs::metadata(&file_path)
             .map_err(|e| format!("Failed to get metadata for {}: {}", filename, e))?;
         let file_size = metadata.len();
-        println!(
+        log::info!(
             "[create_recording_zip] Adding file to zip: {} (size: {} bytes)",
-            filename, file_size
+            filename,
+            file_size
         );
 
         let mut file =
@@ -1025,7 +1034,7 @@ pub async fn create_recording_zip(
         file.read_to_end(&mut contents)
             .map_err(|e| format!("Failed to read {}: {}", filename, e))?;
 
-        println!(
+        log::info!(
             "[create_recording_zip] Read {} bytes from {}",
             contents.len(),
             filename
@@ -1036,35 +1045,35 @@ pub async fn create_recording_zip(
         zip.write_all(&contents)
             .map_err(|e| format!("Failed to write {} to zip: {}", filename, e))?;
 
-        println!(
+        log::info!(
             "[create_recording_zip] Successfully added {} to zip archive",
             filename
         );
     }
 
     // Finish zip file
-    println!("[create_recording_zip] Finalizing zip archive");
+    log::info!("[create_recording_zip] Finalizing zip archive");
     let buf = zip
         .finish()
         .map_err(|e| format!("Failed to finalize zip: {}", e))?
         .into_inner();
 
     let zip_size = buf.len();
-    println!(
+    log::info!(
         "[create_recording_zip] Zip archive created successfully, size: {} bytes",
         zip_size
     );
 
     // Clean up temp directory if it was created
     // if let Some(temp_dir) = temp_dir {
-    //     println!("[create_recording_zip] Cleaning up temp directory: {}", temp_dir.display());
+    //     log::info!("[create_recording_zip] Cleaning up temp directory: {}", temp_dir.display());
     //     match fs::remove_dir_all(&temp_dir) {
-    //         Ok(_) => println!("[create_recording_zip] Successfully removed temp directory"),
-    //         Err(e) => println!("[create_recording_zip] Warning: Failed to remove temp directory: {}", e),
+    //         Ok(_) => log::info!("[create_recording_zip] Successfully removed temp directory"),
+    //         Err(e) => log::info!("[create_recording_zip] Warning: Failed to remove temp directory: {}", e),
     //     }
     // }
 
-    println!(
+    log::info!(
         "[create_recording_zip] Completed creating zip for recording ID: {}",
         recording_id
     );

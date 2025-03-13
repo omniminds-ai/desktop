@@ -47,7 +47,7 @@ fn save_metadata(path: &Path, metadata: &BinaryMetadata) -> Result<(), String> {
 
     fs::write(path, content).map_err(|e| format!("Failed to write metadata file: {}", e))?;
 
-    println!("[GitHub Release] Saved metadata to {}", path.display());
+    log::info!("[GitHub Release] Saved metadata to {}", path.display());
     Ok(())
 }
 
@@ -71,9 +71,10 @@ fn fetch_latest_release_metadata(
     repo_owner: &str,
     repo_name: &str,
 ) -> Result<BinaryMetadata, String> {
-    println!(
+    log::info!(
         "[GitHub Release] Fetching latest release metadata for {}/{}",
-        repo_owner, repo_name
+        repo_owner,
+        repo_name
     );
 
     let github_api_url = format!(
@@ -116,9 +117,11 @@ fn fetch_latest_release_metadata(
         dt.timestamp() as u64
     };
 
-    println!(
+    log::info!(
         "[GitHub Release] Latest release: version={}, published_at={} ({})",
-        version, published_at, timestamp
+        version,
+        published_at,
+        timestamp
     );
 
     Ok(BinaryMetadata::new(version, timestamp))
@@ -126,19 +129,19 @@ fn fetch_latest_release_metadata(
 
 /// Download a file from a URL to a local path
 fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    println!(
+    log::info!(
         "[GitHub Release] Downloading file from {} to {}",
         url,
         path.display()
     );
     let client = reqwest::blocking::Client::new();
     let resp = client.get(url).send().map_err(|e| {
-        println!("[GitHub Release] Error: Failed to download file: {}", e);
+        log::info!("[GitHub Release] Error: Failed to download file: {}", e);
         format!("Failed to download file: {}", e)
     })?;
 
     let bytes = resp.bytes().map_err(|e| {
-        println!(
+        log::info!(
             "[GitHub Release] Error: Failed to get response bytes: {}",
             e
         );
@@ -146,11 +149,11 @@ fn download_file(url: &str, path: &Path) -> Result<(), String> {
     })?;
 
     fs::write(path, bytes).map_err(|e| {
-        println!("[GitHub Release] Error: Failed to write file: {}", e);
+        log::info!("[GitHub Release] Error: Failed to write file: {}", e);
         format!("Failed to write file: {}", e)
     })?;
 
-    println!(
+    log::info!(
         "[GitHub Release] Successfully downloaded file to {}",
         path.display()
     );
@@ -177,14 +180,15 @@ pub fn get_latest_release(
     target_dir: &Path,
     make_executable: bool,
 ) -> Result<PathBuf, String> {
-    println!(
+    log::info!(
         "[GitHub Release] Getting latest release for {}/{}",
-        repo_owner, repo_name
+        repo_owner,
+        repo_name
     );
 
     // Create target directory if it doesn't exist
     fs::create_dir_all(target_dir).map_err(|e| {
-        println!(
+        log::info!(
             "[GitHub Release] Error: Failed to create target directory: {}",
             e
         );
@@ -203,7 +207,7 @@ pub fn get_latest_release(
 
     // Check if we need to download the binary
     let should_download = if !asset_path.exists() {
-        println!("[GitHub Release] Asset does not exist, downloading");
+        log::info!("[GitHub Release] Asset does not exist, downloading");
         true
     } else {
         // Load existing metadata
@@ -213,7 +217,7 @@ pub fn get_latest_release(
             Some(metadata) => {
                 // Compare build timestamps
                 if metadata.build_timestamp < latest_metadata.build_timestamp {
-                    println!(
+                    log::info!(
                         "[GitHub Release] New version available: current={} ({}), latest={} ({})",
                         metadata.version,
                         metadata.build_timestamp,
@@ -222,19 +226,19 @@ pub fn get_latest_release(
                     );
                     true
                 } else {
-                    println!("[GitHub Release] Asset is up to date");
+                    log::info!("[GitHub Release] Asset is up to date");
                     false
                 }
             }
             None => {
-                println!("[GitHub Release] No metadata found, downloading latest version");
+                log::info!("[GitHub Release] No metadata found, downloading latest version");
                 true
             }
         }
     };
 
     if should_download {
-        println!(
+        log::info!(
             "[GitHub Release] Downloading new version: {}",
             asset_filename
         );
@@ -251,6 +255,6 @@ pub fn get_latest_release(
         save_metadata(&metadata_path, &latest_metadata)?;
     }
 
-    println!("[GitHub Release] Using asset at {}", asset_path.display());
+    log::info!("[GitHub Release] Using asset at {}", asset_path.display());
     Ok(asset_path)
 }

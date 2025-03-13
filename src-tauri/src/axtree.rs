@@ -31,11 +31,11 @@ fn get_temp_dir() -> PathBuf {
 
 pub fn init_dump_tree() -> Result<(), String> {
     if DUMP_TREE_PATH.get().is_some() {
-        println!("[AxTree] Already initialized");
+        log::info!("[AxTree] Already initialized");
         return Ok(());
     }
 
-    println!("[AxTree] Initializing dump-tree");
+    log::info!("[AxTree] Initializing dump-tree");
 
     // Initialize polling state
     POLLING_ACTIVE.get_or_init(|| Arc::new(Mutex::new(false)));
@@ -57,7 +57,7 @@ pub fn init_dump_tree() -> Result<(), String> {
         true, // Make executable on Linux/macOS
     )?;
 
-    println!("[AxTree] Using dump-tree at {}", dump_tree_path.display());
+    log::info!("[AxTree] Using dump-tree at {}", dump_tree_path.display());
     DUMP_TREE_PATH.set(dump_tree_path).unwrap();
 
     Ok(())

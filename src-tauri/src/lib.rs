@@ -145,9 +145,14 @@ async fn list_apps(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize FFmpeg and dump-tree synchronously before starting Tauri on windows and linux
+    // Initialize FFmpeg, FFprobe, and dump-tree synchronously before starting Tauri on windows and linux
     if let Err(e) = ffmpeg::init_ffmpeg() {
         error!("Failed to initialize FFmpeg: {}", e);
+        std::process::exit(1);
+    }
+
+    if let Err(e) = ffmpeg::init_ffprobe() {
+        error!("Failed to initialize FFprobe: {}", e);
         std::process::exit(1);
     }
 
@@ -166,8 +171,9 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(
             tauri_plugin_log::Builder::new()
-                .level_for("app_finder::platform::platform", log::LevelFilter::Error)
-                .level_for("tao::platform_impl::platform", log::LevelFilter::Error)
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Stdout,
+                ))
                 .target(tauri_plugin_log::Target::new(
                     tauri_plugin_log::TargetKind::LogDir {
                         file_name: Some("logs".to_string()),
@@ -328,7 +334,7 @@ async fn export_recordings(app: tauri::AppHandle) -> Result<String, String> {
 
     // Add recordings folder contents to zip
     if recordings_dir.exists() {
-        println!("Zipping files in {:?}", recordings_dir.to_string_lossy());
+        log::info!("Zipping files in {:?}", recordings_dir.to_string_lossy());
 
         // Helper function to recursively add files and directories to the zip
         fn add_dir_to_zip(
