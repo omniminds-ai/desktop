@@ -2,7 +2,7 @@ use chrono::DateTime;
 use serde_json::{json, Value};
 use std::fs;
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
