@@ -297,6 +297,7 @@ pub fn init_ffmpeg() -> Result<(), String> {
         }
 
         let archive_path = temp_dir.join("ffprobe.archive");
+        #[cfg(target_os = "macos")]
         download_file(FFPROBE_MACOS, &archive_path)?;
 
         let file = fs::File::open(&archive_path).map_err(|e| {
