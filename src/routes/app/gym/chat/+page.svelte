@@ -658,7 +658,7 @@
         // Set up a one-time event listener for this specific recording ID
         const unsubscribe = $uploadManager.on('queueUpdate', currentRecordingId, (_, status) => {
           if (status.status === 'completed') {
-            unsubscribe(); // Remove the listener once we're done
+            if (unsubscribe) unsubscribe(); // Remove the listener once we're done
 
             // Add success messages
             chatMessages = [
@@ -703,7 +703,7 @@
             // Reset uploading state
             isUploading = false;
           } else if (status.status === 'failed') {
-            unsubscribe(); // Remove the listener once we're done
+            if (unsubscribe) unsubscribe(); // Remove the listener once we're done
 
             // Add error message
             addMessage({

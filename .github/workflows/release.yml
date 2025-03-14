@@ -119,5 +119,5 @@ jobs:
           releaseName: 'Viralmind Desktop v__VERSION__'
           releaseBody: 'Download Viralmind Desktop for your operating system below.'
           releaseDraft: false
-          prerelease: true
+          prerelease: false
           args: ${{ matrix.args }}
