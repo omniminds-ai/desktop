@@ -75,41 +75,10 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
 
     let mut input_listener = InputListener::new();
     let running = input_listener.running.clone();
-    // Start rdev for mouse absolute position tracking across all platforms
-    let running_clone = running.clone();
-    let handle = thread::spawn(move || {
-        let callback = move |event: RdevEvent| {
-            if let RdevEventType::MouseMove { x, y } = event.event_type {
-                let input_event = InputEvent::new(
-                    "mousemove",
-                    serde_json::json!({
-                        "x": x,
-                        "y": y
-                    }),
-                );
-                // if let Err(e) = position_app_handle.emit("input-event", &input_event) {
-                //     einfo!("Failed to emit mouse position event: {}", e);
-                // }
-                // Log the mouse move event
-                let _ = record::log_input(input_event.to_log_entry());
-            }
-        };
-
-        if let Err(error) = listen(move |event| {
-            if !running_clone.load(Ordering::SeqCst) {
-                return;
-            }
-            callback(event);
-        }) {
-            info!("Error: {:?}", error)
-        }
-    });
-    input_listener.threads.push(handle);
-
     let other_app_handle = app_handle.clone();
+    
     // Platform-specific input handling
-    // we use multiinput to get windows rawinput (mouse, kb, joystick)
-    // rawinput is needed for capturing input on games and other apps
+    // For Windows: use multiinput for all input events (mouse, keyboard, joystick)
     #[cfg(target_os = "windows")]
     {
         use multiinput::*;
@@ -197,27 +166,73 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
             }
         });
         input_listener.threads.push(handle);
+        
+        // For Windows, we also need a separate rdev listener for absolute mouse position
+        let running_clone = running.clone();
+        let handle = thread::spawn(move || {
+            let callback = move |event: RdevEvent| {
+                if let RdevEventType::MouseMove { x, y } = event.event_type {
+                    let input_event = InputEvent::new(
+                        "mousemove",
+                        serde_json::json!({
+                            "x": x,
+                            "y": y
+                        }),
+                    );
+                    // Log the mouse move event
+                    let _ = record::log_input(input_event.to_log_entry());
+                }
+            };
+
+            if let Err(error) = listen(move |event| {
+                if !running_clone.load(Ordering::SeqCst) {
+                    return;
+                }
+                callback(event);
+            }) {
+                info!("Error: {:?}", error)
+            }
+        });
+        input_listener.threads.push(handle);
     }
 
-    // we fallback to rdev for all other input events & operating systems
+    // For non-Windows platforms: use a single rdev instance for all events
     #[cfg(not(target_os = "windows"))]
     {
         let running_clone = running.clone();
         let handle = thread::spawn(move || {
             let callback = move |event: RdevEvent| {
                 let input_event = match event.event_type {
-                    RdevEventType::KeyPress(key) => Some(InputEvent::new(
-                        "keydown",
-                        serde_json::json!({
-                            "key": format!("{:?}", key)
-                        }),
-                    )),
-                    RdevEventType::KeyRelease(key) => Some(InputEvent::new(
-                        "keyup",
-                        serde_json::json!({
-                            "key": format!("{:?}", key)
-                        }),
-                    )),
+                    RdevEventType::KeyPress(key) => {
+                        // Only log in debug builds, not in production
+                        #[cfg(debug_assertions)]
+                        println!("KeyPress event: {:?} | Time: {:?} | Raw event: {:?}", 
+                                 key, 
+                                 std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros(),
+                                 event);
+                        
+                        Some(InputEvent::new(
+                            "keydown",
+                            serde_json::json!({
+                                "key": format!("{:?}", key)
+                            }),
+                        ))
+                    },
+                    RdevEventType::KeyRelease(key) => {
+                        // Only log in debug builds, not in production
+                        #[cfg(debug_assertions)]
+                        println!("KeyRelease event: {:?} | Time: {:?} | Raw event: {:?}", 
+                                 key, 
+                                 std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros(),
+                                 event);
+                        
+                        Some(InputEvent::new(
+                            "keyup",
+                            serde_json::json!({
+                                "key": format!("{:?}", key)
+                            }),
+                        ))
+                    },
                     RdevEventType::ButtonPress(button) => Some(InputEvent::new(
                         "mousedown",
                         serde_json::json!({
@@ -239,7 +254,13 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
                             "delta": delta_y as f32
                         }),
                     )),
-                    RdevEventType::MouseMove { .. } => None, // Handled by the cross-platform listener
+                    RdevEventType::MouseMove { x, y } => Some(InputEvent::new(
+                        "mousemove",
+                        serde_json::json!({
+                            "x": x,
+                            "y": y
+                        }),
+                    )),
                 };
 
                 if let Some(event) = input_event {
