@@ -1,5 +1,5 @@
 use crate::axtree;
-use crate::ffmpeg::{init_ffmpeg, FFmpegRecorder, FFMPEG_PATH};
+use crate::ffmpeg::{init_ffmpeg, FFmpegRecorder, FFMPEG_PATH, FFPROBE_PATH};
 use crate::input;
 use crate::logger::Logger;
 use crate::pipeline;
@@ -619,24 +619,18 @@ fn process_video_with_private_ranges(
     }
 
     // Get ffmpeg path
-    #[cfg(not(target_os = "macos"))]
     let ffmpeg = FFMPEG_PATH
         .get()
         .ok_or_else(|| "FFmpeg not initialized".to_string())?;
-    #[cfg(target_os = "macos")]
-    let ffmpeg = "ffmpeg";
 
     // Get video duration using ffprobe
     log::info!(
         "[process_video] Getting video duration for {}",
         input_path.display()
     );
-    #[cfg(not(target_os = "macos"))]
     let ffprobe = FFPROBE_PATH
         .get()
         .ok_or_else(|| "FFprobe not initialized".to_string())?;
-    #[cfg(target_os = "macos")]
-    let ffprobe = "ffprobe";
 
     let mut command = Command::new(ffprobe);
     #[cfg(windows)]
