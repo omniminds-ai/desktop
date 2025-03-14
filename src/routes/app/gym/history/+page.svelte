@@ -14,7 +14,8 @@
     Folder,
     Trash2,
     Eye,
-    Download
+    Download,
+    Info
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
@@ -384,6 +385,14 @@
             </div>
           {/if}
 
+          {#if recording.submission?.status === 'processing'}
+            <div class="text-center px-2">
+              <div class="text-yellow-600 flex items-center gap-1">
+                <Info class="w-4 h-4" />
+                <span class="text-sm font-semibold">Processing</span>
+              </div>
+            </div>
+          {/if}
           <!-- Rating (if claimed) -->
           {#if recording.submission?.clampedScore !== undefined}
             <div class="text-center px-2">
