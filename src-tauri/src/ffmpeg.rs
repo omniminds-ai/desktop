@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
-#[cfg(not(target_os = "macos"))]
+// #[cfg(not(target_os = "macos"))]
 use {std::io::Write, std::process::Stdio, std::thread, std::time::Duration};
 
 pub static FFMPEG_PATH: OnceLock<PathBuf> = OnceLock::new();
@@ -448,7 +448,7 @@ pub fn init_ffprobe() -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(not(target_os = "macos"))]
+// #[cfg(not(target_os = "macos"))]
 pub struct FFmpegRecorder {
     width: u32,
     height: u32,
@@ -459,7 +459,7 @@ pub struct FFmpegRecorder {
     input_device: Option<String>,
 }
 
-#[cfg(not(target_os = "macos"))]
+// #[cfg(not(target_os = "macos"))]
 impl FFmpegRecorder {
     pub fn new_with_input(
         width: u32,
@@ -477,6 +477,7 @@ impl FFmpegRecorder {
             fps,
             output_path.display()
         );
+
         Self {
             width,
             height,

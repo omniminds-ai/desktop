@@ -1394,6 +1394,7 @@
         onStartRecording={toggleRecording}
         onComplete={handleComplete}
         onGiveUp={handleGiveUp}
+        {recordingLoading}
         {recordingState} />
     {/if}
 

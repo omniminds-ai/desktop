@@ -22,8 +22,6 @@ mod logger;
 #[cfg(not(target_os = "linux"))]
 use app_finder::{AppCommon, AppFinder};
 #[cfg(target_os = "macos")]
-mod macos_screencapture;
-#[cfg(target_os = "macos")]
 mod permissions;
 mod pipeline;
 mod record;

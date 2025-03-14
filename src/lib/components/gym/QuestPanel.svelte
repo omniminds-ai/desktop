@@ -9,6 +9,7 @@
   import type { Quest } from '$lib/types/gym';
 
   export let title: string;
+  export let recordingLoading: boolean;
   export let objectives: string[];
   export let reward: Quest['reward'];
   export let onStartRecording: () => void;
@@ -88,9 +89,18 @@
         </Button>
       </div>
     {:else}
-      <Button onclick={handleStartRecording} class="w-full flex! items-center justify-center gap-2">
-        <Video size={20} />
-        Start Recording
+      <Button
+        onclick={handleStartRecording}
+        class="w-full flex! group items-center justify-center gap-2">
+        {#if recordingLoading}
+          <div
+            class="w-6 h-6 rounded-full border-2 border-white group-hover:border-secondary-300 border-t-transparent! animate-spin">
+          </div>
+          Start Recording
+        {:else}
+          <Video size={20} />
+          Start Recording
+        {/if}
       </Button>
     {/if}
   </div>

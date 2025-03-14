@@ -1,10 +1,7 @@
 use crate::axtree;
-#[cfg(not(target_os = "macos"))]
-use crate::ffmpeg::{self, FFmpegRecorder, FFMPEG_PATH, FFPROBE_PATH};
+use crate::ffmpeg::{self, init_ffmpeg, FFmpegRecorder, FFMPEG_PATH};
 use crate::input;
 use crate::logger::Logger;
-#[cfg(target_os = "macos")]
-use crate::macos_screencapture::MacOSScreenRecorder;
 use crate::pipeline;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use chrono::Local;
@@ -62,41 +59,41 @@ pub struct MonitorInfo {
 }
 
 enum Recorder {
-    #[cfg(not(target_os = "macos"))]
+    // #[cfg(not(target_os = "macos"))]
     FFmpeg(FFmpegRecorder),
-    #[cfg(target_os = "macos")]
-    MacOS(MacOSScreenRecorder),
+    // #[cfg(target_os = "macos")]
+    // MacOS(MacOSScreenRecorder),
 }
 
 impl Recorder {
     fn start(&mut self) -> Result<(), String> {
         match self {
-            #[cfg(not(target_os = "macos"))]
+            // #[cfg(not(target_os = "macos"))]
             Recorder::FFmpeg(recorder) => recorder.start(),
-            #[cfg(target_os = "macos")]
-            Recorder::MacOS(recorder) => recorder.start(),
+            // #[cfg(target_os = "macos")]
+            // Recorder::MacOS(recorder) => recorder.start(),
         }
     }
 
     fn stop(&mut self) -> Result<(), String> {
         match self {
-            #[cfg(not(target_os = "macos"))]
+            // #[cfg(not(target_os = "macos"))]
             Recorder::FFmpeg(recorder) => recorder.stop(),
-            #[cfg(target_os = "macos")]
-            Recorder::MacOS(recorder) => recorder.stop(),
+            // #[cfg(target_os = "macos")]
+            // Recorder::MacOS(recorder) => recorder.stop(),
         }
     }
 
     fn new(video_path: &PathBuf, primary: &DisplayInfo) -> Result<Self, String> {
-        #[cfg(target_os = "macos")]
-        {
-            return Ok(Recorder::MacOS(MacOSScreenRecorder::new(
-                video_path.to_path_buf(),
-                primary,
-            )));
-        }
+        // #[cfg(target_os = "macos")]
+        // {
+        //     return Ok(Recorder::MacOS(MacOSScreenRecorder::new(
+        //         video_path.to_path_buf(),
+        //         primary,
+        //     )));
+        // }
 
-        #[cfg(not(target_os = "macos"))]
+        // #[cfg(not(target_os = "macos"))]
         {
             let (input_format, input_device) = {
                 #[cfg(target_os = "windows")]
@@ -107,7 +104,71 @@ impl Recorder {
                 {
                     ("x11grab", ":0.0".to_string())
                 }
-                #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+                #[cfg(target_os = "macos")]
+                {
+                    // Run ffmpeg to list availabkle devices
+                    let ffmpeg = FFMPEG_PATH.get().ok_or_else(|| {
+                        log::info!("[FFmpeg] Error: FFmpeg not initialized");
+                        PathBuf::from("ffmpeg")
+                    });
+                    let output =
+                        Command::new(ffmpeg.unwrap_or(&PathBuf::from("ffmpeg")).as_os_str())
+                            .args(["-f", "avfoundation", "-list_devices", "true", "-i", ""])
+                            .output()
+                            .map_err(|e| {
+                                format!("Failed to execute ffmpeg to list devices: {}", e)
+                            })?;
+
+                    let output_str = String::from_utf8_lossy(&output.stderr);
+
+                    // Find the screen capture device
+                    let mut screen_device_index = None;
+
+                    // Parse the output to find the screen capture device
+                    for line in output_str.lines() {
+                        if line.contains("Capture screen") {
+                            // This is a screen capture device
+                            log::info!("[record] Found screen capture line: {}", line);
+
+                            // Find the opening bracket
+                            if let Some(first_bracket) = line.find('[') {
+                                // Find the second opening bracket
+                                if let Some(start_idx) = line[first_bracket + 1..].find('[') {
+                                    // Adjust index to be relative to the original string
+                                    let start_idx = first_bracket + 1 + start_idx;
+
+                                    // Find the closing bracket after the second opening bracket
+                                    if let Some(end_idx) = line[start_idx + 1..].find(']') {
+                                        // Extract the content between brackets
+                                        let number_str =
+                                            &line[start_idx + 1..start_idx + 1 + end_idx];
+
+                                        // Parse as integer
+                                        if let Ok(index) = number_str.parse::<i32>() {
+                                            screen_device_index = Some(index);
+                                            log::info!(
+                                                "[record] Found screen capture device at index: {}",
+                                                index
+                                            );
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Format the input device string - just the video device index with a colon
+                    let input_device = if let Some(index) = screen_device_index {
+                        format!("{}:", index)
+                    } else {
+                        // Fallback to a default if no screen capture device found
+                        "1:".to_string() // Common default for screen capture
+                    };
+
+                    ("avfoundation", input_device)
+                }
+                #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
                 {
                     return Err("Unsupported platform".to_string());
                 }
@@ -199,12 +260,8 @@ pub async fn start_recording(
         return Err("Recording already in progress".to_string());
     }
 
-    // Initialize FFmpeg and FFprobe if not already done
-    #[cfg(not(target_os = "macos"))]
-    {
-        ffmpeg::init_ffmpeg()?;
-        ffmpeg::init_ffprobe()?;
-    }
+    // Initialize FFmpeg
+    init_ffmpeg()?;
 
     let (session_dir, timestamp) = get_session_path(&app)?;
 
@@ -390,7 +447,7 @@ pub fn log_input(event: serde_json::Value) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(not(target_os = "macos"))]
+// #[cfg(not(target_os = "macos"))]
 pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
     if let Ok(mut state) = LOGGER_STATE.lock() {
         if let Some(logger) = state.as_mut() {
