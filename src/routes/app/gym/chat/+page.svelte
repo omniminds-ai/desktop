@@ -524,10 +524,13 @@
           originalSftData = [...sftData];
 
           // Add styled start replay message
-          await addMessage({
-            role: 'assistant',
-            content: '<start>--- demonstration replay ---</start>'
-          });
+          await addMessage(
+            {
+              role: 'assistant',
+              content: '<start>--- demonstration replay ---</start>'
+            },
+            { audio: false, delay: false }
+          );
 
           // Process SFT messages properly alternating between VM (assistant) and user
           for (const msg of sftData) {
