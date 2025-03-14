@@ -13,7 +13,7 @@
   import { Loader, Wallet, WandSparkles, History, Zap } from 'lucide-svelte';
   import WalletButton from '$lib/components/WalletButton.svelte';
 
-  const poolId = page.url.searchParams.get('poolId');
+  const poolId = page.url.searchParams.get('poolId') || undefined;
   const poolName = page.url.searchParams.get('poolName');
 
   function formatNumber(num: number): string {
@@ -84,7 +84,7 @@
       loadBalance($walletAddress);
     }
     try {
-      apps = await getAppsForGym(poolId || undefined);
+      apps = await getAppsForGym({ poolId });
       // Get unique categories across all apps
       allCategories = [...new Set(apps.flatMap((app) => app.categories))].sort();
     } catch (error) {

@@ -1,11 +1,8 @@
 <script lang="ts">
   import Button from './Button.svelte';
   import GenerateGymModal from './GenerateGymModal.svelte';
-  import { Settings, Upload, ListTodo, Sliders, LayoutDashboard } from 'lucide-svelte';
+  import { Upload, ListTodo, Sliders, LayoutDashboard } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
-  import { onMount } from 'svelte';
-  import { getAppsForGym, generateApps } from '$lib/api/forge';
-  import type { ForgeApp } from '$lib/types/gym';
 
   // Import our tab components
   import OverviewTab from './gym-builder/OverviewTab.svelte';

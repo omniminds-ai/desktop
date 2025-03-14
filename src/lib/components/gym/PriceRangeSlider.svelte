@@ -1,7 +1,7 @@
 <script lang="ts">
   // Default values
   const DEFAULT_MIN = 0;
-  const DEFAULT_MAX = 99;
+  const DEFAULT_MAX = 500;
   type AppTouchEvent = TouchEvent;
 
   export let minPrice = DEFAULT_MIN;
@@ -162,7 +162,7 @@
     <input
       type="number"
       min={globalMin || 0}
-      max={maxPrice - 1 || 98}
+      max={maxPrice - 1 || 499}
       class="w-16 px-2 py-1 text-sm border rounded hover:border-gray-400 focus:outline-none focus:border-secondary-300 focus:ring-1 focus:ring-secondary-300/30 bg-white transition-colors"
       value={minPrice || 0}
       on:input={(e) => handleInput(e, true)} />
@@ -170,9 +170,9 @@
     <input
       type="number"
       min={minPrice + 1 || 1}
-      max={globalMax || 99}
+      max={globalMax || 500}
       class="w-16 px-2 py-1 text-sm border rounded hover:border-gray-400 focus:outline-none focus:border-secondary-300 focus:ring-1 focus:ring-secondary-300/30 bg-white transition-colors"
-      value={maxPrice || 99}
+      value={maxPrice || 500}
       on:input={(e) => handleInput(e, false)} />
     <span class="text-sm text-gray-500">VIRAL per task</span>
   </div>

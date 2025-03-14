@@ -36,7 +36,7 @@
   async function loadApps() {
     loadingApps = true;
     try {
-      apps = await getAppsForGym(pool._id);
+      apps = await getAppsForGym({ poolId: pool._id });
     } catch (error) {
       console.error('Failed to load apps:', error);
       apps = [];
