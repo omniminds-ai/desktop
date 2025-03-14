@@ -5,26 +5,17 @@
   import { ListTodo, Loader, Pencil, Check, X, Eye, Settings, Sparkles } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import type { ForgeApp } from '$lib/types/gym';
+  import { API_URL } from '$lib/utils';
+  import { getAppsForGym, getGymCategories } from '$lib/api/forge';
 
   // Props
   export let apps: ForgeApp[] = [];
   export let loadingApps: boolean = false;
   export let viewMode: 'preview' = 'preview'; // Changed from 'edit' | 'preview' to only allow 'preview'
   export let isGymBuilder: boolean = false; // Whether this is used in GymBuilder or not
-  export let poolId: string | null = null;
+  export let poolId: string | undefined = undefined;
   export let onRefresh: (() => Promise<void>) | null = null;
   export let onGenerateTasks: (() => void) | null = null;
-
-  // Internal state
-  let editingAppId = '';
-  let editingTaskId = '';
-  let editingField = '';
-  let editValue = '';
-  let currentTaskForAppChange: { appIndex: number; taskIndex: number } | null = null;
-  let newAppName = '';
-  let newAppDomain = '';
-  let showNewAppForm = false;
-  let rawAppsJson = '';
 
   // Filtering state
   let allCategories: string[] = [];
@@ -32,119 +23,19 @@
   let showFilters = false;
   // Initialize with localStorage values or defaults
   let minPrice = parseInt(localStorage.getItem('gymMinPrice') || '0', 10);
-  let maxPrice = parseInt(localStorage.getItem('gymMaxPrice') || '99', 10);
+  let maxPrice = parseInt(localStorage.getItem('gymMaxPrice') || '500', 10);
   let globalMinPrice = 0;
-  let globalMaxPrice = 99;
+  let globalMaxPrice = 500;
 
-  onMount(() => {
+  onMount(async () => {
     updateCategories();
+    // apps = await getAppsForGym({ poolId: poolId, minReward: minPrice, maxReward: maxPrice });
   });
 
-  function updateRawJson() {
-    rawAppsJson = JSON.stringify(apps, null, 2);
-  }
-
-  function updateCategories() {
+  async function updateCategories() {
     // Get unique categories across all apps
-    allCategories = [...new Set(apps.flatMap((app) => app.categories))].sort();
-  }
-
-  function getIconUrl(domain: string) {
-    if (!domain) return '';
-
-    // Handle domains with or without protocol prefix
-    const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '');
-    return `https://www.google.com/s2/favicons?domain=${cleanDomain}&sz=32`;
-  }
-
-  function getFaviconUrl(domain: string) {
-    return `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=64`;
-  }
-
-  function startEditing(appId: string, taskId: string, field: string, value: string) {
-    editingAppId = appId;
-    editingTaskId = taskId;
-    editingField = field;
-    editValue = value;
-  }
-
-  function cancelEditing() {
-    editingAppId = '';
-    editingTaskId = '';
-    editingField = '';
-    editValue = '';
-  }
-
-  function saveEditing() {
-    const appIndex = apps.findIndex((app) => app.name === editingAppId);
-    if (appIndex === -1) return;
-
-    if (editingField === 'domain') {
-      apps[appIndex].domain = editValue;
-    } else if (editingField === 'name') {
-      apps[appIndex].name = editValue;
-    } else if (editingField === 'prompt') {
-      const taskIndex = apps[appIndex].tasks.findIndex((_, idx) => idx === parseInt(editingTaskId));
-      if (taskIndex !== -1) {
-        apps[appIndex].tasks[taskIndex].prompt = editValue;
-      }
-    }
-
-    dispatchChanges();
-    cancelEditing();
-  }
-
-  function changeTaskApp(newAppIndex: number) {
-    if (!currentTaskForAppChange) return;
-
-    const { appIndex, taskIndex } = currentTaskForAppChange;
-    const task = { ...apps[appIndex].tasks[taskIndex] };
-
-    // Remove task from current app
-    apps[appIndex].tasks = apps[appIndex].tasks.filter((_, idx) => idx !== taskIndex);
-
-    // Add task to new app
-    apps[newAppIndex].tasks.push(task);
-
-    dispatchChanges();
-    currentTaskForAppChange = null;
-  }
-
-  function addNewApp() {
-    if (!newAppName) return;
-
-    const newApp: ForgeApp = {
-      name: newAppName,
-      domain: newAppDomain,
-      description: '',
-      categories: [],
-      tasks: [],
-      pool_id:
-        apps.length > 0
-          ? { ...apps[0].pool_id }
-          : {
-              _id: '',
-              name: '',
-              status: '',
-              pricePerDemo: 1
-            }
-    };
-
-    apps = [...apps, newApp];
-
-    // If we were moving a task to this new app
-    if (currentTaskForAppChange) {
-      changeTaskApp(apps.length - 1);
-    }
-
-    dispatchChanges();
-    resetNewAppForm();
-  }
-
-  function resetNewAppForm() {
-    newAppName = '';
-    newAppDomain = '';
-    showNewAppForm = false;
+    const cats = await getGymCategories();
+    allCategories = [...new Set(cats)].sort();
   }
 
   function toggleCategory(category: string) {
@@ -156,17 +47,21 @@
     selectedCategories = selectedCategories; // Trigger reactivity
   }
 
+  function getFaviconUrl(domain: string) {
+    return `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=64`;
+  }
+
   // Update price range when apps change
   $: if (apps.length > 0) {
     const prices = apps.map((app) => app.pool_id.pricePerDemo);
     globalMinPrice = 0;
-    globalMaxPrice = Math.max(99, Math.ceil(Math.max(...prices)));
+    globalMaxPrice = Math.max(500, Math.ceil(Math.max(...prices)));
 
     // Initialize price range if not set or if default values
-    if (minPrice === 0 && maxPrice === 99) {
+    if (minPrice === 0 && maxPrice === 500) {
       // Use persisted values or defaults for the first time
       minPrice = parseInt(localStorage.getItem('gymMinPrice') || '0', 10);
-      maxPrice = parseInt(localStorage.getItem('gymMaxPrice') || '99', 10);
+      maxPrice = parseInt(localStorage.getItem('gymMaxPrice') || '500', 10);
     }
   }
 
@@ -185,21 +80,6 @@
       app.pool_id.pricePerDemo >= minPrice && app.pool_id.pricePerDemo <= maxPrice;
     return matchesCategories && matchesPrice;
   });
-
-  function dispatchChanges() {
-    const event = new CustomEvent('change', {
-      detail: {
-        apps
-      }
-    });
-
-    // Dispatch the event to notify parent components
-    if (isGymBuilder) {
-      updateCategories();
-    }
-
-    dispatchEvent(event);
-  }
 </script>
 
 <!-- Available Tasks Heading -->

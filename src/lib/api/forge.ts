@@ -12,8 +12,30 @@ import { get } from 'svelte/store';
 
 const API_BASE = `${API_URL}/api/forge`;
 
-export async function getAppsForGym(poolId?: string): Promise<ForgeApp[]> {
-  const response = await fetch(`${API_BASE}/apps${poolId ? `?pool_id=${poolId}` : ''}`);
+export async function getGymCategories() {
+  const response = await fetch(`${API_BASE}/categories`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch apps');
+  }
+  const categories = (await response.json()) as string[];
+  return categories;
+}
+
+export async function getAppsForGym(filter?: {
+  poolId?: string;
+  minReward?: number;
+  maxReward?: number;
+  category?: string;
+  query?: string;
+}): Promise<ForgeApp[]> {
+  const filteredUrl = new URL(API_BASE + '/apps');
+  if (filter?.poolId) filteredUrl.searchParams.set('pool_id', filter.poolId);
+  if (filter?.minReward) filteredUrl.searchParams.set('pool_id', filter.minReward.toString());
+  if (filter?.maxReward) filteredUrl.searchParams.set('pool_id', filter.maxReward.toString());
+  if (filter?.category) filteredUrl.searchParams.set('pool_id', filter.category);
+  if (filter?.query) filteredUrl.searchParams.set('pool_id', filter.query);
+
+  const response = await fetch(filteredUrl);
 
   if (!response.ok) {
     throw new Error('Failed to fetch apps');
@@ -21,19 +43,17 @@ export async function getAppsForGym(poolId?: string): Promise<ForgeApp[]> {
 
   const apps: ForgeApp[] = await response.json();
 
-  if (poolId) {
+  if (filter?.poolId) {
     return apps;
   }
 
-  // If no poolId, shuffle and limit apps
-  const shuffledApps = apps.sort(() => Math.random() - 0.5).slice(0, 6);
+  // If no poolId, shuffle apps
+  const shuffledApps = apps.sort(() => Math.random() - 0.5);
 
-  // For each app, keep only a random subset of tasks
+  // For each app, shuffle tasks
   return shuffledApps.map((app: ForgeApp) => ({
     ...app,
-    tasks: app.tasks
-      .sort(() => Math.random() - 0.5) // Shuffle tasks
-      .slice(0, 3) // Keep max 3 tasks per app
+    tasks: app.tasks.sort(() => Math.random() - 0.5) // Shuffle tasks
   }));
 }
 
