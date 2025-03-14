@@ -54,7 +54,7 @@
     }
   },
   "bundle": {
-    "createUpdaterArtifacts": false,
+    "createUpdaterArtifacts": true,
     "windows": {
       "signCommand": {
         "cmd": "trusted-signing-cli",
