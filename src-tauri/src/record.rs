@@ -1,5 +1,5 @@
 use crate::axtree;
-use crate::ffmpeg::{self, init_ffmpeg, FFmpegRecorder, FFMPEG_PATH};
+use crate::ffmpeg::{init_ffmpeg, FFmpegRecorder, FFMPEG_PATH};
 use crate::input;
 use crate::logger::Logger;
 use crate::pipeline;
