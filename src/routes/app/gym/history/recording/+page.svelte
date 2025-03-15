@@ -1096,11 +1096,11 @@
                           Copy
                         </Button>
                       </div>
-                      {#if formatJson(event.data).length > 10000}
+                      {#if formatJson(event.data).length > 1000}
                         <pre
                           class="text-sm text-gray-700 whitespace-pre-wrap break-all flex-1 overflow-hidden">{formatJson(
                             event
-                          ).slice(0, 10000)}... (Truncated for Performace)
+                          ).slice(0, 1000)}... (Truncated for Performance)
                       </pre>
                       {:else}
                         <pre
