@@ -118,6 +118,6 @@ jobs:
           tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: 'Viralmind Desktop v__VERSION__'
           releaseBody: 'Download Viralmind Desktop for your operating system below.'
-          releaseDraft: false
+          releaseDraft: ${{ github.ref != 'refs/heads/main' }}
           prerelease: false
           args: ${{ matrix.args }}
