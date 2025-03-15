@@ -2,7 +2,7 @@
   import Card from '../Card.svelte';
   import Button from '../Button.svelte';
   import TextArea from '../TextArea.svelte';
-  import { Pencil, Check, X, Eye, Sparkles, DollarSign } from 'lucide-svelte';
+  import { Pencil, Check, X, Eye, Sparkles, DollarSign, Train } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
   import type { ForgeApp } from '$lib/types/gym';
   import { onMount } from 'svelte';
@@ -183,7 +183,9 @@
 </div>
 
 <!-- Scrollable task container -->
-<div class="overflow-y-auto px-3" style="max-height: calc(100vh - 220px);">
+<div
+  class="overflow-y-auto px-3"
+  style={`max-height: calc(100vh - ${(pool.status === TrainingPoolStatus.noFunds || pool.status === TrainingPoolStatus.noGas ? 120 : 0) + 220}px);`}>
   <!-- Tasks Tab Content -->
   {#if loadingApps}
     <div class="flex items-center justify-center h-40">
@@ -228,7 +230,7 @@
                     </button>
                   </div>
                 {:else}
-                  <div
+                  <button
                     class="w-8 h-8 flex items-center justify-center rounded bg-gray-100 cursor-pointer relative group"
                     onclick={() => startEditing(app.name, '', 'domain', app.domain)}>
                     {#if app.domain}
@@ -237,10 +239,10 @@
                       <div class="w-6 h-6 bg-gray-300 rounded"></div>
                     {/if}
                     <div
-                      class="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded flex items-center justify-center">
-                      <Pencil size={12} class="text-gray-700 opacity-0 group-hover:opacity-100" />
+                      class="absolute inset-0 bg-black/0 group-hover:bg-black/50 rounded flex items-center justify-center">
+                      <Pencil size={12} class="text-white opacity-0 group-hover:opacity-100" />
                     </div>
-                  </div>
+                  </button>
                 {/if}
 
                 <!-- App Name -->
@@ -258,15 +260,15 @@
                     </button>
                   </div>
                 {:else}
-                  <div
-                    class="text-lg font-medium text-gray-800 group relative cursor-pointer"
+                  <button
+                    class="text-lg font-medium text-gray-800 group relative cursor-pointer px-1"
                     onclick={() => startEditing(app.name, '', 'name', app.name)}>
                     <span>{app.name}</span>
                     <div
-                      class="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded flex items-center justify-center">
-                      <Pencil size={12} class="text-gray-700 opacity-0 group-hover:opacity-100" />
+                      class="absolute inset-0 bg-black/0 group-hover:bg-black/50 rounded flex items-center justify-center">
+                      <Pencil size={12} class="text-white opacity-0 group-hover:opacity-100" />
                     </div>
-                  </div>
+                  </button>
                 {/if}
               </div>
 
@@ -288,7 +290,7 @@
                   </button>
                 </div>
               {:else}
-                <div
+                <button
                   class="text-sm font-bold text-secondary-600 flex items-center gap-1 group relative cursor-pointer"
                   onclick={() =>
                     startEditing(app.name, '', 'price', (pool.pricePerDemo || 1).toString())}>
@@ -296,10 +298,10 @@
                   {pool.pricePerDemo}
                   {pool.token.symbol}
                   <div
-                    class="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded flex items-center justify-center">
-                    <Pencil size={12} class="text-gray-700 opacity-0 group-hover:opacity-100" />
+                    class="absolute inset-0 bg-black/0 group-hover:bg-black/50 rounded flex items-center justify-center">
+                    <Pencil size={12} class="text-white opacity-0 group-hover:opacity-100" />
                   </div>
-                </div>
+                </button>
               {/if}
             </div>
 
@@ -328,18 +330,15 @@
                         </div>
                       </div>
                     {:else}
-                      <div
-                        class="relative group cursor-pointer bg-gray-50 p-2 rounded-md hover:bg-gray-100 hover:shadow-sm transition-all duration-300"
+                      <button
+                        class="w-full text-left group cursor-pointer flex bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320"
                         onclick={() =>
                           startEditing(app.name, taskIndex.toString(), 'prompt', task.prompt)}>
-                        <p class="text-gray-800 text-sm">{task.prompt}</p>
-                        <div
-                          class="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded flex items-center justify-center">
-                          <Pencil
-                            size={14}
-                            class="text-gray-700 opacity-0 group-hover:opacity-100" />
-                        </div>
-                      </div>
+                        <p class="grow text-gray-800 text-sm">{task.prompt}</p>
+                        <Pencil
+                          size={14}
+                          class="text-gray-700 grow-0 opacity-0 group-hover:opacity-100 mt-1 transition-all duration-200" />
+                      </button>
                     {/if}
                   {/each}
                 </div>
