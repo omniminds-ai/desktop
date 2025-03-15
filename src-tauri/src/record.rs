@@ -595,7 +595,8 @@ pub async fn delete_recording(app: tauri::AppHandle, recording_id: String) -> Re
 pub struct PrivateRange {
     start: f64,
     end: f64,
-    count: i32,
+    #[allow(dead_code)]
+    count: i32, // this is needed for processing, but not accessed in Rust
 }
 
 // Helper function to read and parse a JSON file
