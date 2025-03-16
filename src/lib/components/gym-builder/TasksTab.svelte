@@ -2,10 +2,24 @@
   import Card from '../Card.svelte';
   import Button from '../Button.svelte';
   import TextArea from '../TextArea.svelte';
-  import { Pencil, Check, X, Eye, Sparkles, DollarSign, Train } from 'lucide-svelte';
+  import { Pencil, Check, X, Eye, Sparkles, DollarSign, Train, Plus, Trash2, Save, RotateCcw } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
   import type { ForgeApp } from '$lib/types/gym';
   import { onMount } from 'svelte';
+  
+  // Function to save changes to the backend
+  export let handleSaveChanges: () => Promise<void>;
+  
+  // Wrap the original handleSaveChanges to update originalApps after saving
+  async function saveChanges() {
+    await handleSaveChanges();
+    // Update originalApps after saving
+    originalApps = JSON.parse(JSON.stringify(apps));
+    pool.unsavedApps = false;
+  }
+  
+  // Store original apps for reset functionality
+  let originalApps: ForgeApp[] = [];
   import { getAppsForGym } from '$lib/api/forge';
   import AvailableTasks from '../gym/AvailableTasks.svelte';
 
@@ -13,6 +27,7 @@
     unsavedSkills?: boolean;
     unsavedPrice?: boolean;
     unsavedName?: boolean;
+    unsavedApps?: boolean;
   };
   export let unsavedChanges: boolean;
   export let regenerateTasks: () => void;
@@ -26,12 +41,23 @@
   let newAppName = '';
   let newAppDomain = '';
   let showNewAppForm = false;
-  let apps: ForgeApp[] = [];
+  // Make apps public so it can be accessed by the parent component
+  export let apps: ForgeApp[] = [];
   let loadingApps = true;
 
   onMount(async () => {
     await loadApps();
+    // Store a deep copy of the original apps
+    originalApps = JSON.parse(JSON.stringify(apps));
   });
+  
+  // Function to reset changes
+  function resetChanges() {
+    // Restore apps from the original copy
+    apps = JSON.parse(JSON.stringify(originalApps));
+    unsavedChanges = false;
+    pool.unsavedApps = false;
+  }
 
   async function loadApps() {
     loadingApps = true;
@@ -47,6 +73,7 @@
 
   function updateUnsavedChanges() {
     unsavedChanges = true;
+    pool.unsavedApps = true;
   }
 
   function startEditing(appId: string, taskId: string, field: string, value: string) {
@@ -84,7 +111,9 @@
       }
     }
 
+    apps = [...apps]; // Trigger reactivity
     unsavedChanges = true;
+    pool.unsavedApps = true;
     cancelEditing();
   }
 
@@ -100,7 +129,9 @@
     // Add task to new app
     apps[newAppIndex].tasks.push(task);
 
+    apps = [...apps]; // Trigger reactivity
     unsavedChanges = true;
+    pool.unsavedApps = true;
     currentTaskForAppChange = null;
   }
 
@@ -122,6 +153,7 @@
     };
 
     apps.push(newApp);
+    apps = [...apps]; // Trigger reactivity
 
     // If we were moving a task to this new app
     if (currentTaskForAppChange) {
@@ -129,6 +161,7 @@
     }
 
     unsavedChanges = true;
+    pool.unsavedApps = true;
     resetNewAppForm();
   }
 
@@ -136,6 +169,36 @@
     newAppName = '';
     newAppDomain = '';
     showNewAppForm = false;
+  }
+
+  function addNewTask(appIndex: number) {
+    const newTask = {
+      prompt: "Enter task description here",
+      type: "text"
+    };
+    
+    apps[appIndex].tasks.push(newTask);
+    apps = [...apps]; // Trigger reactivity
+    unsavedChanges = true;
+    pool.unsavedApps = true;
+    
+    // Start editing the new task immediately
+    const taskIndex = apps[appIndex].tasks.length - 1;
+    startEditing(apps[appIndex].name, taskIndex.toString(), 'prompt', newTask.prompt);
+  }
+  
+  function removeTask(appIndex: number, taskIndex: number) {
+    apps[appIndex].tasks.splice(taskIndex, 1);
+    apps = [...apps]; // Trigger reactivity
+    unsavedChanges = true;
+    pool.unsavedApps = true;
+  }
+  
+  function removeApp(appIndex: number) {
+    apps.splice(appIndex, 1);
+    apps = [...apps]; // Trigger reactivity
+    unsavedChanges = true;
+    pool.unsavedApps = true;
   }
 
   function getIconUrl(domain: string) {
@@ -152,7 +215,7 @@
   <div class="flex items-center">
     <h2 class="text-xl font-bold text-gray-800">Tasks</h2>
   </div>
-  <div class="flex items-center">
+  <div class="flex items-center gap-2">
     <div class="bg-gray-100 rounded-lg p-1 flex items-center">
       <button
         class="px-3 py-1.5 text-sm rounded-md transition-colors cursor-pointer flex items-center gap-1
@@ -174,7 +237,7 @@
       </button>
     </div>
     <button
-      class="ml-2 px-3 py-1.5 cursor-pointer text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
+      class="px-3 py-1.5 cursor-pointer text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
       onclick={regenerateTasks}>
       <Sparkles size={15} class="mr-1" />
       Generate Tasks
@@ -184,7 +247,7 @@
 
 <!-- Scrollable task container -->
 <div
-  class="overflow-y-auto px-3"
+  class="overflow-y-auto px-3 relative"
   style={`max-height: calc(100vh - ${(pool.status === TrainingPoolStatus.noFunds || pool.status === TrainingPoolStatus.noGas ? 120 : 0) + 220}px);`}>
   <!-- Tasks Tab Content -->
   {#if loadingApps}
@@ -199,8 +262,7 @@
       {apps}
       {loadingApps}
       viewMode="preview"
-      isGymBuilder={true}
-      onGenerateTasks={regenerateTasks} />
+      isGymBuilder={true} />
   {:else if apps.length === 0}
     <div class="text-center py-12 text-gray-500">
       <p>No apps available yet.</p>
@@ -271,9 +333,11 @@
                 {/if}
               </div>
 
-              <!-- Price -->
-              {#if editingAppId === app.name && editingField === 'price'}
-                <div class="flex items-center gap-1">
+              <!-- App Actions -->
+              <div class="flex items-center gap-2">
+                <!-- Price -->
+                {#if editingAppId === app.name && editingField === 'price'}
+                  <div class="flex items-center gap-1">
                   <input
                     type="number"
                     step="0.1"
@@ -287,26 +351,43 @@
                   <button class="text-red-500 hover:text-red-700" onclick={cancelEditing}>
                     <X size={16} />
                   </button>
-                </div>
-              {:else}
-                <button
-                  class="text-sm font-bold text-secondary-600 flex items-center gap-1 group relative cursor-pointer"
-                  onclick={() =>
-                    startEditing(app.name, '', 'price', (pool.pricePerDemo || 1).toString())}>
-                  <DollarSign size={14} />
-                  {pool.pricePerDemo}
-                  {pool.token.symbol}
-                  <div
-                    class="absolute inset-0 bg-black/0 group-hover:bg-black/50 rounded flex items-center justify-center">
-                    <Pencil size={12} class="text-white opacity-0 group-hover:opacity-100" />
                   </div>
+                {:else}
+                  <button
+                    class="text-sm font-bold text-secondary-600 flex items-center gap-1 group relative cursor-pointer"
+                    onclick={() =>
+                      startEditing(app.name, '', 'price', (pool.pricePerDemo || 1).toString())}>
+                    <DollarSign size={14} />
+                    {pool.pricePerDemo}
+                    {pool.token.symbol}
+                    <div
+                      class="absolute inset-0 bg-black/0 group-hover:bg-black/50 rounded flex items-center justify-center">
+                      <Pencil size={12} class="text-white opacity-0 group-hover:opacity-100" />
+                    </div>
+                  </button>
+                {/if}
+                
+                <!-- Remove App Button -->
+                <button 
+                  class="text-gray-400 hover:text-red-500 p-1 ml-2 transition-colors" 
+                  title="Remove App"
+                  onclick={() => removeApp(appIndex)}>
+                  <Trash2 size={16} />
                 </button>
-              {/if}
+              </div>
             </div>
 
             <!-- App tasks section -->
             <div class="mt-4 pt-3">
-              <div class="text-sm font-medium text-gray-700 mb-2">Tasks</div>
+              <div class="flex justify-between items-center mb-2">
+                <div class="text-sm font-medium text-gray-700">Tasks</div>
+                <button 
+                  class="text-secondary-600 hover:text-secondary-800 flex items-center gap-1 text-xs"
+                  onclick={() => addNewTask(appIndex)}>
+                  <Plus size={14} />
+                  Add Task
+                </button>
+              </div>
 
               {#if app.tasks && app.tasks.length > 0}
                 <div class="space-y-2 ml-1">
@@ -329,15 +410,23 @@
                         </div>
                       </div>
                     {:else}
-                      <button
-                        class="w-full text-left group cursor-pointer flex bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320"
-                        onclick={() =>
-                          startEditing(app.name, taskIndex.toString(), 'prompt', task.prompt)}>
-                        <p class="grow text-gray-800 text-sm">{task.prompt}</p>
-                        <Pencil
-                          size={14}
-                          class="text-gray-700 grow-0 opacity-0 group-hover:opacity-100 mt-1 transition-all duration-200" />
-                      </button>
+                      <div class="flex items-center w-full group">
+                        <button
+                          class="w-full text-left cursor-pointer flex bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320"
+                          onclick={() =>
+                            startEditing(app.name, taskIndex.toString(), 'prompt', task.prompt)}>
+                          <p class="grow text-gray-800 text-sm">{task.prompt}</p>
+                          <Pencil
+                            size={14}
+                            class="text-gray-700 grow-0 opacity-0 group-hover:opacity-100 mt-1 transition-all duration-200" />
+                        </button>
+                        <button 
+                          class="text-gray-400  opacity-0 group-hover:opacity-100 hover:text-red-500 p-1 ml-2 transition-all" 
+                          title="Remove Task"
+                          onclick={() => removeTask(appIndex, taskIndex)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     {/if}
                   {/each}
                 </div>
@@ -349,5 +438,82 @@
         </Card>
       {/each}
     </div>
+    
+    <!-- Add New App Button -->
+    {#if !showNewAppForm}
+      <div class="mt-4 flex justify-center">
+        <button
+          class="px-4 py-2 bg-secondary-500 text-white rounded-md hover:bg-secondary-600 transition-colors flex items-center gap-2"
+          onclick={() => showNewAppForm = true}>
+          <Plus size={16} />
+          Add New App
+        </button>
+      </div>
+    {:else}
+      <Card padding="md" className="border border-gray-200 mt-4">
+        <div class="p-2">
+          <h3 class="text-lg font-medium mb-3">Add New App</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">App Name</label>
+              <input
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Enter app name"
+                bind:value={newAppName} />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">App Domain (optional)</label>
+              <input
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="e.g. example.com"
+                bind:value={newAppDomain} />
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+              <button
+                class="px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-100"
+                onclick={resetNewAppForm}>
+                Cancel
+              </button>
+              <button
+                class="px-3 py-1.5 bg-secondary-500 text-white rounded-md hover:bg-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!newAppName}
+                onclick={addNewApp}>
+                Add App
+              </button>
+            </div>
+          </div>
+        </div>
+      </Card>
+    {/if}
   {/if}
+
+    
+  <!-- Sticky bottom buttons for save/reset -->
+  {#if unsavedChanges}
+  <div class="sticky bottom-0 w-full bg-gray-50 border-gray-200 p-4 z-10">
+    <div class="flex gap-2">
+      <Button
+        class="flex-1 justify-center bg-green-500! text-white! hover:bg-green-600!"
+        onclick={saveChanges}>
+        <div class="flex items-center">
+          <Save size={16} class="mr-2" />
+          Save Changes
+        </div>
+      </Button>
+      <Button
+        class="flex-1 justify-center"
+        variant="secondary"
+        onclick={resetChanges}>
+        <div class="flex items-center">
+          <RotateCcw size={16} class="mr-2" />
+          Reset Changes
+        </div>
+      </Button>
+    </div>
+  </div>
+
+  {/if}
+
 </div>

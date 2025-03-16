@@ -41,6 +41,7 @@ export interface UpdatePoolInput {
   status?: TrainingPoolStatus.live | TrainingPoolStatus.paused;
   skills?: string;
   pricePerDemo?: number;
+  apps?: any[]; // Add apps array to the update input
 }
 
 export interface TreasuryTransfer {
