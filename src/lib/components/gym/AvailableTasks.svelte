@@ -13,9 +13,10 @@
   export let loadingApps: boolean = false;
   export let viewMode: 'preview' = 'preview'; // Changed from 'edit' | 'preview' to only allow 'preview'
   export let isGymBuilder: boolean = false; // Whether this is used in GymBuilder or not
-  export let poolId: string | undefined = undefined;
-  export let onRefresh: (() => Promise<void>) | null = null;
-  export let onGenerateTasks: (() => void) | null = null;
+  // these are unused
+  // export let poolId: string | undefined = undefined;
+  // export let onRefresh: (() => Promise<void>) | null = null;
+  // export let onGenerateTasks: (() => void) | null = null;
 
   // Filtering state
   let allCategories: string[] = [];

@@ -356,6 +356,6 @@
       </Card>
     </div>
 
-    <AvailableTasks {apps} loadingApps={false} isGymBuilder={false} {poolId} />
+    <AvailableTasks {apps} loadingApps={false} isGymBuilder={false} />
   </div>
 </div>

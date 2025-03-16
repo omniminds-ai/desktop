@@ -200,7 +200,6 @@
       {loadingApps}
       viewMode="preview"
       isGymBuilder={true}
-      poolId={pool._id}
       onGenerateTasks={regenerateTasks} />
   {:else if apps.length === 0}
     <div class="text-center py-12 text-gray-500">
