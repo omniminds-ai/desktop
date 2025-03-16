@@ -274,6 +274,7 @@ export async function getReward(poolId: string): Promise<RewardInfo> {
   return response.json();
 }
 
+// Legacy upload method - kept for backward compatibility
 export async function uploadRecording(
   zipBlob: Blob,
   onProgress?: (progress: number) => void
@@ -319,6 +320,114 @@ export async function uploadRecording(
     xhr.setRequestHeader('x-connect-token', token || 'unknown');
     xhr.send(formData);
   });
+}
+
+// Chunked upload API endpoints
+export async function initChunkedUpload(
+  totalChunks: number,
+  metadata: { poolId?: string; generatedTime?: number; id: string }
+): Promise<{ uploadId: string; expiresIn: number; chunkSize: number }> {
+  const token = get(connectionToken);
+  const response = await fetch(`${API_BASE}/upload/init`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-connect-token': token || ''
+    },
+    body: JSON.stringify({
+      totalChunks,
+      metadata
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to initialize upload: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function uploadChunk(
+  uploadId: string,
+  chunk: Blob,
+  chunkIndex: number,
+  checksum: string
+): Promise<{ uploadId: string; chunkIndex: number; received: number; total: number; progress: number }> {
+  const token = get(connectionToken);
+  const formData = new FormData();
+  formData.append('chunk', chunk);
+  formData.append('chunkIndex', chunkIndex.toString());
+  formData.append('checksum', checksum);
+
+  const response = await fetch(`${API_BASE}/upload/chunk/${uploadId}`, {
+    method: 'POST',
+    headers: {
+      'x-connect-token': token || ''
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload chunk: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function getUploadStatus(
+  uploadId: string
+): Promise<{ uploadId: string; received: number; total: number; progress: number; createdAt: string; lastUpdated: string }> {
+  const token = get(connectionToken);
+  const response = await fetch(`${API_BASE}/upload/status/${uploadId}`, {
+    headers: {
+      'x-connect-token': token || ''
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get upload status: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function completeChunkedUpload(
+  uploadId: string
+): Promise<{ message: string; submissionId: string; files: Array<{ file: string; s3Key: string; size: number }> }> {
+  const token = get(connectionToken);
+  const response = await fetch(`${API_BASE}/upload/complete/${uploadId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-connect-token': token || ''
+    }
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    if (errorData.error === 'Upload incomplete' && errorData.missing) {
+      throw new Error(`Upload incomplete. Missing chunks: ${errorData.missing.join(', ')}`);
+    }
+    throw new Error(`Failed to complete upload: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function cancelChunkedUpload(uploadId: string): Promise<{ message: string }> {
+  const token = get(connectionToken);
+  const response = await fetch(`${API_BASE}/upload/cancel/${uploadId}`, {
+    method: 'DELETE',
+    headers: {
+      'x-connect-token': token || ''
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to cancel upload: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
 }
 
 export async function getSubmissionStatus(submissionId: string): Promise<SubmissionStatus> {

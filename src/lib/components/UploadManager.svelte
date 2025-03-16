@@ -58,6 +58,22 @@
     }
   }
 
+  // Format file size to human-readable format
+  function formatFileSize(bytes: number | undefined): string {
+    if (bytes === undefined) return '0 B';
+    
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+  }
+
   // Subscribe to the queue store
   const queue = $uploadManager.queue;
 
@@ -125,6 +141,12 @@
                   style="width: {item.progress}%">
                 </div>
               </div>
+              
+              {#if item.status === 'uploading' && item.uploadedBytes !== undefined && item.totalBytes !== undefined}
+                <div class="text-xs text-gray-400 mb-1">
+                  {formatFileSize(item.uploadedBytes)} of {formatFileSize(item.totalBytes)}
+                </div>
+              {/if}
             {/if}
           </div>
         {/each}
