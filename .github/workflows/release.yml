@@ -1,10 +1,11 @@
 name: 'release'
 
-# Trigger on a push to the main branch
+# Trigger on a push to the main or staging branch
 on:
   push:
     branches:
       - main
+      - staging
 
 jobs:
   publish-tauri:
@@ -115,9 +116,9 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         with:
-          tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
-          releaseName: 'Viralmind Desktop v__VERSION__'
+          tagName: ${{ github.ref == 'refs/heads/staging' && 'v__VERSION__-pre' || 'v__VERSION__' }} # Add -pre suffix for staging
+          releaseName: ${{ github.ref == 'refs/heads/staging' && 'Viralmind Desktop v__VERSION__ (Pre-release)' || 'Viralmind Desktop v__VERSION__' }}
           releaseBody: 'Download Viralmind Desktop for your operating system below.'
           releaseDraft: false
-          prerelease: false
+          prerelease: true
           args: ${{ matrix.args }}
