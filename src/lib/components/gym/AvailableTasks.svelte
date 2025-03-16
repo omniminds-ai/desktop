@@ -2,11 +2,10 @@
   import Card from '$lib/components/Card.svelte';
   import { slide } from 'svelte/transition';
   import PriceRangeSlider from '$lib/components/gym/PriceRangeSlider.svelte';
-  import { ListTodo, Loader, Pencil, Check, X, Eye, Settings, Sparkles } from 'lucide-svelte';
+  import { Loader } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import type { ForgeApp } from '$lib/types/gym';
-  import { API_URL } from '$lib/utils';
-  import { getAppsForGym, getGymCategories } from '$lib/api/forge';
+  import { getGymCategories } from '$lib/api/forge';
 
   // Props
   export let apps: ForgeApp[] = [];
