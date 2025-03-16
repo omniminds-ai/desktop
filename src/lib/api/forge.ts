@@ -10,10 +10,8 @@ import { API_URL } from '$lib/utils';
 import { invoke } from '@tauri-apps/api/core';
 import { get } from 'svelte/store';
 
-const API_BASE = `${API_URL}/api/forge`;
-
 export async function getGymCategories() {
-  const response = await fetch(`${API_BASE}/categories`);
+  const response = await fetch(`${API_URL}/api/forge/categories`);
   if (!response.ok) {
     throw new Error('Failed to fetch apps');
   }
@@ -28,7 +26,7 @@ export async function getAppsForGym(filter?: {
   category?: string;
   query?: string;
 }): Promise<ForgeApp[]> {
-  const filteredUrl = new URL(API_BASE + '/apps');
+  const filteredUrl = new URL(`${API_URL}/api/forge/apps`);
   if (filter?.poolId) filteredUrl.searchParams.set('pool_id', filter.poolId);
   if (filter?.minReward) filteredUrl.searchParams.set('pool_id', filter.minReward.toString());
   if (filter?.maxReward) filteredUrl.searchParams.set('pool_id', filter.maxReward.toString());
@@ -121,7 +119,7 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
 
   // Then get apps from API and merge
   try {
-    const response = await fetch(`${API_BASE}/apps`);
+    const response = await fetch(`${API_URL}/api/forge/apps`);
     if (response.ok) {
       const apiApps: ForgeApp[] = await response.json();
       apiApps.forEach((apiApp) => {
@@ -185,7 +183,7 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
 
 export async function listPools(): Promise<TrainingPool[]> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/list`, {
+  const response = await fetch(`${API_URL}/api/forge/list`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -203,7 +201,7 @@ export async function listPools(): Promise<TrainingPool[]> {
 
 export async function createPool(input: CreatePoolInput): Promise<TrainingPool> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/create`, {
+  const response = await fetch(`${API_URL}/api/forge/create`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -221,7 +219,7 @@ export async function createPool(input: CreatePoolInput): Promise<TrainingPool> 
 
 export async function updatePool(input: UpdatePoolInput): Promise<TrainingPool> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/update`, {
+  const response = await fetch(`${API_URL}/api/forge/update`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -245,7 +243,7 @@ export interface RewardInfo {
 export async function getBalance(): Promise<number> {
   const token = get(connectionToken);
   const address = get(walletAddress);
-  const response = await fetch(`${API_BASE}/balance/${address}`, {
+  const response = await fetch(`${API_URL}/api/forge/balance/${address}`, {
     headers: {
       'x-connect-token': token || ''
     }
@@ -261,7 +259,7 @@ export async function getBalance(): Promise<number> {
 
 export async function getReward(poolId: string): Promise<RewardInfo> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/reward?poolId=${poolId}`, {
+  const response = await fetch(`${API_URL}/api/forge/reward?poolId=${poolId}`, {
     headers: {
       'x-connect-token': token || ''
     }
@@ -316,7 +314,7 @@ export async function uploadRecording(
       reject(new Error('Upload was aborted'));
     });
 
-    xhr.open('POST', `${API_BASE}/upload-race`);
+    xhr.open('POST', `${API_URL}/api/forge/upload-race`);
     xhr.setRequestHeader('x-connect-token', token || 'unknown');
     xhr.send(formData);
   });
@@ -431,7 +429,7 @@ export async function cancelChunkedUpload(uploadId: string): Promise<{ message: 
 }
 
 export async function getSubmissionStatus(submissionId: string): Promise<SubmissionStatus> {
-  const response = await fetch(`${API_BASE}/submission/${submissionId}`);
+  const response = await fetch(`${API_URL}/api/forge/submission/${submissionId}`);
 
   if (!response.ok) {
     throw new Error('Failed to get submission status');
@@ -442,7 +440,7 @@ export async function getSubmissionStatus(submissionId: string): Promise<Submiss
 
 export async function listSubmissions(): Promise<SubmissionStatus[]> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/submissions`, {
+  const response = await fetch(`${API_URL}/api/forge/submissions`, {
     headers: {
       'x-connect-token': token || 'unknown'
     }
@@ -459,7 +457,7 @@ export async function listSubmissions(): Promise<SubmissionStatus[]> {
 
 export async function refreshPool(poolId: string): Promise<TrainingPool> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/refresh`, {
+  const response = await fetch(`${API_URL}/api/forge/refresh`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -483,7 +481,7 @@ export interface GenerateResponse {
 }
 
 export async function generateApps(prompt: string): Promise<GenerateResponse> {
-  const response = await fetch(`${API_BASE}/generate`, {
+  const response = await fetch(`${API_URL}/api/forge/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -530,7 +528,7 @@ export interface PoolSubmission {
 
 export async function getPoolSubmissions(poolId: string): Promise<PoolSubmission[]> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/pool-submissions/${poolId}`, {
+  const response = await fetch(`${API_URL}/api/forge/pool-submissions/${poolId}`, {
     headers: {
       'x-connect-token': token || ''
     }
@@ -551,7 +549,7 @@ export interface CreatePoolInputWithApps extends CreatePoolInput {
 // Updated create pool function
 export async function createPoolWithApps(input: CreatePoolInputWithApps): Promise<TrainingPool> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/create`, {
+  const response = await fetch(`${API_URL}/api/forge/create`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

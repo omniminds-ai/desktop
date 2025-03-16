@@ -28,8 +28,9 @@
   import QuestPanel from '$lib/components/gym/QuestPanel.svelte';
   import RecordingPanel from '$lib/components/gym/RecordingPanel.svelte';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
-  import { API_URL } from '$lib/utils';
+  import { API_URL, deleteRecording } from '$lib/utils';
   import { uploadManager } from '$lib/stores/misc';
+  import { goto } from '$app/navigation';
 
   const prompt = page.url.searchParams.get('prompt') || '';
   const appParam = page.url.searchParams.get('app');
@@ -51,6 +52,7 @@
   let recordingState = $state<'recording' | 'stopping' | 'stopped'>('stopped');
   let recordingLoading = $state(false);
   let showUploadConfirmModal = $state(false);
+  let showDeleteRecordingModal = $state(false);
   let currentRecordingId = $state<string | null>(null);
   let isUploading = $state(false);
   let loadingSftData = $state(false);
@@ -1007,7 +1009,19 @@
                         : ''}
                     {/if}
                   </Button>
-                  <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+                  <p class="text-sm w-full text-center text-gray-500">
+                    Get scored and earn $VIRAL tokens
+                  </p>
+                  <button
+                    onclick={async () => {
+                      if (currentRecordingId) {
+                        await deleteRecording(currentRecordingId);
+                        goto('/app/gym');
+                      }
+                    }}
+                    class="text-sm w-full text-center text-red-500 hover:underline">
+                    Don't like your recording? Delete it.
+                  </button>
                 </div>
               </Card>
             {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
@@ -1182,7 +1196,16 @@
                               : ''}
                           {/if}
                         </Button>
-                        <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+                        <p class="text-sm w-full text-center text-gray-500">
+                          Get scored and earn $VIRAL tokens
+                        </p>
+                        <button
+                          onclick={() => {
+                            if (currentRecordingId) deleteRecording(currentRecordingId);
+                          }}
+                          class="text-sm w-full text-center text-secondary-300 hover:text-red-500 hover:underline transition-all">
+                          Don't like your recording? Delete it.
+                        </button>
                       </div>
                     </Card>
                   {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
@@ -1354,7 +1377,16 @@
                           : ''}
                       {/if}
                     </Button>
-                    <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+                    <p class="text-sm w-full text-center text-gray-500">
+                      Get scored and earn $VIRAL tokens
+                    </p>
+                    <button
+                      onclick={() => {
+                        if (currentRecordingId) deleteRecording(currentRecordingId);
+                      }}
+                      class="text-sm w-full text-center text-secondary-300 hover:text-red-500 hover:underline transition-all">
+                      Don't like your recording? Delete it.
+                    </button>
                   </div>
                 </Card>
               {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}

@@ -28,6 +28,7 @@
   import { uploadManager } from '$lib/stores/misc';
   import type { UploadQueueItem } from '$lib/uploadManager';
   import { ask } from '@tauri-apps/plugin-dialog';
+  import { deleteRecording } from '$lib/utils';
 
   let searchQuery = $state('');
   let exporting = $state(false);
@@ -254,29 +255,6 @@
       alert(`Error exporting zip: ${error}`);
     } finally {
       exportingZip = false;
-    }
-  }
-
-  // Delete recording function
-  async function deleteRecording(recordingId: string) {
-    const res = await ask(
-      'Are you sure you want to delete this recording? This action cannot be undone.',
-      {
-        title: 'Delete Recording',
-        kind: 'warning'
-      }
-    );
-    if (res) {
-      try {
-        await invoke('delete_recording', { recordingId });
-        // Refresh recordings list
-        if ($walletAddress) await listSubmissions();
-        recordings = await invoke('list_recordings');
-        //todo: figure out why this doesn't remove the existing recording from the list
-      } catch (error) {
-        console.error('Failed to delete recording:', error);
-        alert(`Error. Recording deletion failed.\n${error}`);
-      }
     }
   }
 </script>
@@ -512,9 +490,9 @@
       <MenuItem
         icon={Trash2}
         danger
-        on:click={() => {
+        on:click={async () => {
           if (activeRecordingId) {
-            deleteRecording(activeRecordingId);
+            recordings = await deleteRecording(activeRecordingId);
           }
           showMenu = false;
         }}>

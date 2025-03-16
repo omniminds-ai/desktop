@@ -1,16 +1,14 @@
-name: 'release'
+name: 'build'
 
-# Trigger on a push to the main or staging branch
+# Trigger on pull requests to the main branch
 on:
-  push:
+  pull_request:
     branches:
       - main
       - staging
 
 jobs:
-  publish-tauri:
-    permissions:
-      contents: write
+  build-tauri:
     strategy:
       fail-fast: false
       matrix:
@@ -80,24 +78,14 @@ jobs:
         if: matrix.platform == 'macos-latest'
         run: echo "${{ secrets.APPLE_API_KEY_FILE }}" > apple_api.p8
 
-      # - name: import Windows certificate
-      #   if: matrix.platform == 'windows-latest' && false
-      #   env:
-      #     WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-      #     WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-      #   run: |
-      #     New-Item -ItemType directory -Path certificate
-      #     Set-Content -Path certificate/tempCert.txt -Value $env:WINDOWS_CERTIFICATE
-      #     certutil -decode certificate/tempCert.txt certificate/certificate.pfx
-      #     Remove-Item -path certificate -include tempCert.txt
-      #     Import-PfxCertificate -FilePath certificate/certificate.pfx -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText)
       - name: install Windows dependencies
         if: matrix.platform == 'windows-latest'
         run: |
           cargo install trusted-signing-cli
           rustup target add aarch64-pc-windows-msvc
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: build Tauri app
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # macos codesigning
@@ -116,9 +104,4 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         with:
-          tagName: ${{ github.ref == 'refs/heads/staging' && 'v__VERSION__-pre' || 'v__VERSION__' }} # Add -pre suffix for staging
-          releaseName: ${{ github.ref == 'refs/heads/staging' && 'Viralmind Desktop v__VERSION__ (Pre-release)' || 'Viralmind Desktop v__VERSION__' }}
-          releaseBody: 'Download Viralmind Desktop for your operating system below.'
-          releaseDraft: false
-          prerelease: ${{ github.ref == 'refs/heads/staging'}}
           args: ${{ matrix.args }}

@@ -52,14 +52,17 @@
       </div>
 
       <div>
-        <div class="flex justify-between items-center mb-1">
+        <div class="flex justify-between justify-items-center flex-row items-center mb-1">
           <label class="block text-sm font-medium">Deposit Address ({pool.token.symbol})</label>
           <Button
             class="px-2 py-1 text-xs"
             variant="secondary"
             onclick={() => onRefresh(pool._id)}
             disabled={refreshingPools.has(pool._id)}>
-            <RefreshCw size={12} class={refreshingPools.has(pool._id) ? 'animate-spin' : ''} />
+            <RefreshCw
+              size={12}
+              class={(refreshingPools.has(pool._id) ? 'animate-spin ' : '') + 'inline mb-1'} />
+            Refresh Balance
           </Button>
         </div>
         <div class="flex gap-2 items-center">

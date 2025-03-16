@@ -27,6 +27,7 @@
   import { listSubmissions } from '$lib/api/forge';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
   import { uploadManager } from '$lib/stores/misc';
+  import { JsonView } from '@zerodevx/svelte-json-view';
 
   let platform: Awaited<ReturnType<typeof getPlatform>> = 'windows';
   let submissions: SubmissionStatus[] = [];
@@ -1072,8 +1073,8 @@
                 <div class="flex flex-col">
                   {#each filteredEvents.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage) as event, i}
                     <div
-                      class={`flex gap-2 items-start min-w-0 p-2 rounded ${i % 2 === 0 ? 'bg-gray-100' : ''}`}>
-                      <div class="flex flex-col gap-1 min-w-[50px] select-none">
+                      class={`flex gap-2 p-2 rounded ${i % 2 === 0 ? 'bg-gray-100' : 'bg-white'}`}>
+                      <div class="flex flex-col gap-1 min-w-[82px] select-none">
                         <div class="flex items-center gap-1">
                           <EventTimestamp
                             timestamp={event.time}
@@ -1096,19 +1097,9 @@
                           Copy
                         </Button>
                       </div>
-                      {#if formatJson(event.data).length > 10000}
-                        <pre
-                          class="text-sm text-gray-700 whitespace-pre-wrap break-all flex-1 overflow-hidden">{formatJson(
-                            event
-                          ).slice(0, 10000)}... (Truncated for Performace)
-                      </pre>
-                      {:else}
-                        <pre
-                          class="text-sm text-gray-700 whitespace-pre-wrap break-all flex-1 overflow-hidden">{formatJson(
-                            event
-                          )}
-                      </pre>
-                      {/if}
+                      <div class="block break-all">
+                        <JsonView json={event.data} depth={1} />
+                      </div>
                     </div>
                   {/each}
 
