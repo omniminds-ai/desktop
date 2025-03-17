@@ -1,8 +1,9 @@
+use crate::downloader::download_file;
 use std::fs;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
+
 // #[cfg(not(target_os = "macos"))]
 use {std::io::Write, std::process::Stdio, std::thread, std::time::Duration};
 
@@ -23,63 +24,6 @@ fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
     temp.push("viralmind-desktop");
     temp
-}
-
-fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    log::info!(
-        "[FFmpeg] Downloading file from {} to {}",
-        url,
-        path.display()
-    );
-    let client = reqwest::blocking::Client::new();
-    let mut resp = client.get(url).send().map_err(|e| {
-        log::info!("[FFmpeg] Error: Failed to download FFmpeg: {}", e);
-        format!("Failed to download FFmpeg: {}", e)
-    })?;
-
-    // Create file for writing
-    let mut file = fs::File::create(path).map_err(|e| {
-        log::info!("[FFmpeg] Error: Failed to create file: {}", e);
-        format!("Failed to create file: {}", e)
-    })?;
-
-    // Download in chunks and write to file
-    let mut buffer = [0; 8192]; // 8KB buffer
-    let mut total_bytes = 0;
-
-    loop {
-        let bytes_read = resp.read(&mut buffer).map_err(|e| {
-            log::info!("[FFmpeg] Error: Failed to read from response: {}", e);
-            format!("Failed to read from response: {}", e)
-        })?;
-
-        if bytes_read == 0 {
-            break; // End of response
-        }
-
-        file.write_all(&buffer[..bytes_read]).map_err(|e| {
-            log::info!("[FFmpeg] Error: Failed to write to file: {}", e);
-            format!("Failed to write to file: {}", e)
-        })?;
-
-        total_bytes += bytes_read;
-
-        // Log progress every 1MB
-        if total_bytes % (5 * 1024 * 1024) < 8192 {
-            log::info!(
-                "[FFmpeg] Downloaded {:.2} MB of {:?}",
-                total_bytes as f64 / (1024.0 * 1024.0),
-                path.components().last().unwrap().as_os_str()
-            );
-        }
-    }
-
-    log::info!(
-        "[FFmpeg] Successfully downloaded file to {} ({:.2} MB total)",
-        path.display(),
-        total_bytes as f64 / (1024.0 * 1024.0)
-    );
-    Ok(())
 }
 
 /// Checks for ffmpeg in the PATH and in the temp directory

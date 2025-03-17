@@ -15,6 +15,7 @@ use window_vibrancy::*;
 use xcap::{image::ImageFormat, Monitor};
 use zip::{write::FileOptions, ZipWriter};
 mod axtree;
+mod downloader;
 mod ffmpeg;
 mod github_release;
 mod input;
@@ -302,15 +303,15 @@ pub fn run() {
 // remember to call `.manage(MyState::default())`
 #[tauri::command]
 async fn init_tools() -> Result<(), String> {
-    use std::thread;
     use std::sync::{Arc, Mutex};
-    
+    use std::thread;
+
     // Create a vector to store thread handles
     let mut handles = Vec::new();
-    
+
     // Create shared error storage
     let errors = Arc::new(Mutex::new(Vec::new()));
-    
+
     // Spawn thread for FFmpeg initialization
     {
         let errors = Arc::clone(&errors);
@@ -322,7 +323,7 @@ async fn init_tools() -> Result<(), String> {
         });
         handles.push(handle);
     }
-    
+
     // Spawn thread for FFprobe initialization
     {
         let errors = Arc::clone(&errors);
@@ -334,7 +335,7 @@ async fn init_tools() -> Result<(), String> {
         });
         handles.push(handle);
     }
-    
+
     // Spawn thread for dump-tree initialization
     {
         let errors = Arc::clone(&errors);
@@ -346,7 +347,7 @@ async fn init_tools() -> Result<(), String> {
         });
         handles.push(handle);
     }
-    
+
     // Spawn thread for pipeline initialization
     {
         let errors = Arc::clone(&errors);
@@ -358,14 +359,14 @@ async fn init_tools() -> Result<(), String> {
         });
         handles.push(handle);
     }
-    
+
     // Wait for all threads to complete
     for handle in handles {
         if let Err(e) = handle.join() {
             error!("Thread panicked: {:?}", e);
         }
     }
-    
+
     // Check if there were any errors
     let errors = errors.lock().unwrap();
     if !errors.is_empty() {
@@ -374,22 +375,30 @@ async fn init_tools() -> Result<(), String> {
         }
         std::process::exit(1);
     }
-    
+
     Ok(())
 }
 
 #[tauri::command]
 async fn check_tools() -> Result<serde_json::Value, String> {
     let temp_dir = std::env::temp_dir().join("viralmind-desktop");
-    
+
     // Check for ffmpeg
-    let ffmpeg_path = temp_dir.join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" });
+    let ffmpeg_path = temp_dir.join(if cfg!(windows) {
+        "ffmpeg.exe"
+    } else {
+        "ffmpeg"
+    });
     let ffmpeg_exists = ffmpeg_path.exists();
-    
+
     // Check for ffprobe
-    let ffprobe_path = temp_dir.join(if cfg!(windows) { "ffprobe.exe" } else { "ffprobe" });
+    let ffprobe_path = temp_dir.join(if cfg!(windows) {
+        "ffprobe.exe"
+    } else {
+        "ffprobe"
+    });
     let ffprobe_exists = ffprobe_path.exists();
-    
+
     // Check for dump-tree
     let dump_tree_path = temp_dir.join(if cfg!(windows) {
         "dump-tree-windows-x64.exe"
@@ -399,7 +408,7 @@ async fn check_tools() -> Result<serde_json::Value, String> {
         "dump-tree-linux-x64-arm64.js"
     });
     let dump_tree_exists = dump_tree_path.exists();
-    
+
     // Check for pipeline
     let pipeline_path = temp_dir.join(if cfg!(windows) {
         "pipeline-win-x64.exe"
@@ -409,7 +418,7 @@ async fn check_tools() -> Result<serde_json::Value, String> {
         "pipeline-linux-x64"
     });
     let pipeline_exists = pipeline_path.exists();
-    
+
     // Return the status of each tool
     Ok(serde_json::json!({
         "ffmpeg": ffmpeg_exists,
