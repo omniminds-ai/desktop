@@ -23,15 +23,15 @@ export async function getAppsForGym(filter?: {
   poolId?: string;
   minReward?: number;
   maxReward?: number;
-  category?: string;
+  categories?: string[];
   query?: string;
 }): Promise<ForgeApp[]> {
   const filteredUrl = new URL(`${API_URL}/api/forge/apps`);
   if (filter?.poolId) filteredUrl.searchParams.set('pool_id', filter.poolId);
-  if (filter?.minReward) filteredUrl.searchParams.set('pool_id', filter.minReward.toString());
-  if (filter?.maxReward) filteredUrl.searchParams.set('pool_id', filter.maxReward.toString());
-  if (filter?.category) filteredUrl.searchParams.set('pool_id', filter.category);
-  if (filter?.query) filteredUrl.searchParams.set('pool_id', filter.query);
+  if (filter?.minReward) filteredUrl.searchParams.set('min_reward', filter.minReward.toString());
+  if (filter?.maxReward) filteredUrl.searchParams.set('max_reward', filter.maxReward.toString());
+  if (filter?.categories) filteredUrl.searchParams.set('categories', filter.categories.toString());
+  if (filter?.query) filteredUrl.searchParams.set('query', filter.query);
 
   const response = await fetch(filteredUrl);
 
@@ -326,7 +326,7 @@ export async function initChunkedUpload(
   metadata: { poolId?: string; generatedTime?: number; id: string }
 ): Promise<{ uploadId: string; expiresIn: number; chunkSize: number }> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/upload/init`, {
+  const response = await fetch(`${API_URL}/api/forge/upload/init`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -350,14 +350,20 @@ export async function uploadChunk(
   chunk: Blob,
   chunkIndex: number,
   checksum: string
-): Promise<{ uploadId: string; chunkIndex: number; received: number; total: number; progress: number }> {
+): Promise<{
+  uploadId: string;
+  chunkIndex: number;
+  received: number;
+  total: number;
+  progress: number;
+}> {
   const token = get(connectionToken);
   const formData = new FormData();
   formData.append('chunk', chunk);
   formData.append('chunkIndex', chunkIndex.toString());
   formData.append('checksum', checksum);
 
-  const response = await fetch(`${API_BASE}/upload/chunk/${uploadId}`, {
+  const response = await fetch(`${API_URL}/api/forge/upload/chunk/${uploadId}`, {
     method: 'POST',
     headers: {
       'x-connect-token': token || ''
@@ -372,11 +378,16 @@ export async function uploadChunk(
   return response.json();
 }
 
-export async function getUploadStatus(
-  uploadId: string
-): Promise<{ uploadId: string; received: number; total: number; progress: number; createdAt: string; lastUpdated: string }> {
+export async function getUploadStatus(uploadId: string): Promise<{
+  uploadId: string;
+  received: number;
+  total: number;
+  progress: number;
+  createdAt: string;
+  lastUpdated: string;
+}> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/upload/status/${uploadId}`, {
+  const response = await fetch(`${API_URL}/api/forge/upload/status/${uploadId}`, {
     headers: {
       'x-connect-token': token || ''
     }
@@ -389,11 +400,13 @@ export async function getUploadStatus(
   return response.json();
 }
 
-export async function completeChunkedUpload(
-  uploadId: string
-): Promise<{ message: string; submissionId: string; files: Array<{ file: string; s3Key: string; size: number }> }> {
+export async function completeChunkedUpload(uploadId: string): Promise<{
+  message: string;
+  submissionId: string;
+  files: Array<{ file: string; s3Key: string; size: number }>;
+}> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/upload/complete/${uploadId}`, {
+  const response = await fetch(`${API_URL}/api/forge/upload/complete/${uploadId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -414,7 +427,7 @@ export async function completeChunkedUpload(
 
 export async function cancelChunkedUpload(uploadId: string): Promise<{ message: string }> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_BASE}/upload/cancel/${uploadId}`, {
+  const response = await fetch(`${API_URL}/api/forge/upload/cancel/${uploadId}`, {
     method: 'DELETE',
     headers: {
       'x-connect-token': token || ''

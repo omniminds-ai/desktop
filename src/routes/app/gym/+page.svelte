@@ -115,7 +115,7 @@
     </div>
   {:else}
     <div class="mx-auto mb-8">
-      <p class="text-gray-400">
+      <p class="text-gray-600">
         Choose a task, record a demonstration on your desktop, earn rewards. Your data helps us
         build the largest open-source dataset for training sophisticated AI assistants.
       </p>
@@ -356,6 +356,6 @@
       </Card>
     </div>
 
-    <AvailableTasks {apps} loadingApps={false} isGymBuilder={false} />
+    <AvailableTasks {apps} {poolId} loadingApps={false} isGymBuilder={false} />
   </div>
 </div>
