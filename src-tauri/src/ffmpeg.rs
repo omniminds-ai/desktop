@@ -12,7 +12,7 @@ pub static FFPROBE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 const FFMPEG_URLS: &[(&str, &str)] = &[
     ("windows", "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"),
-    ("linux", "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"),
+    ("linux", "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl-shared.tar.xz"),
     ("macos", "https://www.osxexperts.net/ffmpeg71intel.zip")
 
 ];
