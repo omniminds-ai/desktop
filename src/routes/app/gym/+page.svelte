@@ -1,16 +1,14 @@
 <script lang="ts">
-  import { slide } from 'svelte/transition';
   import Card from '$lib/components/Card.svelte';
   import { onMount } from 'svelte';
   import { getAppsForGym, getBalance, listSubmissions } from '$lib/api/forge';
   import type { ForgeApp } from '$lib/types/gym';
-  import GymHeader from '$lib/components/gym/GymHeader.svelte';
   import Button from '$lib/components/Button.svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { walletAddress } from '$lib/stores/wallet';
   import { page } from '$app/state';
   import AvailableTasks from '$lib/components/gym/AvailableTasks.svelte';
-  import { Loader, Wallet, WandSparkles, History, Zap } from 'lucide-svelte';
+  import { Wallet, History, Zap } from 'lucide-svelte';
   import WalletButton from '$lib/components/WalletButton.svelte';
 
   const poolId = page.url.searchParams.get('poolId') || undefined;

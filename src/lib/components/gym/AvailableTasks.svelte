@@ -1,6 +1,6 @@
 <script lang="ts">
   import Card from '$lib/components/Card.svelte';
-  import { slide } from 'svelte/transition';
+  import { fade, slide } from 'svelte/transition';
   import { Loader, Search } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import type { ForgeApp } from '$lib/types/gym';
@@ -35,6 +35,7 @@
   });
 
   async function getTasks() {
+    loadingApps = true;
     const a = await getAppsForGym({
       poolId: poolId,
       minReward: minPrice || priceRangeMin,
@@ -53,6 +54,8 @@
         a.sort((a, b) => b.pool_id.pricePerDemo - a.pool_id.pricePerDemo);
         break;
     }
+    showFilters = false;
+    loadingApps = false;
     apps = a;
   }
 
@@ -159,7 +162,14 @@
           <Search />
         {/snippet}
       </Input>
-      <Button variant="secondary" class="px-3!" onclick={getTasks} behavior="none">Search</Button>
+      <Button
+        disabled={!search}
+        variant="secondary"
+        class="px-3!"
+        onclick={getTasks}
+        behavior="none">
+        Search
+      </Button>
     </div>
   </div>
 
@@ -196,8 +206,8 @@
                 <select
                   bind:value={sort}
                   class="rounded-lg focus:ring-secondary-300 focus:border-secondary-300 block w-full p-2.5">
-                  <option selected value="lth">Low to High</option>
-                  <option value="htl">High to Low</option>
+                  <option selected value="htl">High to Low</option>
+                  <option value="lth">Low to High</option>
                 </select>
               </div>
             </div>
@@ -238,17 +248,17 @@
   {/if}
 
   {#if loadingApps}
-    <div class="flex items-center justify-center h-40">
+    <div in:fade={{ duration: 100 }} class="flex items-center justify-center h-40">
       <div
-        class="animate-spin h-8 w-8 border-4 border-secondary-500 rounded-full border-t-transparent">
+        class="animate-spin h-8 w-8 border-4 border-secondary-300 rounded-full border-t-transparent">
       </div>
     </div>
   {:else if apps.length === 0}
-    <div class="text-center py-12 text-gray-500">
-      <p>No tasks available.</p>
+    <div in:fade={{ duration: 100 }} class="text-center py-12 text-gray-500">
+      <p>No tasks found.</p>
     </div>
   {:else}
-    <div>
+    <div in:fade={{ duration: 100 }}>
       <div
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr w-full">
         {#each apps as app}
