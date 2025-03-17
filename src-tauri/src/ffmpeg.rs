@@ -1,7 +1,9 @@
+use crate::downloader::download_file;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
+
 // #[cfg(not(target_os = "macos"))]
 use {std::io::Write, std::process::Stdio, std::thread, std::time::Duration};
 
@@ -10,7 +12,7 @@ pub static FFPROBE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 const FFMPEG_URLS: &[(&str, &str)] = &[
     ("windows", "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"),
-    ("linux", "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"),
+    ("linux", "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl-shared.tar.xz"),
     ("macos", "https://www.osxexperts.net/ffmpeg71intel.zip")
 
 ];
@@ -22,35 +24,6 @@ fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
     temp.push("viralmind-desktop");
     temp
-}
-
-fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    log::info!(
-        "[FFmpeg] Downloading file from {} to {}",
-        url,
-        path.display()
-    );
-    let client = reqwest::blocking::Client::new();
-    let resp = client.get(url).send().map_err(|e| {
-        log::info!("[FFmpeg] Error: Failed to download FFmpeg: {}", e);
-        format!("Failed to download FFmpeg: {}", e)
-    })?;
-
-    let bytes = resp.bytes().map_err(|e| {
-        log::info!("[FFmpeg] Error: Failed to get response bytes: {}", e);
-        format!("Failed to get response bytes: {}", e)
-    })?;
-
-    fs::write(path, bytes).map_err(|e| {
-        log::info!("[FFmpeg] Error: Failed to write file: {}", e);
-        format!("Failed to write file: {}", e)
-    })?;
-
-    log::info!(
-        "[FFmpeg] Successfully downloaded file to {}",
-        path.display()
-    );
-    Ok(())
 }
 
 /// Checks for ffmpeg in the PATH and in the temp directory

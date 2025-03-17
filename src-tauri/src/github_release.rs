@@ -6,6 +6,8 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
+use crate::downloader::download_file;
+
 /// Metadata for a binary file downloaded from GitHub
 pub struct BinaryMetadata {
     pub version: String,
@@ -125,39 +127,6 @@ fn fetch_latest_release_metadata(
     );
 
     Ok(BinaryMetadata::new(version, timestamp))
-}
-
-/// Download a file from a URL to a local path
-fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    log::info!(
-        "[GitHub Release] Downloading file from {} to {}",
-        url,
-        path.display()
-    );
-    let client = reqwest::blocking::Client::new();
-    let resp = client.get(url).send().map_err(|e| {
-        log::info!("[GitHub Release] Error: Failed to download file: {}", e);
-        format!("Failed to download file: {}", e)
-    })?;
-
-    let bytes = resp.bytes().map_err(|e| {
-        log::info!(
-            "[GitHub Release] Error: Failed to get response bytes: {}",
-            e
-        );
-        format!("Failed to get response bytes: {}", e)
-    })?;
-
-    fs::write(path, bytes).map_err(|e| {
-        log::info!("[GitHub Release] Error: Failed to write file: {}", e);
-        format!("Failed to write file: {}", e)
-    })?;
-
-    log::info!(
-        "[GitHub Release] Successfully downloaded file to {}",
-        path.display()
-    );
-    Ok(())
 }
 
 /// Get the latest release of a binary from GitHub
