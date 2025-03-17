@@ -1,36 +1,63 @@
 <script lang="ts">
   import Card from '$lib/components/Card.svelte';
-  import { slide } from 'svelte/transition';
-  import PriceRangeSlider from '$lib/components/gym/PriceRangeSlider.svelte';
-  import { Loader } from 'lucide-svelte';
+  import { fade, slide } from 'svelte/transition';
+  import { Loader, Search } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import type { ForgeApp } from '$lib/types/gym';
-  import { getGymCategories } from '$lib/api/forge';
+  import { getAppsForGym, getGymCategories } from '$lib/api/forge';
+  import Input from '../Input.svelte';
+  import Button from '../Button.svelte';
 
   // Props
   export let apps: ForgeApp[] = [];
   export let loadingApps: boolean = false;
   export let viewMode: 'preview' = 'preview'; // Changed from 'edit' | 'preview' to only allow 'preview'
   export let isGymBuilder: boolean = false; // Whether this is used in GymBuilder or not
+  export let poolId: string | undefined = undefined;
   // these are unused
-  // export let poolId: string | undefined = undefined;
   // export let onRefresh: (() => Promise<void>) | null = null;
   // export let onGenerateTasks: (() => void) | null = null;
 
   // Filtering state
   let allCategories: string[] = [];
   let selectedCategories: Set<string> = new Set();
+  let sort: 'lth' | 'htl' = 'lth';
+  let search: string = '';
   let showFilters = false;
   // Initialize with localStorage values or defaults
-  let minPrice = parseInt(localStorage.getItem('gymMinPrice') || '0', 10);
-  let maxPrice = parseInt(localStorage.getItem('gymMaxPrice') || '500', 10);
-  let globalMinPrice = 0;
-  let globalMaxPrice = 500;
+  let minPrice: number | null = parseInt(localStorage.getItem('gymMinPrice') || '0', 10);
+  let maxPrice: number | null = parseInt(localStorage.getItem('gymMaxPrice') || '500', 10);
+  let priceRangeMin = 0;
+  let priceRangeMax = 500;
 
   onMount(async () => {
     updateCategories();
-    // apps = await getAppsForGym({ poolId: poolId, minReward: minPrice, maxReward: maxPrice });
   });
+
+  async function getTasks() {
+    loadingApps = true;
+    const a = await getAppsForGym({
+      poolId: poolId,
+      minReward: minPrice || priceRangeMin,
+      maxReward: maxPrice || priceRangeMax,
+      query: search,
+      categories: Array.from(selectedCategories)
+    });
+    switch (sort) {
+      case 'htl':
+        a.sort((a, b) => b.pool_id.pricePerDemo - a.pool_id.pricePerDemo);
+        break;
+      case 'lth':
+        a.sort((a, b) => a.pool_id.pricePerDemo - b.pool_id.pricePerDemo);
+        break;
+      default:
+        a.sort((a, b) => b.pool_id.pricePerDemo - a.pool_id.pricePerDemo);
+        break;
+    }
+    showFilters = false;
+    loadingApps = false;
+    apps = a;
+  }
 
   async function updateCategories() {
     // Get unique categories across all apps
@@ -54,8 +81,8 @@
   // Update price range when apps change
   $: if (apps.length > 0) {
     const prices = apps.map((app) => app.pool_id.pricePerDemo);
-    globalMinPrice = 0;
-    globalMaxPrice = Math.max(500, Math.ceil(Math.max(...prices)));
+    priceRangeMin = 0;
+    priceRangeMax = Math.max(500, Math.ceil(Math.max(...prices)));
 
     // Initialize price range if not set or if default values
     if (minPrice === 0 && maxPrice === 500) {
@@ -68,41 +95,42 @@
   // Save min/max price to localStorage whenever they change
   $: {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('gymMinPrice', minPrice.toString());
-      localStorage.setItem('gymMaxPrice', maxPrice.toString());
+      localStorage.setItem('gymMinPrice', minPrice?.toString() || '0');
+      localStorage.setItem('gymMaxPrice', maxPrice?.toString() || '500');
     }
   }
 
-  $: filteredApps = apps.filter((app) => {
-    const matchesCategories =
-      selectedCategories.size === 0 || app.categories.some((cat) => selectedCategories.has(cat));
-    const matchesPrice =
-      app.pool_id.pricePerDemo >= minPrice && app.pool_id.pricePerDemo <= maxPrice;
-    return matchesCategories && matchesPrice;
-  });
+  // $: filteredApps = apps.filter((app) => {
+  //   const matchesCategories =
+  //     selectedCategories.size === 0 || app.categories.some((cat) => selectedCategories.has(cat));
+  //   const matchesPrice =
+  //     app.pool_id.pricePerDemo >= minPrice && app.pool_id.pricePerDemo <= maxPrice;
+  //   return matchesCategories && matchesPrice;
+  // });
 </script>
 
 <!-- Available Tasks Heading -->
 {#if !isGymBuilder || viewMode === 'preview'}
-  <div class="flex items-center justify-between mb-4 mt-6">
+  <div class="flex items-center justify-between mb-2 mt-6 pl-0.5">
     <div class="flex items-center gap-2">
       <h2 class="text-xl font-bold text-gray-800">Available Tasks</h2>
       <div class="bg-secondary-200 text-white px-2 py-0.5 rounded-full text-xs font-medium">
-        {filteredApps.reduce((count, app) => count + app.tasks.length, 0)} Available
+        {apps.reduce((count, app) => count + app.tasks.length, 0)} Available
       </div>
     </div>
 
     <div class="flex items-center gap-2">
-      {#if selectedCategories.size > 0 || minPrice > globalMinPrice || maxPrice < globalMaxPrice}
+      {#if selectedCategories.size > 0 || (minPrice || 0) > priceRangeMin || (maxPrice || 500) < priceRangeMax}
         <div class="flex items-center gap-1 text-xs text-gray-500">
           <button
             class="text-secondary-500 hover:text-secondary-600 transition-colors hover:underline"
             onclick={() => {
               selectedCategories = new Set();
-              minPrice = globalMinPrice;
-              maxPrice = globalMaxPrice;
+              minPrice = priceRangeMin;
+              maxPrice = priceRangeMax;
               localStorage.removeItem('gymMinPrice');
               localStorage.removeItem('gymMaxPrice');
+              getTasks();
             }}>
             Reset Filters
           </button>
@@ -127,23 +155,66 @@
     </div>
   </div>
 
+  <div class="mb-2 pl-0.5 flex gap-2 w-full">
+    <div class="flex gap-2 self-start">
+      <Input variant="light" class="w-full!" bind:value={search} placeholder="Search tasks">
+        {#snippet icon()}
+          <Search />
+        {/snippet}
+      </Input>
+      <Button
+        disabled={!search}
+        variant="secondary"
+        class="px-3!"
+        onclick={getTasks}
+        behavior="none">
+        Search
+      </Button>
+    </div>
+  </div>
+
   {#if showFilters}
     <div transition:slide>
       <Card padding="lg" className="mb-6">
         <div class="flex flex-col gap-6">
           <!-- Price filter -->
-          <div>
-            <div class="text-sm font-medium text-gray-700 mb-2">Filter by reward</div>
-            <PriceRangeSlider
-              bind:minPrice
-              bind:maxPrice
-              globalMin={globalMinPrice}
-              globalMax={globalMaxPrice} />
+          <div class="flex flex-row gap-8 items-center">
+            <div>
+              <p class="font-medium text-gray-700 mb-2">Price</p>
+              <div class="flex flex-row items-center gap-3">
+                <Input
+                  variant="light"
+                  bind:value={minPrice}
+                  max={priceRangeMax + 1}
+                  min={priceRangeMin}
+                  class="w-20!"
+                  type="number" />
+                <span class="text-gray-500">to</span>
+                <Input
+                  variant="light"
+                  bind:value={maxPrice}
+                  class="w-20!"
+                  min={priceRangeMin - 1}
+                  max={priceRangeMax}
+                  type="number" />
+                <span class="text-gray-500">$VIRAL</span>
+              </div>
+            </div>
+            <div>
+              <p class="font-medium text-gray-700 mb-2">Sort</p>
+              <div class="flex flex-row items-center gap-3">
+                <select
+                  bind:value={sort}
+                  class="rounded-lg focus:ring-secondary-300 focus:border-secondary-300 block w-full p-2.5">
+                  <option selected value="htl">High to Low</option>
+                  <option value="lth">Low to High</option>
+                </select>
+              </div>
+            </div>
           </div>
-
           <!-- Categories -->
           <div>
-            <div class="text-sm font-medium text-gray-700 mb-2">Filter by category</div>
+            <p class="font-medium text-gray-700 mb-2">Category</p>
             <div class="flex flex-wrap gap-1.5">
               <button
                 class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.size ===
@@ -166,26 +237,31 @@
               {/each}
             </div>
           </div>
+          <div class="flex w-full">
+            <Button class="ml-auto" variant="primary" behavior="none" onclick={getTasks}>
+              Apply
+            </Button>
+          </div>
         </div>
       </Card>
     </div>
   {/if}
 
   {#if loadingApps}
-    <div class="flex items-center justify-center h-40">
+    <div in:fade={{ duration: 100 }} class="flex items-center justify-center h-40">
       <div
-        class="animate-spin h-8 w-8 border-4 border-secondary-500 rounded-full border-t-transparent">
+        class="animate-spin h-8 w-8 border-4 border-secondary-300 rounded-full border-t-transparent">
       </div>
     </div>
   {:else if apps.length === 0}
-    <div class="text-center py-12 text-gray-500">
-      <p>No tasks available.</p>
+    <div in:fade={{ duration: 100 }} class="text-center py-12 text-gray-500">
+      <p>No tasks found.</p>
     </div>
   {:else}
-    <div>
+    <div in:fade={{ duration: 100 }}>
       <div
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr w-full">
-        {#each filteredApps as app}
+        {#each apps as app}
           {#each app.tasks as task}
             <a
               href="/app/gym/chat?prompt={encodeURIComponent(task.prompt)}&app={encodeURIComponent(

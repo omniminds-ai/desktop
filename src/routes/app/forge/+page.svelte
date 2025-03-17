@@ -2,7 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
   import GenerateGymModal from '$lib/components/GenerateGymModal.svelte';
-  import { ChevronRight } from 'lucide-svelte';
+  import { ChevronRight, RefreshCw } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import { walletAddress } from '$lib/stores/wallet';
   import {
@@ -168,7 +168,12 @@
       </div>
     </div>
   {:else if loading}
-    <div class="text-center text-gray-400 py-8">Loading AI agent gyms...</div>
+    <div class="w-full mx-auto text-center">
+      <div class="mb-6 mx-auto">
+        <RefreshCw size={48} class="text-secondary-300 mx-auto animate-spin" />
+      </div>
+      <p class="text-lg font-medium text-gray-800">Loading Forge Gyms</p>
+    </div>
   {:else if trainingPools.length === 0}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       <!-- Create New Gym Card -->
