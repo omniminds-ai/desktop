@@ -104,22 +104,47 @@ pub fn get_ffprobe_dir() -> PathBuf {
 }
 
 /// Downloads and extracts a binary from an archive
+/// If keep_archive is true, the archive file will not be deleted after extraction
+/// If url is empty, it assumes the archive already exists and skips the download step
 fn download_and_extract_binary(
     url: &str,
     archive_path: &Path,
     binary_path: &Path,
     binary_name: &str,
     os_type: &str,
+    keep_archive: bool,
 ) -> Result<(), String> {
-    log::info!(
-        "[FFmpeg] Downloading {} for {} from {}",
-        binary_name,
-        os_type,
-        url
-    );
+    // Check if we need to download or just extract from existing archive
+    if !url.is_empty() {
+        log::info!(
+            "[FFmpeg] Downloading {} for {} from {}",
+            binary_name,
+            os_type,
+            url
+        );
 
-    // Download the archive
-    download_file(url, archive_path)?;
+        // Check if archive already exists before downloading
+        if !archive_path.exists() {
+            // Download the archive
+            download_file(url, archive_path)?;
+        } else {
+            log::info!(
+                "[FFmpeg] Using existing archive for {} at {}",
+                binary_name,
+                archive_path.display()
+            );
+        }
+    } else {
+        // Just using existing archive, no download needed
+        if !archive_path.exists() {
+            return Err(format!("Archive file not found at {}", archive_path.display()));
+        }
+        log::info!(
+            "[FFmpeg] Using existing archive for {} at {}",
+            binary_name,
+            archive_path.display()
+        );
+    }
 
     log::info!("[FFmpeg] Extracting {} from archive", binary_name);
 
@@ -255,12 +280,25 @@ fn download_and_extract_binary(
         })?;
     }
 
-    // Clean up archive file
-    log::info!("[FFmpeg] Cleaning up archive file");
-    fs::remove_file(archive_path).map_err(|e| {
-        log::info!("[FFmpeg] Warning: Failed to cleanup archive: {}", e);
-        format!("Failed to cleanup archive: {}", e)
-    })?;
+    // Clean up archive file if not keeping it
+    if !keep_archive {
+        log::info!("[FFmpeg] Cleaning up archive file");
+        fs::remove_file(archive_path).map_err(|e| {
+            log::info!("[FFmpeg] Warning: Failed to cleanup archive: {}", e);
+            format!("Failed to cleanup archive: {}", e)
+        })?;
+    }
+
+    Ok(())
+}
+
+/// Initialize both FFmpeg and FFprobe
+pub fn init_ffmpeg_and_ffprobe() -> Result<(), String> {
+    // Initialize FFmpeg first
+    init_ffmpeg()?;
+
+    // Then initialize FFprobe
+    init_ffprobe()?;
 
     Ok(())
 }
@@ -324,7 +362,14 @@ pub fn init_ffmpeg() -> Result<(), String> {
         })?;
 
     let archive_path = temp_dir.join("ffmpeg.archive");
-    download_and_extract_binary(url, &archive_path, &ffmpeg_path, "ffmpeg", os)?;
+
+    // On Windows and Linux, we need to keep the archive for ffprobe extraction
+    #[cfg(not(target_os = "macos"))]
+    let keep_archive = true;
+    #[cfg(target_os = "macos")]
+    let keep_archive = false;
+
+    download_and_extract_binary(url, &archive_path, &ffmpeg_path, "ffmpeg", os, keep_archive)?;
 
     // Set the path
     log::info!(
@@ -389,13 +434,14 @@ pub fn init_ffprobe() -> Result<(), String> {
             &ffprobe_path,
             "ffprobe",
             "macos",
+            false, // On macOS, ffprobe has its own archive, so we don't need to keep it
         )?;
     }
 
     // For Windows and Linux, FFprobe is included in the same archive as FFmpeg
     #[cfg(not(target_os = "macos"))]
     {
-        // We need to download the FFmpeg archive which contains FFprobe
+        // We need to use the FFmpeg archive which contains FFprobe
         let (os, url) = FFMPEG_URLS
             .iter()
             .find(|(os, _)| match *os {
@@ -409,7 +455,16 @@ pub fn init_ffprobe() -> Result<(), String> {
             })?;
 
         let archive_path = temp_dir.join("ffmpeg.archive");
-        download_and_extract_binary(url, &archive_path, &ffprobe_path, "ffprobe", os)?;
+        
+        // Check if the archive already exists from the ffmpeg download
+        if !archive_path.exists() {
+            log::info!("[FFmpeg] Archive not found, downloading for ffprobe extraction");
+            download_and_extract_binary(url, &archive_path, &ffprobe_path, "ffprobe", os, false)?;
+        } else {
+            log::info!("[FFmpeg] Using existing archive for ffprobe extraction");
+            // Extract ffprobe from the existing archive
+            download_and_extract_binary("", &archive_path, &ffprobe_path, "ffprobe", os, false)?;
+        }
     }
 
     // Set the path

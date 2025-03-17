@@ -316,21 +316,9 @@ async fn init_tools() -> Result<(), String> {
     {
         let errors = Arc::clone(&errors);
         let handle = thread::spawn(move || {
-            if let Err(e) = ffmpeg::init_ffmpeg() {
+            if let Err(e) = ffmpeg::init_ffmpeg_and_ffprobe() {
                 let mut errors = errors.lock().unwrap();
-                errors.push(format!("Failed to initialize FFmpeg: {}", e));
-            }
-        });
-        handles.push(handle);
-    }
-
-    // Spawn thread for FFprobe initialization
-    {
-        let errors = Arc::clone(&errors);
-        let handle = thread::spawn(move || {
-            if let Err(e) = ffmpeg::init_ffprobe() {
-                let mut errors = errors.lock().unwrap();
-                errors.push(format!("Failed to initialize FFprobe: {}", e));
+                errors.push(format!("Failed to initialize FFmpeg/FFprobe: {}", e));
             }
         });
         handles.push(handle);
