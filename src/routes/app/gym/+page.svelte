@@ -20,10 +20,9 @@
 
   let apps: ForgeApp[] = [];
   let allCategories: string[] = [];
-  let selectedCategories: Set<string> = new Set();
+  let loadingApps = true;
   let viralBalance = 0;
   let unclaimedRewards = 0;
-  let showFilters = false;
   let recentSubmissions: any[] = [];
   let earnedThisMonth = 0;
   let pendingRecordings: any[] = [];
@@ -82,9 +81,11 @@
       loadBalance($walletAddress);
     }
     try {
+      loadingApps = true;
       apps = await getAppsForGym({ poolId });
       // Get unique categories across all apps
       allCategories = [...new Set(apps.flatMap((app) => app.categories))].sort();
+      loadingApps = false;
     } catch (error) {
       console.error('Failed to fetch apps:', error);
     }
@@ -354,6 +355,6 @@
       </Card>
     </div>
 
-    <AvailableTasks {apps} {poolId} loadingApps={false} isGymBuilder={false} />
+    <AvailableTasks {apps} {poolId} {loadingApps} isGymBuilder={false} />
   </div>
 </div>
