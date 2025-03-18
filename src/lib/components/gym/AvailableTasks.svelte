@@ -278,14 +278,19 @@
                 <!-- Task Header with Tag -->
                 <div
                   class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 grow-0">
                     <img src={getFaviconUrl(app.domain)} alt={`${app.name} icon`} class="w-5 h-5" />
-                    <span class="text-sm font-medium text-gray-700 truncate">{app.name}</span>
+                    <span
+                      class="text-sm max-w-72 sm:max-w-48 md:max-w-64 lg:max-w-40 font-medium text-gray-700 truncate">
+                      {app.name}
+                    </span>
                   </div>
-                  <div
-                    class="bg-secondary-300 text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
-                    <Loader size={12} />
-                    <span>Task</span>
+                  <div class="grow">
+                    <div
+                      class="bg-secondary-300 grow-0 w-fit ml-auto text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
+                      <Loader size={12} />
+                      <span>Task</span>
+                    </div>
                   </div>
                 </div>
 
