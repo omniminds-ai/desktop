@@ -37,7 +37,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             src-tauri/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.args }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: setup node
         uses: actions/setup-node@v4
