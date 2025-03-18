@@ -137,7 +137,10 @@ fn download_and_extract_binary(
     } else {
         // Just using existing archive, no download needed
         if !archive_path.exists() {
-            return Err(format!("Archive file not found at {}", archive_path.display()));
+            return Err(format!(
+                "Archive file not found at {}",
+                archive_path.display()
+            ));
         }
         log::info!(
             "[FFmpeg] Using existing archive for {} at {}",
@@ -455,7 +458,7 @@ pub fn init_ffprobe() -> Result<(), String> {
             })?;
 
         let archive_path = temp_dir.join("ffmpeg.archive");
-        
+
         // Check if the archive already exists from the ffmpeg download
         if !archive_path.exists() {
             log::info!("[FFmpeg] Archive not found, downloading for ffprobe extraction");

@@ -302,7 +302,7 @@ pub fn run() {
 }
 // remember to call `.manage(MyState::default())`
 #[tauri::command]
-async fn init_tools() -> Result<(), String> {
+async fn init_tools(app: tauri::AppHandle) -> Result<(), String> {
     use std::sync::{Arc, Mutex};
     use std::thread;
 
@@ -361,7 +361,12 @@ async fn init_tools() -> Result<(), String> {
         for err in errors.iter() {
             error!("{}", err);
         }
-        std::process::exit(1);
+        let _ = app.emit(
+            "init_tools_errors",
+            serde_json::json!({
+                "errors": errors.to_vec()
+            }),
+        );
     }
 
     Ok(())
