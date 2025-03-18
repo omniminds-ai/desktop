@@ -162,14 +162,7 @@
           <Search />
         {/snippet}
       </Input>
-      <Button
-        disabled={!search}
-        variant="secondary"
-        class="px-3!"
-        onclick={getTasks}
-        behavior="none">
-        Search
-      </Button>
+      <Button variant="secondary" class="px-3!" onclick={getTasks} behavior="none">Search</Button>
     </div>
   </div>
 
