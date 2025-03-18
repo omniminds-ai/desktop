@@ -116,7 +116,7 @@
   <div class="flex flex-col gap-2">
     {#if unsavedChanges}
       <Button
-        class="w-full justify-center bg-green-500! text-white! hover:bg-green-600!"
+        class="w-full justify-center border-green-500! hover:border-green-600! bg-green-500! text-white! hover:bg-green-600!"
         onclick={handleSaveChanges}>
         Save Changes
       </Button>

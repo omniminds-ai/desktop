@@ -2,14 +2,26 @@
   import Card from '../Card.svelte';
   import Button from '../Button.svelte';
   import TextArea from '../TextArea.svelte';
-  import { Pencil, Check, X, Eye, Sparkles, DollarSign, Train, Plus, Trash2, Save, RotateCcw } from 'lucide-svelte';
+  import {
+    Pencil,
+    Check,
+    X,
+    Eye,
+    Sparkles,
+    DollarSign,
+    Train,
+    Plus,
+    Trash2,
+    Save,
+    RotateCcw
+  } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
   import type { ForgeApp } from '$lib/types/gym';
   import { onMount } from 'svelte';
-  
+
   // Function to save changes to the backend
   export let handleSaveChanges: () => Promise<void>;
-  
+
   // Wrap the original handleSaveChanges to update originalApps after saving
   async function saveChanges() {
     await handleSaveChanges();
@@ -17,7 +29,7 @@
     originalApps = JSON.parse(JSON.stringify(apps));
     pool.unsavedApps = false;
   }
-  
+
   // Store original apps for reset functionality
   let originalApps: ForgeApp[] = [];
   import { getAppsForGym } from '$lib/api/forge';
@@ -50,7 +62,7 @@
     // Store a deep copy of the original apps
     originalApps = JSON.parse(JSON.stringify(apps));
   });
-  
+
   // Function to reset changes
   function resetChanges() {
     // Restore apps from the original copy
@@ -173,27 +185,27 @@
 
   function addNewTask(appIndex: number) {
     const newTask = {
-      prompt: "Enter task description here",
-      type: "text"
+      prompt: 'Enter task description here',
+      type: 'text'
     };
-    
+
     apps[appIndex].tasks.push(newTask);
     apps = [...apps]; // Trigger reactivity
     unsavedChanges = true;
     pool.unsavedApps = true;
-    
+
     // Start editing the new task immediately
     const taskIndex = apps[appIndex].tasks.length - 1;
     startEditing(apps[appIndex].name, taskIndex.toString(), 'prompt', newTask.prompt);
   }
-  
+
   function removeTask(appIndex: number, taskIndex: number) {
     apps[appIndex].tasks.splice(taskIndex, 1);
     apps = [...apps]; // Trigger reactivity
     unsavedChanges = true;
     pool.unsavedApps = true;
   }
-  
+
   function removeApp(appIndex: number) {
     apps.splice(appIndex, 1);
     apps = [...apps]; // Trigger reactivity
@@ -258,11 +270,7 @@
     </div>
   {:else if viewMode === 'preview'}
     <!-- Preview Mode using AvailableTasks component -->
-    <AvailableTasks
-      {apps}
-      {loadingApps}
-      viewMode="preview"
-      isGymBuilder={true} />
+    <AvailableTasks {apps} {loadingApps} viewMode="preview" isGymBuilder={true} />
   {:else if apps.length === 0}
     <div class="text-center py-12 text-gray-500">
       <p>No apps available yet.</p>
@@ -338,19 +346,19 @@
                 <!-- Price -->
                 {#if editingAppId === app.name && editingField === 'price'}
                   <div class="flex items-center gap-1">
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="1"
-                    class="w-20 px-2 py-1 text-sm border rounded"
-                    bind:value={editValue} />
-                  <span class="text-sm">{pool.token.symbol}</span>
-                  <button class="text-green-500 hover:text-green-700" onclick={saveEditing}>
-                    <Check size={16} />
-                  </button>
-                  <button class="text-red-500 hover:text-red-700" onclick={cancelEditing}>
-                    <X size={16} />
-                  </button>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="1"
+                      class="w-20 px-2 py-1 text-sm border rounded"
+                      bind:value={editValue} />
+                    <span class="text-sm">{pool.token.symbol}</span>
+                    <button class="text-green-500 hover:text-green-700" onclick={saveEditing}>
+                      <Check size={16} />
+                    </button>
+                    <button class="text-red-500 hover:text-red-700" onclick={cancelEditing}>
+                      <X size={16} />
+                    </button>
                   </div>
                 {:else}
                   <button
@@ -366,10 +374,10 @@
                     </div>
                   </button>
                 {/if}
-                
+
                 <!-- Remove App Button -->
-                <button 
-                  class="text-gray-400 hover:text-red-500 p-1 ml-2 transition-colors" 
+                <button
+                  class="text-gray-400 hover:text-red-500 p-1 ml-2 transition-colors"
                   title="Remove App"
                   onclick={() => removeApp(appIndex)}>
                   <Trash2 size={16} />
@@ -381,7 +389,7 @@
             <div class="mt-4 pt-3">
               <div class="flex justify-between items-center mb-2">
                 <div class="text-sm font-medium text-gray-700">Tasks</div>
-                <button 
+                <button
                   class="text-secondary-600 hover:text-secondary-800 flex items-center gap-1 text-xs"
                   onclick={() => addNewTask(appIndex)}>
                   <Plus size={14} />
@@ -420,8 +428,8 @@
                             size={14}
                             class="text-gray-700 grow-0 opacity-0 group-hover:opacity-100 mt-1 transition-all duration-200" />
                         </button>
-                        <button 
-                          class="text-gray-400  opacity-0 group-hover:opacity-100 hover:text-red-500 p-1 ml-2 transition-all" 
+                        <button
+                          class="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 p-1 ml-2 transition-all"
                           title="Remove Task"
                           onclick={() => removeTask(appIndex, taskIndex)}>
                           <Trash2 size={14} />
@@ -438,13 +446,13 @@
         </Card>
       {/each}
     </div>
-    
+
     <!-- Add New App Button -->
     {#if !showNewAppForm}
       <div class="mt-4 flex justify-center">
         <button
           class="px-4 py-2 bg-secondary-500 text-white rounded-md hover:bg-secondary-600 transition-colors flex items-center gap-2"
-          onclick={() => showNewAppForm = true}>
+          onclick={() => (showNewAppForm = true)}>
           <Plus size={16} />
           Add New App
         </button>
@@ -463,7 +471,9 @@
                 bind:value={newAppName} />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">App Domain (optional)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                App Domain (optional)
+              </label>
               <input
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -489,31 +499,25 @@
     {/if}
   {/if}
 
-    
   <!-- Sticky bottom buttons for save/reset -->
   {#if unsavedChanges}
-  <div class="sticky bottom-0 w-full bg-gray-50 border-gray-200 p-4 z-10">
-    <div class="flex gap-2">
-      <Button
-        class="flex-1 justify-center bg-green-500! text-white! hover:bg-green-600!"
-        onclick={saveChanges}>
-        <div class="flex items-center">
-          <Save size={16} class="mr-2" />
-          Save Changes
-        </div>
-      </Button>
-      <Button
-        class="flex-1 justify-center"
-        variant="secondary"
-        onclick={resetChanges}>
-        <div class="flex items-center">
-          <RotateCcw size={16} class="mr-2" />
-          Reset Changes
-        </div>
-      </Button>
+    <div class="sticky bottom-0 w-full bg-gray-50 border-gray-200 p-4 z-10">
+      <div class="flex gap-2">
+        <Button
+          class="w-1/2 justify-center border-green-500! hover:border-green-600! bg-green-500! text-white! hover:bg-green-600!"
+          onclick={saveChanges}>
+          <div class="flex items-center">
+            <Save size={16} class="mr-2" />
+            Save Changes
+          </div>
+        </Button>
+        <Button class="flex-1 justify-center" variant="secondary" onclick={resetChanges}>
+          <div class="flex items-center">
+            <RotateCcw size={16} class="mr-2" />
+            Reset Changes
+          </div>
+        </Button>
+      </div>
     </div>
-  </div>
-
   {/if}
-
 </div>
