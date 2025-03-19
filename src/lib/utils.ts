@@ -9,6 +9,9 @@ import { listSubmissions } from './api/forge';
 import { walletAddress } from './stores/wallet';
 import type { Recording } from './gym';
 
+// Export toast utilities
+export * from './utils/toast';
+
 export function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
   import '../app.css';
+  import ToastContainer from '$lib/components/ToastContainer.svelte';
 
   let { children } = $props();
 

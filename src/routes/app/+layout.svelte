@@ -36,7 +36,7 @@
 
       // If all tools are initialized, stop checking
       if (initializedTools === totalTools) {
-        console.log('All tools initialized:', status);
+        console.log('All tools initialized');
 
         // Hide the progress bar after a short delay
         setTimeout(() => {

@@ -232,7 +232,7 @@
   let submissionError: string | null = null;
   let showUploadConfirmModal = false;
   let exportingZip = false;
-  let exportZipPath: string | null = null;
+  let exportedZipPath: string | null = null;
   let exportZipError: string | null = null;
 
   // Function to export zip creation
@@ -241,47 +241,13 @@
 
     try {
       exportingZip = true;
-      exportZipPath = null;
+      exportedZipPath = null;
       exportZipError = null;
 
       // Create the zip file using the Rust backend
-      // This will create the temp directory with masked video but won't delete it
-      const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
-
-      // Get the recordings directory path
-      const appDataDir = await invoke<string>('get_app_data_dir');
-      const recordingsDir = `${appDataDir}/recordings/${recordingId}`;
-
-      // Log the temp directory location for export
-      console.log(
-        'Temp directory with masked content should be at:',
-        `${recordingsDir}/temp_private`
-      );
-
-      // Convert to Blob and create a download link
-      const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
-      const url = URL.createObjectURL(zipBlob);
-
-      // Create a timestamp for the filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `export_zip_${timestamp}.zip`;
-
-      // Create a download link and click it
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-
-      // Clean up
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
-
-      exportZipPath = `Downloaded as ${filename}`;
-      console.log('Export zip downloaded as:', filename);
-      console.log('Check the temp_private directory for masked content');
+      exportedZipPath = await invoke<string>('export_recording_zip', { id: recordingId });
+      if (!exportedZipPath) throw Error('No export location selected.');
+      console.log('Export zip downloaded to:', exportedZipPath);
     } catch (error) {
       console.error('Failed to export zip creation:', error);
       exportZipError = error instanceof Error ? error.message : String(error);
@@ -292,22 +258,6 @@
 
   // Poll submission status
   let statusInterval: number | null = null;
-  function pollSubmissionStatus(submissionId: string) {
-    statusInterval = setInterval(async () => {
-      try {
-        const status = await getSubmissionStatus(submissionId);
-        submission = status;
-        if (status.status === 'completed' || status.status === 'failed') {
-          if (statusInterval) {
-            clearInterval(statusInterval);
-            statusInterval = null;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to get submission status:', error);
-      }
-    }, 5000);
-  }
 
   // Clean up interval on unmount
   onDestroy(() => {
@@ -1009,10 +959,9 @@
               <p class="text-red-500 text-sm mt-2">Upload Error: {submissionError}</p>
             {/if}
 
-            {#if exportZipPath}
-              <p class="text-green-500 text-sm mt-2">Export Zip: {exportZipPath}</p>
-              <p class="text-gray-500 text-xs mt-1">
-                Check the temp_private directory in the recording folder for masked content.
+            {#if exportedZipPath}
+              <p class="text-green-500 text-sm mt-2">
+                Zip successfully exported: {exportedZipPath}
               </p>
             {/if}
 
