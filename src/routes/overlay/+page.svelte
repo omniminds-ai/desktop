@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { platform } from '@tauri-apps/plugin-os';
   import { onMount, onDestroy } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
-  import * as gym from '$lib/gym';
-  import AppText from '$lib/components/gym/AppText.svelte';
-  import { tweened } from 'svelte/motion';
-  import { cubicOut, elasticOut } from 'svelte/easing';
+  import { ChevronDown, ChevronUp, Lock, Pause, Play, Square, Unlock } from 'lucide-svelte';
+  import type { Quest } from '$lib/types/gym';
+  import { stopRecording } from '$lib/gym';
+  import { slide } from 'svelte/transition';
 
   type RecordingState = 'recording' | 'stopping' | 'stopped';
 
@@ -17,43 +16,93 @@
     quest: Quest | null;
   }
 
+  // Recording State
   let recordingState = $state<RecordingState>('stopped');
   let recordingTime = $state(0);
-  let timer: number;
-  import type { Quest } from '$lib/types/gym';
   let currentQuest = $state<Quest | null>(null);
-  
-  const slideIn = tweened(-100, {
-    duration: 500,
-    easing: cubicOut
-  });
 
-  const showContent = tweened(1, {
-    duration: 300,
-    easing: cubicOut
-  });
+  // Time tracking
+  let hours = 0;
+  let minutes = 0;
+  let seconds = 0;
+  let timerInterval: number | undefined;
 
-  function startAnimations() {
-    slideIn.set(0);
-    setTimeout(() => {
-      showContent.set(0);
-    }, 3000);
-  }
+  // UI State
+  let isHovered = $state(false);
+  let isLocked = $state(false);
+  let isCollapsed = $state(false);
+
+  // Dragging state
+  let position = $state({ x: 0, y: 20 });
+  let isDragging = $state(false);
+  let dragOffset = $state({ x: 0, y: 0 });
+  let overlayElement: HTMLDivElement | undefined = $state();
+
+  const formattedTime = $derived(
+    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  );
 
   function startTimer() {
-    timer = setInterval(() => {
-      recordingTime++;
-    }, 1000);
+    if (!timerInterval && recordingState === 'recording') {
+      timerInterval = setInterval(() => {
+        seconds++;
+        if (seconds >= 60) {
+          seconds = 0;
+          minutes++;
+          if (minutes >= 60) {
+            minutes = 0;
+            hours++;
+          }
+        }
+      }, 1000);
+    }
   }
 
   function stopTimer() {
-    if (timer) clearInterval(timer);
+    clearInterval(timerInterval);
+    timerInterval = undefined;
   }
 
-  function formatTime(seconds: number) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  $effect(() => {
+    if (recordingState === 'recording') {
+      startTimer();
+    } else {
+      stopTimer();
+    }
+  });
+
+  function handleMouseDown(e: MouseEvent) {
+    if (isLocked) return;
+    if (!overlayElement) return;
+
+    isDragging = true;
+    const rect = overlayElement.getBoundingClientRect();
+    dragOffset = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+    e.preventDefault();
+  }
+
+  function handleMouseMove(e: MouseEvent) {
+    if (!overlayElement) return;
+    if (isDragging && !isLocked) {
+      // Calculate new position, keeping the overlay within viewport bounds
+      const newX = Math.max(
+        0,
+        Math.min(e.clientX - dragOffset.x, window.innerWidth - overlayElement.offsetWidth)
+      );
+      const newY = Math.max(
+        0,
+        Math.min(e.clientY - dragOffset.y, window.innerHeight - overlayElement.offsetHeight)
+      );
+
+      position = { x: newX, y: newY };
+    }
+  }
+
+  function handleMouseUp() {
+    isDragging = false;
   }
 
   function resetQuest() {
@@ -63,11 +112,11 @@
 
   function initializeQuest(quest: Quest) {
     currentQuest = quest;
-    showContent.set(1);
-    startAnimations();
   }
 
   onMount(() => {
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
     let unlistenRecording: () => void;
     let unlistenQuest: () => void;
 
@@ -94,6 +143,8 @@
       }
     }).then((unlistenFn) => {
       unlistenQuest = unlistenFn;
+      alert(currentQuest);
+      alert(recordingState);
     });
 
     return () => {
@@ -103,76 +154,138 @@
   });
 
   onDestroy(() => {
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
     stopTimer();
   });
 
-  let isMinimized = $derived($showContent === 0);
-  
-  // Animated properties 
-  const borderOpacity = tweened(0, {
-    duration: 400,
-    easing: elasticOut
-  });
-  
-  let animationFrame: number | null = null;
-  let startTime = 0;
-  
-  // Update animated properties based on recording state
-  $effect(() => {
-    // Clear any existing animation
-    if (animationFrame !== null) {
-      cancelAnimationFrame(animationFrame);
-      animationFrame = null;
-    }
-    
-    if (recordingState === 'recording') {
-      // Initialize the start time
-      startTime = Date.now();
-      
-      // Create a smooth sine wave animation for opacity between 0.3 and 1.0
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        // Use sine function to create a wave pattern oscillating between 0.3 and 1.0
-        // sin returns -1 to 1, so we adjust to get the range we want
-        const opacity = 0.65 + 0.35 * Math.sin(elapsed / 800); // 800ms controls speed of oscillation
-        
-        borderOpacity.set(opacity);
-        animationFrame = requestAnimationFrame(animate);
-      };
-      
-      animationFrame = requestAnimationFrame(animate);
-      
-    } else if (recordingState === 'stopping') {
-      // Solid border for stopping state with full opacity
-      borderOpacity.set(1.0);
-    } else {
-      borderOpacity.set(0);
-    }
-  });
-  
-  // Clean up animation on component destruction
-  onDestroy(() => {
-    if (animationFrame !== null) {
-      cancelAnimationFrame(animationFrame);
-    }
-  });
+  // Handle button events
+  async function handleStop() {
+    //todo: stop the recording
+    await stopRecording();
+  }
+
+  function toggleCollapsed() {
+    isCollapsed = !isCollapsed;
+  }
+
+  function toggleLocked() {
+    isLocked = !isLocked;
+  }
+
+  function handleMouseEnter() {
+    isHovered = true;
+  }
+
+  function handleMouseLeave() {
+    isHovered = false;
+    console.log(window.innerWidth - 280);
+  }
 </script>
 
-<div class="overlay-content">
-  {#if recordingState !== 'stopped' && currentQuest}
-    <div 
-      class="fixed inset-0 pointer-events-none transition-colors duration-300"
-      style="border-width: 6px; opacity: {$borderOpacity};"
-      class:border-red-500={recordingState === 'recording'}
-      class:border-yellow-500={recordingState === 'stopping'}>
-    </div>
-  {/if}
-</div>
+<!-- {#if recordingState !== 'stopped' && currentQuest} -->
+{#if true}
+  <div
+    bind:this={overlayElement}
+    role="dialog"
+    aria-label="Recording overlay"
+    style="left: {position.x}px; 
+         top: {position.y}px; 
+         opacity: {isHovered ? 0.95 : 0.7};"
+    onmouseenter={handleMouseEnter}
+    onmouseleave={handleMouseLeave}
+    class="shadow-lg transition-opacity duration-200 z-50 w-[280px] max-h-[203px] absolute rounded-lg overflow-hidden bg-primary-500 border border-secondary-400">
+    <!-- Header with recording indicator - serves as drag handle -->
+    <div
+      role="button"
+      tabindex="0"
+      class="p-3 flex items-center justify-between bg-primary-600 {isLocked
+        ? 'cursor-default'
+        : 'cursor-move'}"
+      onmousedown={handleMouseDown}>
+      <div class="flex items-center">
+        {#if recordingState == 'recording'}
+          <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse mr-2"></div>
+          <span class="text-accent-100 font-title text-sm">Recording</span>
+          <!-- PAUSE STATE
+          {:else if isPaused}
+            <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+            <span class="text-accent-100 font-title text-sm">Paused</span> -->
+        {:else}
+          <div class="w-3 h-3 rounded-full bg-accent-500 mr-2"></div>
+          <span class="text-accent-100 font-title text-sm">Stopped</span>
+        {/if}
+      </div>
 
-<style>
-  :global(body) {
-    margin: 0;
-    padding: 0;
-    background: transparent;
-  }
-</style>
+      <div class="flex items-center">
+        <span class="text-accent-100 text-xs mr-2">{formattedTime}</span>
+
+        <!-- Collapse/Expand toggle -->
+        <button
+          onclick={toggleCollapsed}
+          class="text-accent-100 opacity-70 hover:opacity-100 ml-1 transition-opacity">
+          {#if isCollapsed}
+            <ChevronUp class="w-4 h-4" />
+          {:else}
+            <ChevronDown class="w-4 h-4" />
+          {/if}
+        </button>
+
+        <!-- Lock/Unlock toggle -->
+        <button
+          onclick={toggleLocked}
+          class="text-accent-100 opacity-70 hover:opacity-100 ml-1 transition-opacity">
+          {#if isLocked}
+            <Lock class="w-4 h-4" />
+          {:else}
+            <Unlock class="w-4 h-4" />
+          {/if}
+        </button>
+      </div>
+    </div>
+
+    <!-- Content area - hidden when collapsed -->
+    {#if !isCollapsed}
+      <div class="flex flex-col" transition:slide>
+        <!-- Task details section -->
+        <div class="p-3 bg-primary-400">
+          <h3 class="text-secondary-200 font-title text-sm mb-2">{currentQuest?.title}</h3>
+          <ul class="list-disc overflow-y-scroll pl-5 text-accent-100 text-xs space-y-1">
+            {#each currentQuest?.objectives || [] as objective}
+              <li>{objective}</li>
+            {/each}
+            <li>aaaa</li>
+            <li>aaaa</li>
+            <li>aaaa</li>
+            <li>aaaa</li>
+          </ul>
+        </div>
+
+        <!-- Control buttons -->
+        <div class="flex border-t mt-auto border-primary-300">
+          <button
+            onclick={handleStop}
+            class="flex-1 py-2 px-3 flex items-center justify-center text-accent-100 hover:bg-primary-300 transition-all duration-200 hover:text-red-300">
+            <Square class="w-4 h-4 mr-1" />
+            <span class="text-xs">Stop</span>
+          </button>
+
+          <!-- PAUSE BUTTON
+          <div class="border-r border-primary-300"></div>
+
+          <button
+            on:click={handlePause}
+            class="flex-1 py-2 px-3 flex items-center justify-center text-accent-100 hover:bg-primary-300 transition-all duration-200 hover:text-yellow-300">
+            {#if !isPaused}
+              <Pause class="h-4 w-4 mr-1" />
+              <span class="text-xs">Pause</span>
+            {:else}
+              <Play class="h-4 w-4 mr-1" />
+              <span class="text-xs">Resume</span>
+            {/if}
+          </button> -->
+        </div>
+      </div>
+    {/if}
+  </div>
+{/if}
