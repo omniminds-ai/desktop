@@ -1135,14 +1135,14 @@ pub async fn create_recording_zip(
 
 #[tauri::command]
 pub async fn export_recording_zip(id: String, app: tauri::AppHandle) -> Result<String, String> {
-    let buf = create_recording_zip(app.clone(), id).await;
+    let buf = create_recording_zip(app.clone(), id.clone()).await;
     let selected_dir = app.dialog().file().blocking_pick_folder();
 
     // If user cancels the dialog, selected_dir will be None
     if let Some(dir_path) = selected_dir {
         // Create the full path for history.zip
         let dir_path_str = dir_path.to_string();
-        let file_path = Path::new(&dir_path_str).join("history.zip");
+        let file_path = Path::new(&dir_path_str).join(format!("export_recording_{}.zip", id));
 
         // Write the buffer to the file
         std::fs::write(&file_path, buf?).map_err(|e| format!("Failed to write zip file: {}", e))?;

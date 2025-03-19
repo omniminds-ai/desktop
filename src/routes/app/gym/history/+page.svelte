@@ -228,31 +228,11 @@
       exportingZip = true;
 
       // Create the zip file using the Rust backend
-      const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
-
-      // Convert to Blob and create a download link
-      const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
-      const url = URL.createObjectURL(zipBlob);
-
-      // Create a timestamp for the filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `export_zip_${timestamp}.zip`;
-
-      // Create a download link and click it
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-
-      // Clean up
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
+      let path = await invoke<string>('export_recording_zip', { id: recordingId });
+      if (!path) throw Error('No export location selected.');
+      console.log('Export zip downloaded to:', path);
     } catch (error) {
-      console.error('Failed to export zip:', error);
-      alert(`Error exporting zip: ${error}`);
+      console.error('Failed to export zip creation:', error);
     } finally {
       exportingZip = false;
     }
