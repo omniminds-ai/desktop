@@ -1019,8 +1019,8 @@
                         goto('/app/gym');
                       }
                     }}
-                    class="text-sm w-full text-center text-red-500 hover:underline">
-                    Don't like your recording? Delete it.
+                    class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
+                    Don't like your recording? Click to delete it.
                   </button>
                 </div>
               </Card>
@@ -1203,8 +1203,8 @@
                           onclick={() => {
                             if (currentRecordingId) deleteRecording(currentRecordingId);
                           }}
-                          class="text-sm w-full text-center text-secondary-300 hover:text-red-500 hover:underline transition-all">
-                          Don't like your recording? Delete it.
+                          class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
+                          Don't like your recording? Click to delete it.
                         </button>
                       </div>
                     </Card>
@@ -1384,8 +1384,8 @@
                       onclick={() => {
                         if (currentRecordingId) deleteRecording(currentRecordingId);
                       }}
-                      class="text-sm w-full text-center text-secondary-300 hover:text-red-500 hover:underline transition-all">
-                      Don't like your recording? Delete it.
+                      class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
+                      Don't like your recording? Click to delete it.
                     </button>
                   </div>
                 </Card>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { MessageSquare, Dumbbell, Hammer, Camera } from 'lucide-svelte';
+  import { MessageSquare, Dumbbell, Hammer, Camera, Square, LoaderCircle } from 'lucide-svelte';
   import { page } from '$app/state';
   import logo from '$lib/assets/Logo_Icon.png';
   import WalletButton from './WalletButton.svelte';
@@ -24,9 +24,12 @@
 
   onMount(async () => {
     // Listen for recording status events
-    unlisten = await listen('recording-status', (event: {payload: {state: string}, event: string, id: number}) => {
-      recordingState = event.payload.state;
-    });
+    unlisten = await listen(
+      'recording-status',
+      (event: { payload: { state: string }; event: string; id: number }) => {
+        recordingState = event.payload.state;
+      }
+    );
   });
 
   onDestroy(() => {
@@ -105,13 +108,19 @@
   </div>
   <div class="self-end w-full">
     <!-- Recording Indicator -->
-    {#if recordingState === 'recording' || recordingState === 'stopping'}
-      <button 
-        class="rounded-full p-3 bg-red-500 text-white hover:bg-red-600 transition-colors w-full flex justify-center items-center mb-2" 
+    {#if recordingState == 'recording'}
+      <button
+        class="rounded-full mx-auto w-12 h-12 p-3 bg-red-500 text-white hover:bg-red-600 transition-colors full flex justify-center items-center mb-2"
         on:click={handleStopRecording}
-        title="Stop Recording"
-      >
-        <Camera class="w-8 h-8"/>
+        title="Stop Recording">
+        <Square class="w-full h-full" />
+      </button>
+    {:else if recordingState == 'stopping'}
+      <button
+        disabled
+        class="rounded-full mx-auto w-12 h-12 p-3 bg-red-500 text-white transition-colors full flex justify-center items-center mb-2"
+        title="Stop Recording">
+        <LoaderCircle class="w-full animate-spin h-full" />
       </button>
     {/if}
     <UploadManager />
