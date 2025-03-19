@@ -246,6 +246,7 @@
 
       // Create the zip file using the Rust backend
       exportedZipPath = await invoke<string>('export_recording_zip', { id: recordingId });
+      if (!exportedZipPath) throw Error('No export location selected.');
       console.log('Export zip downloaded to:', exportedZipPath);
     } catch (error) {
       console.error('Failed to export zip creation:', error);
