@@ -258,22 +258,6 @@
 
   // Poll submission status
   let statusInterval: number | null = null;
-  function pollSubmissionStatus(submissionId: string) {
-    statusInterval = setInterval(async () => {
-      try {
-        const status = await getSubmissionStatus(submissionId);
-        submission = status;
-        if (status.status === 'completed' || status.status === 'failed') {
-          if (statusInterval) {
-            clearInterval(statusInterval);
-            statusInterval = null;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to get submission status:', error);
-      }
-    }, 5000);
-  }
 
   // Clean up interval on unmount
   onDestroy(() => {

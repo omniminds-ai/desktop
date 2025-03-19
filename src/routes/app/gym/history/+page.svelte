@@ -13,22 +13,21 @@
     Calendar,
     Folder,
     Trash2,
-    Eye,
     Download,
     Info
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Recording } from '$lib/gym';
   import { walletAddress } from '$lib/stores/wallet';
-  import { getSubmissionStatus, listSubmissions } from '$lib/api/forge';
+  import { listSubmissions } from '$lib/api/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
   import { fly } from 'svelte/transition';
   import { open } from '@tauri-apps/plugin-shell';
   import { uploadManager } from '$lib/stores/misc';
   import type { UploadQueueItem } from '$lib/uploadManager';
-  import { ask } from '@tauri-apps/plugin-dialog';
-  import { deleteRecording } from '$lib/utils';
+  import { deleteRecording, showToast } from '$lib/utils';
+  import { openPath } from '@tauri-apps/plugin-opener';
 
   let searchQuery = $state('');
   let exporting = $state(false);
@@ -223,16 +222,16 @@
   // Export recording as zip
   async function exportRecordingZip(recordingId: string) {
     if (!recordingId) return;
-
     try {
       exportingZip = true;
-
       // Create the zip file using the Rust backend
       let path = await invoke<string>('export_recording_zip', { id: recordingId });
       if (!path) throw Error('No export location selected.');
-      console.log('Export zip downloaded to:', path);
+      showToast('Recording Export Complete', `Recording exported to ${path}`, {
+        timeout: 7000
+      });
     } catch (error) {
-      console.error('Failed to export zip creation:', error);
+      showToast('Recording Export Failed', `No ouput directory selected.`);
     } finally {
       exportingZip = false;
     }
