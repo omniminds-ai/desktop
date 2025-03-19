@@ -3,6 +3,7 @@
   import '../app.css';
 
   let { children } = $props();
+
   onOpenUrl(async (urls) => {
     console.log('Deep link opened!');
     console.log(urls);

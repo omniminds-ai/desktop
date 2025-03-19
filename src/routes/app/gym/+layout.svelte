@@ -34,6 +34,9 @@
       hasPendingRewards = pendingRecordings.length > 0;
     } catch (error) {
       console.error('Failed to load recordings:', error);
+      // trigger signout since htis is probably from a 401 error
+      $walletAddress = null;
+      $connectionToken = null;
     }
   }
 
