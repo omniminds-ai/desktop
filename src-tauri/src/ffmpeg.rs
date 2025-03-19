@@ -728,20 +728,53 @@ impl FFmpegRecorder {
         if let Some(mut process) = self.process.take() {
             // Send 'q' to FFmpeg to stop recording gracefully
             if let Some(mut stdin) = process.stdin.take() {
-                let _ = stdin.write_all(b"q");
+                if let Err(e) = stdin.write_all(b"q") {
+                    log::info!("[FFmpeg] Warning: Failed to send quit command: {}", e);
+                    // Continue with the process termination even if we couldn't write to stdin
+                }
             }
 
-            log::info!("[FFmpeg] Waiting for process to finish");
-            // Give FFmpeg time to finish writing
-            thread::sleep(Duration::from_secs(2));
+            log::info!("[FFmpeg] Waiting for process to finish with timeout");
 
-            // Wait for process to finish and capture output
-            match process.wait_with_output() {
-                Ok(_output) => {
-                    // Output is already handled by the reader threads
+            // Give FFmpeg a chance to exit gracefully
+            let timeout = Duration::from_secs(5);
+            let start_time = std::time::Instant::now();
+
+            // Try waiting with a timeout
+            loop {
+                match process.try_wait() {
+                    Ok(Some(_status)) => {
+                        // Process exited naturally
+                        log::info!("[FFmpeg] Process exited gracefully");
+                        break;
+                    }
+                    Ok(None) => {
+                        // Process still running
+                        if start_time.elapsed() >= timeout {
+                            // Timeout reached, kill the process
+                            log::info!("[FFmpeg] Timeout reached, killing process");
+                            if let Err(e) = process.kill() {
+                                log::info!("[FFmpeg] Warning: Failed to kill process: {}", e);
+                            }
+                            break;
+                        }
+                        // Sleep a bit before checking again
+                        thread::sleep(Duration::from_millis(100));
+                    }
+                    Err(e) => {
+                        log::info!("[FFmpeg] Warning: Failed to check process status: {}", e);
+                        // Try to kill the process anyway
+                        let _ = process.kill();
+                        break;
+                    }
                 }
+            }
+
+            // Wait for any remaining cleanup
+            match process.wait() {
+                Ok(_) => {}
                 Err(e) => {
-                    log::info!("[FFmpeg] Warning: Failed to get process output: {}", e);
+                    log::info!("[FFmpeg] Warning: Error waiting for process: {}", e);
                 }
             }
 

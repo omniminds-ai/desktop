@@ -1,12 +1,9 @@
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use display_info::DisplayInfo;
 use log::{error, info};
 use serde_json;
 use std::{
     io::{Cursor, Write},
     path::Path,
-    thread::sleep,
-    time,
 };
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
@@ -32,8 +29,9 @@ mod settings;
 use permissions::{has_ax_perms, has_record_perms, request_ax_perms, request_record_perms};
 use record::{
     create_recording_zip, delete_recording, export_recording_zip, get_app_data_dir,
-    get_recording_file, list_recordings, open_recording_folder, process_recording, start_recording,
-    stop_recording, write_file, write_recording_file, QuestState,
+    get_recording_file, get_recording_state, list_recordings, open_recording_folder,
+    process_recording, set_rec_state, start_recording, stop_recording, write_file,
+    write_recording_file, QuestState,
 };
 use settings::{
     get_onboarding_complete, get_upload_data_allowed, set_onboarding_complete,
@@ -198,7 +196,8 @@ pub fn run() {
             get_upload_data_allowed,
             set_upload_data_allowed,
             export_recordings,
-            delete_recording
+            delete_recording,
+            get_recording_state,
         ])
         .setup(|app| {
             #[cfg(any(windows, target_os = "linux"))]
@@ -213,85 +212,13 @@ pub fn run() {
             apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
                 .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
 
-            // #[cfg(target_os = "windows")]
-            // apply_acrylic(&window, Some((0, 0, 0, 0)))
-            //     .expect("Unsupported platform! 'apply_acrylic' is only supported on Windows");
-
-            // TODO: multimonitor support
-            // Get primary display info
-            let displays =
-                DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
-            let primary = displays
-                .iter()
-                .find(|d| d.is_primary)
-                .or_else(|| displays.first())
-                .ok_or_else(|| "No display found".to_string())?;
-            // set overlay locations for specific platforms
-
-            let overlay_x = primary.x as f64;
-            let overlay_y = primary.y as f64;
-
-            // if cfg!(target_os = "macos") {
-            //     overlay_y += 35.0;
-            //     overlay_x -= 10.0;
-            // }
-
-            // if cfg!(target_os = "linux") {
-            //     // do this becuase some linux distros have top bars
-            //     overlay_y += 25.0;
-            //     overlay_x -= 10.0;
-            // }
-
-            // Create transparent overlay window
-            sleep(time::Duration::from_millis(500));
-            let overlay_window = match tauri::WebviewWindowBuilder::new(
-                app,
-                "overlay",
-                tauri::WebviewUrl::App("overlay".into()),
-            )
-            .transparent(true)
-            .always_on_top(true)
-            .decorations(false)
-            .focused(false)
-            .shadow(false)
-            .position(overlay_x, overlay_y)
-            .inner_size(primary.width as f64, primary.height as f64)
-            .skip_taskbar(true)
-            .visible_on_all_workspaces(true)
-            .build()
-            {
-                Ok(window) => {
-                    // Successfully created overlay window
-                    if let Err(e) = window.set_ignore_cursor_events(true) {
-                        error!("Failed to set ignore cursor events: {}", e);
-                        // Non-critical error, continue
-                    }
-                    Some(window)
-                }
-                Err(e) => {
-                    error!("Failed to create overlay window: {}", e);
-                    None
-                }
-            };
-
             // Emit initial recording status
-            app.emit(
-                "recording-status",
-                serde_json::json!({
-                    "state": "stopped"
-                }),
-            )
-            .unwrap();
+            set_rec_state(&app.handle(), "off".to_string(), None)?;
 
             // Set up window close handler after all other operations
             let window_handle = window.clone();
-            let overlay_handle = overlay_window.clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::Destroyed = event {
-                    // Only try to close the overlay if it was successfully created
-                    if let Some(overlay) = &overlay_handle {
-                        let _ = overlay.close();
-                    }
                     window_handle.app_handle().exit(0);
                 }
             });

@@ -90,16 +90,6 @@ export async function startRecording(quest?: Quest) {
 export async function stopRecording(reason?: string): Promise<string> {
   try {
     const recordingId = await invoke<string>('stop_recording', { reason });
-    
-    // Automatically process the recording after stopping
-    try {
-      await invoke('process_recording', { recordingId });
-      console.log('Recording automatically processed:', recordingId);
-    } catch (processError) {
-      console.error('Failed to automatically process recording:', processError);
-      // We don't throw here to ensure the recording ID is still returned even if processing fails
-    }
-    
     return recordingId;
   } catch (error) {
     console.error('Failed to stop recording:', error);

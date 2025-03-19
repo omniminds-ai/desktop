@@ -76,7 +76,7 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
     let mut input_listener = InputListener::new();
     let running = input_listener.running.clone();
     let other_app_handle = app_handle.clone();
-    
+
     // Platform-specific input handling
     // For Windows: use multiinput for all input events (mouse, keyboard, joystick)
     #[cfg(target_os = "windows")]
@@ -166,7 +166,7 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
             }
         });
         input_listener.threads.push(handle);
-        
+
         // For Windows, we also need a separate rdev listener for absolute mouse position
         let running_clone = running.clone();
         let handle = thread::spawn(move || {
@@ -203,36 +203,18 @@ pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Resu
         let handle = thread::spawn(move || {
             let callback = move |event: RdevEvent| {
                 let input_event = match event.event_type {
-                    RdevEventType::KeyPress(key) => {
-                        // Only log in debug builds, not in production
-                        #[cfg(debug_assertions)]
-                        println!("KeyPress event: {:?} | Time: {:?} | Raw event: {:?}", 
-                                 key, 
-                                 std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros(),
-                                 event);
-                        
-                        Some(InputEvent::new(
-                            "keydown",
-                            serde_json::json!({
-                                "key": format!("{:?}", key)
-                            }),
-                        ))
-                    },
-                    RdevEventType::KeyRelease(key) => {
-                        // Only log in debug builds, not in production
-                        #[cfg(debug_assertions)]
-                        println!("KeyRelease event: {:?} | Time: {:?} | Raw event: {:?}", 
-                                 key, 
-                                 std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros(),
-                                 event);
-                        
-                        Some(InputEvent::new(
-                            "keyup",
-                            serde_json::json!({
-                                "key": format!("{:?}", key)
-                            }),
-                        ))
-                    },
+                    RdevEventType::KeyPress(key) => Some(InputEvent::new(
+                        "keydown",
+                        serde_json::json!({
+                            "key": format!("{:?}", key)
+                        }),
+                    )),
+                    RdevEventType::KeyRelease(key) => Some(InputEvent::new(
+                        "keyup",
+                        serde_json::json!({
+                            "key": format!("{:?}", key)
+                        }),
+                    )),
                     RdevEventType::ButtonPress(button) => Some(InputEvent::new(
                         "mousedown",
                         serde_json::json!({

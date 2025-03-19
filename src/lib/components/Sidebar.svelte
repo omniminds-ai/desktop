@@ -7,6 +7,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
   import { stopRecording } from '$lib/gym';
+  import { RecordingState } from '$lib/types/gym';
+  import { recordingState } from '$lib/stores/recording';
 
   const earnButtons = [
     { path: '/app/gym', icon: Dumbbell, label: 'Gym' }
@@ -19,22 +21,14 @@
   ];
 
   // Recording state
-  let recordingState = 'stopped';
-  let unlisten: () => void;
+  let recordingLoading = false;
 
-  onMount(async () => {
-    // Listen for recording status events
-    unlisten = await listen(
-      'recording-status',
-      (event: { payload: { state: string }; event: string; id: number }) => {
-        recordingState = event.payload.state;
-      }
-    );
-  });
-
-  onDestroy(() => {
-    // Clean up event listener
-    if (unlisten) unlisten();
+  recordingState.subscribe((state) => {
+    if (state === RecordingState.starting || state == RecordingState.saving) {
+      recordingLoading = true;
+    } else {
+      recordingLoading = false;
+    }
   });
 
   // Handle stop recording click
@@ -108,14 +102,14 @@
   </div>
   <div class="self-end w-full">
     <!-- Recording Indicator -->
-    {#if recordingState == 'recording'}
+    {#if $recordingState == RecordingState.recording}
       <button
         class="rounded-full mx-auto w-12 h-12 p-3 bg-red-500 text-white hover:bg-red-600 transition-colors full flex justify-center items-center mb-2"
         on:click={handleStopRecording}
         title="Stop Recording">
         <Square class="w-full h-full" />
       </button>
-    {:else if recordingState == 'stopping'}
+    {:else if recordingLoading}
       <button
         disabled
         class="rounded-full mx-auto w-12 h-12 p-3 bg-red-500 text-white transition-colors full flex justify-center items-center mb-2"

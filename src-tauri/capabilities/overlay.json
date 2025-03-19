@@ -8,6 +8,8 @@
   "permissions": [
     "core:default",
     "core:event:allow-listen",
-    "log:default"
+    "log:default",
+    "core:window:default",
+    "core:window:allow-start-dragging"
   ]
 }
