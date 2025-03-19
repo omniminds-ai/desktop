@@ -9,10 +9,11 @@ use display_info::DisplayInfo;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fs::{self, create_dir_all, File};
 use std::io::{BufRead, BufReader, BufWriter, Cursor, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 use zip::{write::FileOptions, ZipWriter};
 
@@ -1130,6 +1131,26 @@ pub async fn create_recording_zip(
         recording_id
     );
     Ok(buf)
+}
+
+#[tauri::command]
+pub async fn export_recording_zip(id: String, app: tauri::AppHandle) -> Result<String, String> {
+    let buf = create_recording_zip(app.clone(), id).await;
+    let selected_dir = app.dialog().file().blocking_pick_folder();
+
+    // If user cancels the dialog, selected_dir will be None
+    if let Some(dir_path) = selected_dir {
+        // Create the full path for history.zip
+        let dir_path_str = dir_path.to_string();
+        let file_path = Path::new(&dir_path_str).join("history.zip");
+
+        // Write the buffer to the file
+        std::fs::write(&file_path, buf?).map_err(|e| format!("Failed to write zip file: {}", e))?;
+
+        Ok(file_path.to_string_lossy().into_owned())
+    } else {
+        Ok("".to_string())
+    }
 }
 
 #[tauri::command]

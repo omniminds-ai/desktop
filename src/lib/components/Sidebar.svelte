@@ -1,9 +1,12 @@
 <script lang="ts">
-  import { MessageSquare, Dumbbell, Hammer } from 'lucide-svelte';
+  import { MessageSquare, Dumbbell, Hammer, Camera } from 'lucide-svelte';
   import { page } from '$app/state';
   import logo from '$lib/assets/Logo_Icon.png';
   import WalletButton from './WalletButton.svelte';
   import UploadManager from './UploadManager.svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { listen } from '@tauri-apps/api/event';
+  import { stopRecording } from '$lib/gym';
 
   const earnButtons = [
     { path: '/app/gym', icon: Dumbbell, label: 'Gym' }
@@ -14,6 +17,31 @@
     { path: '/app/forge', icon: Hammer, label: 'Forge' }
     // { path: "/app/lab", icon: TestTube2, label: "Lab" },
   ];
+
+  // Recording state
+  let recordingState = 'stopped';
+  let unlisten: () => void;
+
+  onMount(async () => {
+    // Listen for recording status events
+    unlisten = await listen('recording-status', (event: {payload: {state: string}, event: string, id: number}) => {
+      recordingState = event.payload.state;
+    });
+  });
+
+  onDestroy(() => {
+    // Clean up event listener
+    if (unlisten) unlisten();
+  });
+
+  // Handle stop recording click
+  async function handleStopRecording() {
+    try {
+      await stopRecording();
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+    }
+  }
 </script>
 
 <div class="w-16 flex flex-col bg-transparent py-2 pl-2 space-y-4">
@@ -76,6 +104,16 @@
     </div>
   </div>
   <div class="self-end w-full">
+    <!-- Recording Indicator -->
+    {#if recordingState === 'recording' || recordingState === 'stopping'}
+      <button 
+        class="rounded-full p-3 bg-red-500 text-white hover:bg-red-600 transition-colors w-full flex justify-center items-center mb-2" 
+        on:click={handleStopRecording}
+        title="Stop Recording"
+      >
+        <Camera class="w-8 h-8"/>
+      </button>
+    {/if}
     <UploadManager />
     <br />
     <WalletButton />
