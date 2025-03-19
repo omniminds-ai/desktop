@@ -873,7 +873,7 @@
           role="listitem">
           <!-- Delete overlay for the entire message -->
           {#if hoveredMessageIndex === i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
-            <div
+            <button
               class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
               style="opacity: {hoveredMessageIndex === i ? '1' : '0'}"
               onclick={() => handleDeleteMessage(i, msg)}>
@@ -881,7 +881,7 @@
                 class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
                 <Trash2 size={24} />
               </div>
-            </div>
+            </button>
           {/if}
 
           {#if msg.content.startsWith('<start>') && msg.content.endsWith('</start>')}
@@ -1067,7 +1067,7 @@
                 role="listitem">
                 <!-- Delete overlay for the entire message -->
                 {#if hoveredMessageIndex === demoStartIndex + 1 + i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
-                  <div
+                  <button
                     class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
                     style="opacity: {hoveredMessageIndex === demoStartIndex + 1 + i ? '1' : '0'}"
                     onclick={() => handleDeleteMessage(demoStartIndex + 1 + i, msg)}>
@@ -1075,7 +1075,7 @@
                       class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
                       <Trash2 size={24} />
                     </div>
-                  </div>
+                  </button>
                 {/if}
 
                 {#if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
@@ -1200,8 +1200,11 @@
                           Get scored and earn $VIRAL tokens
                         </p>
                         <button
-                          onclick={() => {
-                            if (currentRecordingId) deleteRecording(currentRecordingId);
+                          onclick={async () => {
+                            if (currentRecordingId) {
+                              await deleteRecording(currentRecordingId);
+                              goto('/app/gym');
+                            }
                           }}
                           class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
                           Don't like your recording? Click to delete it.
@@ -1250,7 +1253,7 @@
             role="listitem">
             <!-- Delete overlay for the entire message -->
             {#if hoveredMessageIndex === demoEndIndex + 1 + i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
-              <div
+              <button
                 class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
                 style="opacity: {hoveredMessageIndex === demoEndIndex + 1 + i ? '1' : '0'}"
                 onclick={() => handleDeleteMessage(demoEndIndex + 1 + i, msg)}>
@@ -1258,7 +1261,7 @@
                   class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
                   <Trash2 size={24} />
                 </div>
-              </div>
+              </button>
             {/if}
 
             {#if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
@@ -1381,8 +1384,11 @@
                       Get scored and earn $VIRAL tokens
                     </p>
                     <button
-                      onclick={() => {
-                        if (currentRecordingId) deleteRecording(currentRecordingId);
+                      onclick={async () => {
+                        if (currentRecordingId) {
+                          await deleteRecording(currentRecordingId);
+                          goto('/app/gym');
+                        }
                       }}
                       class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
                       Don't like your recording? Click to delete it.
