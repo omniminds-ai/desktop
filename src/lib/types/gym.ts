@@ -33,11 +33,11 @@ export interface Quest {
   title: string;
   app: string;
   icon_url: string;
-  objectives: string[];  // List of 4 objectives, first one must be opening/navigating to the app
+  objectives: string[]; // List of 4 objectives, first one must be opening/navigating to the app
   content: string;
-  pool_id?: string;  // Match Rust struct field name
+  pool_id?: string; // Match Rust struct field name
   reward?: {
-    time: number;      // Unix timestamp rounded to last minute
+    time: number; // Unix timestamp rounded to last minute
     max_reward: number; // Match Rust struct field name
   };
 }
@@ -83,4 +83,12 @@ export type MessagePart<T extends Component = any, P = ComponentProps<T>> = {
 export interface Message<T extends Component = any, P = ComponentProps<T>> {
   role: MessageRole;
   parts: MessagePart<T, P>[];
+}
+
+export enum RecordingState {
+  off = 'off',
+  starting = 'starting',
+  recording = 'recording',
+  saving = 'saving',
+  saved = 'saved'
 }

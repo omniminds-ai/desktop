@@ -61,8 +61,6 @@
     }
   }
 
-  onDestroy(() => {});
-
   onMount(async () => {
     // Initialize ffmpeg, ffprobe, dump-tree, and pipeline
     unlistenInitErrors = await listen(

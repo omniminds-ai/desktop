@@ -471,7 +471,10 @@
         danger
         on:click={async () => {
           if (activeRecordingId) {
-            recordings = await deleteRecording(activeRecordingId);
+            const res = await deleteRecording(activeRecordingId);
+            if (res?.length > 0) {
+              recordings = res;
+            }
           }
           showMenu = false;
         }}>
