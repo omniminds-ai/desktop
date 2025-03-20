@@ -191,6 +191,7 @@ impl Recorder {
 pub struct QuestState {
     pub recording_start_time: Mutex<Option<chrono::DateTime<chrono::Local>>>,
     pub current_recording_id: Mutex<Option<String>>,
+    pub current_quest: Mutex<Option<Quest>>,
 }
 
 // Global state for recording and logging and overlay
@@ -307,6 +308,21 @@ pub async fn start_recording(
     init_ffmpeg()?;
 
     create_overlay_window(&app)?;
+    
+    // Store quest data in state if available
+    if let Some(quest_data) = &quest {
+        // Store in QuestState for later retrieval
+        *quest_state.current_quest.lock().unwrap() = Some(quest_data.clone());
+        
+        // Also emit the event for backward compatibility
+        app.emit(
+            "quest-overlay",
+            serde_json::json!({
+                "quest": quest_data
+            }),
+        )
+        .map_err(|e| format!("Failed to emit quest data: {}", e))?;
+    }
 
     let (session_dir, timestamp) = get_session_path(&app)?;
 
@@ -462,6 +478,9 @@ pub async fn stop_recording(
         .map_err(|e| format!("Failed to read directory entries: {}", e))?;
 
     entries.sort_by_key(|entry| std::cmp::Reverse(entry.metadata().unwrap().modified().unwrap()));
+
+    // Clear the current quest
+    *quest_state.current_quest.lock().unwrap() = None;
 
     // Get the recording ID from state
     if let Some(recording_id) = quest_state.current_recording_id.lock().unwrap().take() {
@@ -1198,6 +1217,12 @@ pub async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+pub async fn get_current_quest(quest_state: State<'_, QuestState>) -> Result<Option<Quest>, String> {
+    let current_quest = quest_state.current_quest.lock().map_err(|e| e.to_string())?;
+    Ok(current_quest.clone())
+}
+
 fn create_overlay_window(app: &tauri::AppHandle) -> Result<(), String> {
     log::info!("Starting to create overlay window");
 
@@ -1219,7 +1244,7 @@ fn create_overlay_window(app: &tauri::AppHandle) -> Result<(), String> {
 
     // set overlay locations for specific platforms
     let overlay_w = 280.0;
-    let overlay_h = 210.0;
+    let overlay_h = 280.0;
     let overlay_x = primary.width as f64 - overlay_w;
     let overlay_y = primary.y as f64;
 

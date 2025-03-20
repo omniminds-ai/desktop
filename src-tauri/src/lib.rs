@@ -29,7 +29,7 @@ mod settings;
 use permissions::{has_ax_perms, has_record_perms, request_ax_perms, request_record_perms};
 use record::{
     create_recording_zip, delete_recording, export_recording_zip, get_app_data_dir,
-    get_recording_file, get_recording_state, list_recordings, open_recording_folder,
+    get_current_quest, get_recording_file, get_recording_state, list_recordings, open_recording_folder,
     process_recording, set_rec_state, start_recording, stop_recording, write_file,
     write_recording_file, QuestState,
 };
@@ -198,6 +198,7 @@ pub fn run() {
             export_recordings,
             delete_recording,
             get_recording_state,
+            get_current_quest,
         ])
         .setup(|app| {
             #[cfg(any(windows, target_os = "linux"))]
