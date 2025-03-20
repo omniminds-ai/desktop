@@ -16,10 +16,11 @@
   import QuestPanel from '$lib/components/gym/QuestPanel.svelte';
   import RecordingPanel from '$lib/components/gym/RecordingPanel.svelte';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
-  import { API_URL, deleteRecording } from '$lib/utils';
+  import { API_URL, deleteRecording, toolsInitState } from '$lib/utils';
   import { uploadManager } from '$lib/stores/misc';
   import { recordingState } from '$lib/stores/recording';
   import { goto } from '$app/navigation';
+  import { slide } from 'svelte/transition';
 
   const prompt = page.url.searchParams.get('prompt') || '';
   const appParam = page.url.searchParams.get('app');
@@ -853,6 +854,17 @@
 </script>
 
 <div class="flex flex-col pb-[65px] h-full">
+  {#if $toolsInitState.initializing}
+    <div
+      transition:slide
+      class="p-3 max-w-7xl mx-auto mb-5 border-yellow-500 border-1 rounded-lg shadow-md bg-yellow-500/30">
+      <p class="text-lg font-bold text-yellow-900 border-b border-yellow-800 w-fit">WARNING</p>
+      <p class="text-black mt-1">
+        If the required tools are not installed correctly when recording a demonstration, your
+        recording may be corrupted and the application may crash.
+      </p>
+    </div>
+  {/if}
   <div
     bind:this={chatContent}
     class="flex-1 max-w-7xl w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">

@@ -1,8 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { join } from '@tauri-apps/api/path';
 import { getReward } from './api/forge';
-import { walletAddress } from './stores/wallet';
-import { get } from 'svelte/store';
 
 export interface MonitorInfo {
   width: number;
