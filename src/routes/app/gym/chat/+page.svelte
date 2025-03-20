@@ -837,6 +837,12 @@
     }
   });
 
+  async function handleDeleteRecording() {
+    if (currentRecordingId) {
+      if ((await deleteRecording(currentRecordingId))?.length > 0) goto('/app/gym');
+    }
+  }
+
   function handleHover(index: number) {
     hoveredMessageIndex = index;
   }
@@ -1010,11 +1016,7 @@
                     Get scored and earn $VIRAL tokens
                   </p>
                   <button
-                    onclick={async () => {
-                      if (currentRecordingId) {
-                        if (await deleteRecording(currentRecordingId)) goto('/app/gym');
-                      }
-                    }}
+                    onclick={handleDeleteRecording}
                     class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
                     Don't like your recording? Click to delete it.
                   </button>
@@ -1196,11 +1198,7 @@
                           Get scored and earn $VIRAL tokens
                         </p>
                         <button
-                          onclick={async () => {
-                            if (currentRecordingId) {
-                              if (await deleteRecording(currentRecordingId)) goto('/app/gym');
-                            }
-                          }}
+                          onclick={handleDeleteRecording}
                           class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
                           Don't like your recording? Click to delete it.
                         </button>
@@ -1379,11 +1377,7 @@
                       Get scored and earn $VIRAL tokens
                     </p>
                     <button
-                      onclick={async () => {
-                        if (currentRecordingId) {
-                          if (await deleteRecording(currentRecordingId)) goto('/app/gym');
-                        }
-                      }}
+                      onclick={handleDeleteRecording}
                       class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
                       Don't like your recording? Click to delete it.
                     </button>
