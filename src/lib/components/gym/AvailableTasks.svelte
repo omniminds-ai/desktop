@@ -115,7 +115,9 @@
     <div class="flex items-center gap-2">
       <h2 class="text-xl font-bold text-gray-800">Available Tasks</h2>
       <div class="bg-secondary-200 text-white px-2 py-0.5 rounded-full text-xs font-medium">
-        {apps.reduce((count, app) => count + app.tasks.length, 0)} Available
+        {apps.reduce((count, app) => count + app.tasks.filter(task => 
+          isGymBuilder || !(task.uploadLimitReached || app.gymLimitReached)
+        ).length, 0)} Available
       </div>
     </div>
 
@@ -256,67 +258,105 @@
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr w-full">
         {#each apps as app}
           {#each app.tasks as task}
-            <a
-              href="/app/gym/chat?prompt={encodeURIComponent(task.prompt)}&app={encodeURIComponent(
-                JSON.stringify({
-                  type: 'website',
-                  name: app.name,
-                  url: `https://${app.domain}`
-                })
-              )}&poolId={app.pool_id._id}"
-              class="block">
-              <Card
-                padding="none"
-                className="relative h-full hover:border-secondary-300 border border-gray-200 hover:shadow-md transition-all overflow-hidden">
-                <!-- Task Header with Tag -->
-                <div
-                  class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-                  <div class="flex items-center gap-2 grow-0">
-                    <img src={getFaviconUrl(app.domain)} alt={`${app.name} icon`} class="w-5 h-5" />
-                    <span
-                      class="text-sm max-w-72 sm:max-w-48 md:max-w-64 lg:max-w-40 font-medium text-gray-700 truncate">
-                      {app.name}
-                    </span>
-                  </div>
-                  <div class="grow">
-                    <div
-                      class="bg-secondary-300 grow-0 w-fit ml-auto text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
-                      <Loader size={12} />
-                      <span>Task</span>
+            <!-- Skip tasks that have reached their upload limit when in the gym (not in gym builder) -->
+            {#if isGymBuilder || !(task.uploadLimitReached || app.gymLimitReached)}
+              <a
+                href="/app/gym/chat?prompt={encodeURIComponent(task.prompt)}&app={encodeURIComponent(
+                  JSON.stringify({
+                    type: 'website',
+                    name: app.name,
+                    url: `https://${app.domain}`,
+                    task_id: task._id 
+                  })
+                )}&poolId={app.pool_id._id}"
+                class="block">
+                <Card
+                  padding="none"
+                  className="relative h-full hover:border-secondary-300 border border-gray-200 hover:shadow-md transition-all overflow-hidden">
+                  <!-- Task Header with Tag -->
+                  <div
+                    class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+                    <div class="flex items-center gap-2 grow-0">
+                      <img src={getFaviconUrl(app.domain)} alt={`${app.name} icon`} class="w-5 h-5" />
+                      <span
+                        class="text-sm max-w-72 sm:max-w-48 md:max-w-64 lg:max-w-40 font-medium text-gray-700 truncate">
+                        {app.name}
+                      </span>
+                    </div>
+                    <div class="grow flex justify-end gap-1">
+                      {#if isGymBuilder && (task.uploadLimitReached || app.gymLimitReached)}
+                        <div
+                          class="bg-red-500 grow-0 w-fit text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 relative group">
+                          <span>Limit Reached</span>
+                          <!-- Tooltip with reason -->
+                          <div class="absolute bottom-full right-0 mb-2 w-48 bg-gray-900 text-white text-xs rounded p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                            {#if task.limitReason}
+                              {task.limitReason}
+                            {:else if app.gymLimitReached}
+                              {#if app.gymLimitType === 'per-day'}
+                                Daily gym limit reached ({app.gymSubmissions}/{app.gymLimitValue})
+                              {:else if app.gymLimitType === 'total'}
+                                Total gym limit reached ({app.gymSubmissions}/{app.gymLimitValue})
+                              {:else}
+                                Gym limit reached
+                              {/if}
+                            {:else}
+                              Upload limit reached
+                            {/if}
+                            {#if task.currentSubmissions !== undefined}
+                              <div class="mt-1 pt-1 border-t border-gray-700">
+                                Current uploads: {task.currentSubmissions}/{task.uploadLimit}
+                              </div>
+                            {/if}
+                          </div>
+                        </div>
+                      {/if}
+                      <div
+                        class="bg-secondary-300 grow-0 w-fit text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
+                        <Loader size={12} />
+                        <span>Task</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <!-- Task Content -->
-                <div class="p-4 flex flex-col">
+                  <!-- Task Content -->
+                  <div class="p-4 flex flex-col">
+                    <div
+                      class="text-md text-neutral-800 font-medium break-words overflow-y-auto flex-grow">
+                      {task.prompt}
+                    </div>
+                  </div>
+
+                  <!-- Task Footer -->
                   <div
-                    class="text-md text-neutral-800 font-medium break-words overflow-y-auto flex-grow">
-                    {task.prompt}
+                    class="bg-gray-50 px-4 py-2 border-t border-gray-200 flex justify-between items-center mt-auto">
+                    <div class="flex items-center gap-2">
+                      <div class="text-xs text-black font-black">Click to begin</div>
+                      {#if isGymBuilder && task.currentSubmissions !== undefined && app.gymLimitType === 'per-task' && app.gymLimitValue !== undefined}
+                        <div class="text-xs px-1.5 py-0.5 rounded-full {task.currentSubmissions >= app.gymLimitValue ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}">
+                          {task.currentSubmissions}/{app.gymLimitValue}
+                        </div>
+                      {/if}
+                    </div>
+                    <div class="text-sm font-semibold text-secondary-600 flex items-center gap-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                      </svg>
+                      {app.pool_id.pricePerDemo} VIRAL
+                    </div>
                   </div>
-                </div>
-
-                <!-- Task Footer -->
-                <div
-                  class="bg-gray-50 px-4 py-2 border-t border-gray-200 flex justify-between items-center mt-auto">
-                  <div class="text-xs text-black font-black">Click to begin</div>
-                  <div class="text-sm font-semibold text-secondary-600 flex items-center gap-1">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="w-3.5 h-3.5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round">
-                      <line x1="12" y1="1" x2="12" y2="23"></line>
-                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                    </svg>
-                    {app.pool_id.pricePerDemo} VIRAL
-                  </div>
-                </div>
-              </Card>
-            </a>
+                </Card>
+              </a>
+            {/if}
           {/each}
         {/each}
       </div>

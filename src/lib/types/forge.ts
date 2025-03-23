@@ -27,6 +27,11 @@ export interface TrainingPool {
   unsavedSkills?: boolean;
   pricePerDemo?: number;
   unsavedPrice?: boolean;
+  uploadLimit?: {
+    type: number;
+    limitType: 'per-task' | 'per-day' | 'total';
+  } | null;
+  unsavedUploadLimit?: boolean;
 }
 
 export interface CreatePoolInput {
@@ -41,6 +46,10 @@ export interface UpdatePoolInput {
   status?: TrainingPoolStatus.live | TrainingPoolStatus.paused;
   skills?: string;
   pricePerDemo?: number;
+  uploadLimit?: {
+    type: number;
+    limitType: 'per-task' | 'per-day' | 'total';
+  } | null;
   apps?: any[]; // Add apps array to the update input
 }
 
