@@ -7,7 +7,7 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { listSubmissions } from './api/forge';
 import { walletAddress } from './stores/wallet';
-import type { Recording } from './gym';
+import type { Recording } from './types/gym';
 
 // Export toast utilities
 export * from './utils/toast';

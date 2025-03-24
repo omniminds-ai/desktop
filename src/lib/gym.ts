@@ -1,28 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { getReward } from './api/forge';
 
-export interface MonitorInfo {
-  width: number;
-  height: number;
-}
-
-export interface Recording {
-  id: string;
-  timestamp: string;
-  duration_seconds: number;
-  status: string;
-  title: string;
-  description: string;
-  platform: string;
-  arch: string;
-  version: string;
-  locale: string;
-  primary_monitor: MonitorInfo;
-  meta?: {
-    quest: Quest;
-  };
-}
-
 import type { Quest } from './types/gym';
 import { API_URL } from './utils';
 
