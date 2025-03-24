@@ -28,6 +28,7 @@
     "@zerodevx/svelte-json-view": "^1.0.11",
     "d3": "^7.9.0",
     "lucide-svelte": "^0.474.0",
+    "posthog-js": "^1.232.6",
     "tailwindcss": "^4.0.3"
   },
   "devDependencies": {
