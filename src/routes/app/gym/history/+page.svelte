@@ -14,10 +14,12 @@
     Folder,
     Trash2,
     Download,
-    Info
+    Info,
+    Globe,
+    Cloud
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import type { Recording } from '$lib/gym';
+  import type { Recording } from '$lib/types/gym';
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
@@ -27,14 +29,13 @@
   import { uploadManager } from '$lib/stores/misc';
   import type { UploadQueueItem } from '$lib/uploadManager';
   import { deleteRecording, showToast } from '$lib/utils';
-  import { openPath } from '@tauri-apps/plugin-opener';
 
   let searchQuery = $state('');
   let exporting = $state(false);
   let exportingZip = $state(false);
   let sortOrder: 'newest' | 'oldest' = $state('newest');
   let recordings: Recording[] = $state([]);
-  let submissions: SubmissionStatus[] = $state([]);
+  let uploadedRecordings: SubmissionStatus[] = $state([]);
   let showUploadConfirmModal = $state(false);
   let dataExported = $state('');
   let statusIntervals: { [key: string]: number } = {};
@@ -75,12 +76,12 @@
   onMount(async () => {
     try {
       if ($walletAddress) {
-        listSubmissions();
+        uploadedRecordings = await listSubmissions();
       }
       recordings = await invoke('list_recordings');
 
       $uploadManager.on('statusChange', '*', async () => {
-        if ($walletAddress) await listSubmissions();
+        if ($walletAddress) uploadedRecordings = await listSubmissions();
         recordings = await invoke('list_recordings');
       });
     } catch (error) {
@@ -88,44 +89,49 @@
     }
   });
 
-  // Subscribe to wallet address changes
-  walletAddress.subscribe((val) => {
-    if (val !== $walletAddress && val) {
-      listSubmissions();
-    }
+  const mergedRecordings = $derived.by(() => {
+    let res: Recording[] = [];
+    // first add recordings from the database
+    res = [
+      ...uploadedRecordings
+        .filter((s) => !recordings.some((r) => r.id === s.meta?.id))
+        .map(
+          (s) =>
+            ({
+              id: s.meta.id,
+              timestamp: s.meta.timestamp,
+              duration_seconds: s.meta.duration_seconds,
+              status: s.meta.status,
+              reason: s.meta.reason,
+              title: s.meta.title,
+              description: s.meta.description,
+              platform: s.meta.platform,
+              arch: s.meta.arch,
+              version: s.meta.version,
+              locale: s.meta.locale,
+              primary_monitor: s.meta.primary_monitor,
+              meta: {
+                quest: s.meta.quest
+              },
+              submission: s,
+              location: 'database'
+            }) as Recording
+        )
+    ];
+    // Then set state for the local recordings
+    res = [
+      ...res,
+      ...recordings.map((recording) => {
+        const submission = uploadedRecordings.find((s) => s.meta?.id === recording.id);
+        return {
+          ...recording,
+          location: 'local',
+          submission
+        } as Recording;
+      })
+    ];
+    return res;
   });
-
-  const mergedRecordings = $derived([
-    // First include all local recordings with their submissions
-    ...recordings.map((recording) => {
-      const submission = submissions.find((s) => s.meta?.id === recording.id);
-      return {
-        ...recording,
-        submission
-      };
-    }),
-    // Then include submissions without local recordings
-    ...submissions
-      .filter((s) => !recordings.some((r) => r.id === s.meta?.id))
-      .map((s) => ({
-        id: s.meta.id,
-        timestamp: s.meta.timestamp,
-        duration_seconds: s.meta.duration_seconds,
-        status: s.meta.status,
-        reason: s.meta.reason,
-        title: s.meta.title,
-        description: s.meta.description,
-        platform: s.meta.platform,
-        arch: s.meta.arch,
-        version: s.meta.version,
-        locale: s.meta.locale,
-        primary_monitor: s.meta.primary_monitor,
-        meta: {
-          quest: s.meta.quest
-        },
-        submission: s
-      }))
-  ]);
 
   const filteredRecordings = $derived(
     mergedRecordings
@@ -182,10 +188,6 @@
       showUploadConfirmModal = true;
     }
   };
-
-  function isUploaded(recording: Recording & { submission?: SubmissionStatus }): boolean {
-    return !!recording.submission;
-  }
 
   const uploadQueue = $uploadManager.queue;
   const isUploading = (item: UploadQueueItem) => {
@@ -297,12 +299,12 @@
     {#each filteredRecordings as recording}
       <Card
         padding="sm"
-        className={`hover:border-secondary-300 transition-colors ${isUploaded(recording) ? 'opacity-50 hover:opacity-75 bg-gray-100 border border-gray-300' : 'font-semibold bg-white shadow-md border-l-4 border-secondary-300'}`}>
+        className={`hover:border-secondary-300 transition-colors ${!!recording.submission ? 'opacity-50 hover:opacity-75 bg-gray-100 border border-gray-300' : 'font-semibold bg-white shadow-md border-l-4 border-secondary-300'}`}>
         <div class="flex items-center gap-3">
           <!-- Icon -->
-          {#if recording.meta?.quest?.icon_url || recording.submission?.meta?.quest?.icon_url}
+          {#if recording.meta?.quest?.icon_url || recording?.submission?.meta?.quest?.icon_url}
             <img
-              src={recording.meta?.quest?.icon_url || recording.submission?.meta?.quest?.icon_url}
+              src={recording.meta?.quest?.icon_url || recording?.submission?.meta?.quest?.icon_url}
               alt="App icon"
               class="w-8 h-8 rounded-md object-contain"
               onerror={handleImageError} />
@@ -315,11 +317,19 @@
 
           <!-- Title and Metadata -->
           <div class="flex-grow min-w-0">
-            <a href="/app/gym/history/recording?id={recording.id}" class="hover:underline">
-              <h3 class="text-base font-title truncate" title={recording.title}>
-                {recording.title}
-              </h3>
-            </a>
+            {#if recording.location === 'local'}
+              <a href="/app/gym/history/recording?id={recording.id}" class="hover:underline">
+                <h3 class="text-base font-title truncate" title={recording.title}>
+                  {recording.title}
+                </h3>
+              </a>
+            {:else}
+              <div>
+                <h3 class="text-base font-title truncate" title={recording.title}>
+                  {recording.title}
+                </h3>
+              </div>
+            {/if}
             <div class="flex items-center gap-3 mt-1">
               <div class="flex items-center text-xs text-gray-500">
                 <Clock class="w-3 h-3 mr-1 opacity-75" />
@@ -329,6 +339,17 @@
                 <Calendar class="w-3 h-3 mr-1 opacity-75" />
                 <span>{formatDate(recording.timestamp)} {formatTime(recording.timestamp)}</span>
               </div>
+              {#if recording.location === 'local'}
+                <div class="flex items-center text-xs text-gray-500">
+                  <Folder class="w-3 h-3 mr-1 opacity-75" />
+                  <span>Local</span>
+                </div>
+              {:else if recording.location === 'database'}
+                <div class="flex items-center text-xs text-gray-500">
+                  <Cloud class="w-3 h-3 mr-1 opacity-75" />
+                  <span>Cloud</span>
+                </div>
+              {/if}
             </div>
           </div>
 
@@ -337,7 +358,7 @@
             <div class="text-center px-2">
               <div class="text-red-500 flex items-center gap-1">
                 <AlertTriangle class="w-4 h-4" />
-                <span class="text-sm font-semibold">Failed</span>
+                <span class="text-sm font-semibold">Upload Failed</span>
               </div>
             </div>
           {/if}
@@ -358,7 +379,12 @@
               </div>
               <div class="text-xs text-gray-500">Rating</div>
             </div>
-          {:else if recording.submission?.grade_result.score}
+          {:else if recording.duration_seconds < 1}
+            <div class="text-red-500 flex items-center gap-1">
+              <AlertTriangle class="w-4 h-4" />
+              <span class="text-sm font-semibold">Recording Error</span>
+            </div>
+          {:else if recording.submission?.grade_result?.score}
             <div class="text-center px-2">
               <div class="text-lg font-bold text-secondary-300">
                 {recording.submission.grade_result.score}%
@@ -424,13 +450,15 @@
             {/if}
 
             <!-- Options Button -->
-            <Button
-              variant="secondary"
-              class="h-8 w-8 p-0! flex! items-center justify-center bg-transparent shadow-transparent border-transparent"
-              title="Recording Options"
-              onclick={(e: MouseEvent) => handleMenuClick(e, recording.id)}>
-              <MoreVertical class="w-4 h-4 shrink-0" />
-            </Button>
+            {#if recording.location === 'local'}
+              <Button
+                variant="secondary"
+                class="h-8 w-8 p-0! flex! items-center justify-center bg-transparent shadow-transparent border-transparent"
+                title="Recording Options"
+                onclick={(e: MouseEvent) => handleMenuClick(e, recording.id)}>
+                <MoreVertical class="w-4 h-4 shrink-0" />
+              </Button>
+            {/if}
           </div>
         </div>
       </Card>
@@ -465,7 +493,7 @@
       }}>
       {exportingZip ? 'Exporting...' : 'Export Zip'}
     </MenuItem>
-    {#if !submissions.find((s) => s.meta.id === activeRecordingId)}
+    {#if !uploadedRecordings.find((s) => s.meta.id === activeRecordingId)}
       <MenuItem
         icon={Trash2}
         danger
