@@ -257,9 +257,14 @@ export async function getBalance(): Promise<number> {
   return data.balance;
 }
 
-export async function getReward(poolId: string): Promise<RewardInfo> {
+export async function getReward(poolId: string, taskId?: string): Promise<RewardInfo> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_URL}/api/forge/reward?poolId=${poolId}`, {
+  let url = `${API_URL}/api/forge/reward?poolId=${poolId}`;
+  if (taskId) {
+    url += `&taskId=${taskId}`;
+  }
+  
+  const response = await fetch(url, {
     headers: {
       'x-connect-token': token || ''
     }

@@ -240,19 +240,21 @@
           content: questData.content || ''
         };
 
-        // If poolId is provided, get reward info
-        if (poolId) {
-          try {
-            const rewardInfo = await getReward(poolId);
-            currentQuest.pool_id = poolId;
-            currentQuest.reward = {
-              time: rewardInfo.time,
-              max_reward: rewardInfo.maxReward
-            };
-          } catch (error) {
-            console.error('Failed to get reward info:', error);
+          // If poolId is provided, get reward info
+          if (poolId) {
+            try {
+              // If app parameter contains task_id, use it when getting reward info
+              const taskId = app && 'task_id' in app && typeof app.task_id === 'string' ? app.task_id : undefined;
+              const rewardInfo = await getReward(poolId, taskId);
+              currentQuest.pool_id = poolId;
+              currentQuest.reward = {
+                time: rewardInfo.time,
+                max_reward: rewardInfo.maxReward
+              };
+            } catch (error) {
+              console.error('Failed to get reward info:', error);
+            }
           }
-        }
 
         // If app parameter contains task_id, add it to the quest
         if (app && 'task_id' in app && typeof app.task_id === 'string') {
