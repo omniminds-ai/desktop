@@ -92,13 +92,13 @@
         <Checkbox
           id="enableRewardLimit"
           variant="light"
-          label="Enable custom reward limit for this task"
+          label="Enable custom Price per demonstration for this task"
           checked={enableRewardLimit}
           onchange={handleRewardLimitChange} />
 
         {#if enableRewardLimit}
           <div class="pl-6 mt-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Reward Limit</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Price per demonstration</label>
             <div class="flex items-center gap-2">
               <Input
                 type="number"

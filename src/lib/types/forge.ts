@@ -50,7 +50,24 @@ export interface UpdatePoolInput {
     type: number;
     limitType: 'per-task' | 'per-day' | 'total';
   } | null;
-  apps?: any[]; // Add apps array to the update input
+  apps?: {
+    name: string;
+    domain: string;
+    description: string;
+    categories: string[];
+    tasks: {
+      _id?: string;
+      prompt: string;
+      uploadLimit?: number;
+      rewardLimit?: number;
+    }[];
+    pool_id: {
+      _id: string;
+      name: string;
+      status: string;
+      pricePerDemo: number;
+    };
+  }[]; // Properly typed apps array with task limits
 }
 
 export interface TreasuryTransfer {

@@ -139,6 +139,13 @@
       apps[appIndex].tasks[currentTaskIndex].prompt = editTaskPrompt;
       apps[appIndex].tasks[currentTaskIndex].uploadLimit = enableUploadLimit ? uploadLimitValue : undefined;
       apps[appIndex].tasks[currentTaskIndex].rewardLimit = enableRewardLimit ? rewardLimitValue : undefined;
+      
+      // Log the updated task for debugging
+      console.log('Updated task with limits:', {
+        prompt: editTaskPrompt,
+        uploadLimit: apps[appIndex].tasks[currentTaskIndex].uploadLimit,
+        rewardLimit: apps[appIndex].tasks[currentTaskIndex].rewardLimit
+      });
     } else {
       // Add new task
       const newTask = {
@@ -147,6 +154,9 @@
         rewardLimit: enableRewardLimit ? rewardLimitValue : undefined
       };
       apps[appIndex].tasks.push(newTask);
+      
+      // Log the new task for debugging
+      console.log('Added new task with limits:', newTask);
     }
     
     apps = [...apps]; // Trigger reactivity
@@ -428,10 +438,22 @@
                 <div class="space-y-2 ml-1">
                   {#each app.tasks as task, taskIndex}
                     <div class="flex items-center w-full group">
-                      <div class="w-full text-left flex bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320">
+                      <div class="w-full text-left flex items-center bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320">
                         <p class="grow text-gray-800 text-sm">{task.prompt}</p>
+                        <div class="flex gap-2 ml-2">
+                          {#if typeof task.uploadLimit === 'number'}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              {task.currentSubmissions ?? 0}/{task.uploadLimit}
+                            </span>
+                          {/if}
+                          {#if typeof task.rewardLimit === 'number'}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              {task.rewardLimit} VIRAL
+                            </span>
+                          {/if}
+                        </div>
                         <button
-                          class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 ml-2"
                           title="Edit Task"
                           onclick={() => openTaskModal(app, taskIndex)}>
                           <Pencil size={14} />
@@ -535,11 +557,11 @@
   show={showTaskModal}
   app={currentApp}
   taskIndex={currentTaskIndex}
-  prompt={editTaskPrompt}
-  enableUploadLimit={enableUploadLimit}
-  uploadLimitValue={uploadLimitValue}
-  enableRewardLimit={enableRewardLimit}
-  rewardLimitValue={rewardLimitValue}
+  bind:prompt={editTaskPrompt}
+  bind:enableUploadLimit={enableUploadLimit}
+  bind:uploadLimitValue={uploadLimitValue}
+  bind:enableRewardLimit={enableRewardLimit}
+  bind:rewardLimitValue={rewardLimitValue}
   onClose={closeTaskModal}
   onSave={saveTaskModal}
 />
