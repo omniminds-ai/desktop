@@ -1,30 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { join } from '@tauri-apps/api/path';
 import { getReward } from './api/forge';
-import { walletAddress } from './stores/wallet';
-import { get } from 'svelte/store';
-
-export interface MonitorInfo {
-  width: number;
-  height: number;
-}
-
-export interface Recording {
-  id: string;
-  timestamp: string;
-  duration_seconds: number;
-  status: string;
-  title: string;
-  description: string;
-  platform: string;
-  arch: string;
-  version: string;
-  locale: string;
-  primary_monitor: MonitorInfo;
-  meta?: {
-    quest: Quest;
-  };
-}
 
 import type { Quest } from './types/gym';
 import { API_URL } from './utils';
@@ -32,7 +7,8 @@ import { API_URL } from './utils';
 export async function generateQuest(
   prompt: string,
   address: string,
-  poolId?: string
+  poolId?: string,
+  taskId?: string
 ): Promise<Quest> {
   // Get screenshot
   // const screenshot = await invoke('take_screenshot');
@@ -66,9 +42,13 @@ export async function generateQuest(
   // If poolId is provided, get reward info
   if (poolId) {
     try {
-      const rewardInfo = await getReward(poolId);
+      const rewardInfo = await getReward(poolId, taskId);
       quest.poolId = poolId;
       quest.reward = rewardInfo;
+      // If taskId is provided, add it to the quest
+      if (taskId) {
+        quest.task_id = taskId;
+      }
     } catch (error) {
       console.error('Failed to get reward info:', error);
     }
@@ -90,16 +70,6 @@ export async function startRecording(quest?: Quest) {
 export async function stopRecording(reason?: string): Promise<string> {
   try {
     const recordingId = await invoke<string>('stop_recording', { reason });
-    
-    // Automatically process the recording after stopping
-    try {
-      await invoke('process_recording', { recordingId });
-      console.log('Recording automatically processed:', recordingId);
-    } catch (processError) {
-      console.error('Failed to automatically process recording:', processError);
-      // We don't throw here to ensure the recording ID is still returned even if processing fails
-    }
-    
     return recordingId;
   } catch (error) {
     console.error('Failed to stop recording:', error);

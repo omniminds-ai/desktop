@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { MessageSquare, Dumbbell, Hammer } from 'lucide-svelte';
+  import { MessageSquare, Dumbbell, Hammer, Camera, Square, LoaderCircle } from 'lucide-svelte';
   import { page } from '$app/state';
   import logo from '$lib/assets/Logo_Icon.png';
   import WalletButton from './WalletButton.svelte';
   import UploadManager from './UploadManager.svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { listen } from '@tauri-apps/api/event';
+  import { stopRecording } from '$lib/gym';
+  import { RecordingState } from '$lib/types/gym';
+  import { recordingState } from '$lib/stores/recording';
 
   const earnButtons = [
     { path: '/app/gym', icon: Dumbbell, label: 'Gym' }
@@ -14,6 +19,26 @@
     { path: '/app/forge', icon: Hammer, label: 'Forge' }
     // { path: "/app/lab", icon: TestTube2, label: "Lab" },
   ];
+
+  // Recording state
+  let recordingLoading = false;
+
+  recordingState.subscribe((state) => {
+    if (state === RecordingState.starting || state == RecordingState.saving) {
+      recordingLoading = true;
+    } else {
+      recordingLoading = false;
+    }
+  });
+
+  // Handle stop recording click
+  async function handleStopRecording() {
+    try {
+      await stopRecording();
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+    }
+  }
 </script>
 
 <div class="w-16 flex flex-col bg-transparent py-2 pl-2 space-y-4">
@@ -76,6 +101,22 @@
     </div>
   </div>
   <div class="self-end w-full">
+    <!-- Recording Indicator -->
+    {#if $recordingState == RecordingState.recording}
+      <button
+        class="rounded-full mx-auto w-12 h-12 p-3 bg-red-500 text-white hover:bg-red-600 transition-colors full flex justify-center items-center mb-2"
+        on:click={handleStopRecording}
+        title="Stop Recording">
+        <Square class="w-full h-full" />
+      </button>
+    {:else if recordingLoading}
+      <button
+        disabled
+        class="rounded-full mx-auto w-12 h-12 p-3 bg-red-500 text-white transition-colors full flex justify-center items-center mb-2"
+        title="Stop Recording">
+        <LoaderCircle class="w-full animate-spin h-full" />
+      </button>
+    {/if}
     <UploadManager />
     <br />
     <WalletButton />

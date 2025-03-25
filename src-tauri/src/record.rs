@@ -9,10 +9,11 @@ use display_info::DisplayInfo;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fs::{self, create_dir_all, File};
 use std::io::{BufRead, BufReader, BufWriter, Cursor, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State};
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 use zip::{write::FileOptions, ZipWriter};
 
@@ -44,6 +45,8 @@ pub struct Quest {
     pool_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     reward: Option<QuestReward>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    task_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -190,11 +193,14 @@ impl Recorder {
 pub struct QuestState {
     pub recording_start_time: Mutex<Option<chrono::DateTime<chrono::Local>>>,
     pub current_recording_id: Mutex<Option<String>>,
+    pub current_quest: Mutex<Option<Quest>>,
 }
 
-// Global state for recording and logging
+// Global state for recording and logging and overlay
 lazy_static::lazy_static! {
-    static ref RECORDING_STATE: Arc<Mutex<Option<Recorder>>> = Arc::new(Mutex::new(None));
+    static ref RECORDER_STATE: Arc<Mutex<Option<Recorder>>> = Arc::new(Mutex::new(None));
+    static ref RECORDING_STATE: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some("off".to_string())));
+    static ref OVERLAY_WINDOW_STATE: Mutex<Option<tauri::WebviewWindow>> = Mutex::new(None);
     static ref LOGGER_STATE: Arc<Mutex<Option<Logger>>> = Arc::new(Mutex::new(None));
 }
 
@@ -248,6 +254,43 @@ pub async fn list_recordings(app: tauri::AppHandle) -> Result<Vec<RecordingMeta>
     Ok(recordings)
 }
 
+pub fn set_rec_state(
+    app: &tauri::AppHandle,
+    state: String,
+    id: Option<String>,
+) -> Result<(), String> {
+    let mut recording_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
+    *recording_state = Some(state.clone());
+    if id.is_some() {
+        app.emit(
+            "recording-status",
+            serde_json::json!({
+                "state": state,
+                    "id": id
+            }),
+        )
+        .unwrap();
+    } else {
+        app.emit(
+            "recording-status",
+            serde_json::json!({
+                "state": state
+            }),
+        )
+        .unwrap();
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_recording_state() -> Result<String, String> {
+    let recording_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
+    recording_state
+        .as_ref()
+        .map(|s| s.clone())
+        .ok_or_else(|| "Recording state not initialized".to_string())
+}
+
 #[tauri::command]
 pub async fn start_recording(
     app: tauri::AppHandle,
@@ -255,13 +298,33 @@ pub async fn start_recording(
     quest: Option<Quest>,
 ) -> Result<(), String> {
     // Start screen recording
-    let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
-    if rec_state.is_some() {
+    let mut recorder_state = RECORDER_STATE.lock().map_err(|e| e.to_string())?;
+    if recorder_state.is_some() {
+        set_rec_state(&app, "recording".to_string(), None)?;
         return Err("Recording already in progress".to_string());
     }
 
+    set_rec_state(&app, "starting".to_string(), None)?;
+
     // Initialize FFmpeg
     init_ffmpeg()?;
+
+    create_overlay_window(&app)?;
+    
+    // Store quest data in state if available
+    if let Some(quest_data) = &quest {
+        // Store in QuestState for later retrieval
+        *quest_state.current_quest.lock().unwrap() = Some(quest_data.clone());
+        
+        // Also emit the event for backward compatibility
+        app.emit(
+            "quest-overlay",
+            serde_json::json!({
+                "quest": quest_data
+            }),
+        )
+        .map_err(|e| format!("Failed to emit quest data: {}", e))?;
+    }
 
     let (session_dir, timestamp) = get_session_path(&app)?;
 
@@ -310,17 +373,11 @@ pub async fn start_recording(
 
     *quest_state.recording_start_time.lock().unwrap() = Some(Local::now());
 
-    app.emit(
-        "recording-status",
-        serde_json::json!({
-            "state": "recording"
-        }),
-    )
-    .unwrap();
+    set_rec_state(&app, "recording".to_string(), None)?;
 
     let mut recorder = Recorder::new(&video_path, &primary)?;
     recorder.start()?;
-    *rec_state = Some(recorder);
+    *recorder_state = Some(recorder);
 
     // Start input logging and listening
     let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
@@ -344,13 +401,7 @@ pub async fn stop_recording(
     reason: Option<String>,
 ) -> Result<String, String> {
     // Emit recording stopping event
-    app.emit(
-        "recording-status",
-        serde_json::json!({
-            "state": "stopping"
-        }),
-    )
-    .unwrap();
+    set_rec_state(&app, "stopping".to_string(), None)?;
 
     // Stop input logging and listening first
     let mut log_state = LOGGER_STATE.lock().map_err(|e| e.to_string())?;
@@ -362,7 +413,7 @@ pub async fn stop_recording(
     // Stop dump-tree polling
     axtree::stop_dump_tree_polling()?;
 
-    let mut rec_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
+    let mut rec_state = RECORDER_STATE.lock().map_err(|e| e.to_string())?;
     if let Some(mut recorder) = rec_state.take() {
         recorder.stop()?;
     }
@@ -408,13 +459,13 @@ pub async fn stop_recording(
         }
     }
 
-    app.emit(
-        "recording-status",
-        serde_json::json!({
-            "state": "stopped"
-        }),
-    )
-    .unwrap();
+    // destroy the overlay window
+    let mut overlay_state = OVERLAY_WINDOW_STATE.lock().map_err(|e| e.to_string())?;
+    if let Some(window) = overlay_state.take() {
+        window
+            .close()
+            .map_err(|e| format!("Failed to close overlay window: {}", e))?;
+    }
 
     // Find the most recent recording directory to get its ID
     let recordings_dir = app
@@ -430,9 +481,15 @@ pub async fn stop_recording(
 
     entries.sort_by_key(|entry| std::cmp::Reverse(entry.metadata().unwrap().modified().unwrap()));
 
+    // Clear the current quest
+    *quest_state.current_quest.lock().unwrap() = None;
+
     // Get the recording ID from state
     if let Some(recording_id) = quest_state.current_recording_id.lock().unwrap().take() {
-        Ok(recording_id)
+        set_rec_state(&app, "saved".to_string(), Some(recording_id.clone()))?;
+        set_rec_state(&app, "off".to_string(), None)?;
+
+        Ok(recording_id.to_string())
     } else {
         Err("No recording ID found".to_string())
     }
@@ -595,7 +652,8 @@ pub async fn delete_recording(app: tauri::AppHandle, recording_id: String) -> Re
 pub struct PrivateRange {
     start: f64,
     end: f64,
-    count: i32,
+    #[allow(dead_code)]
+    count: i32, // this is needed for processing, but not accessed in Rust
 }
 
 // Helper function to read and parse a JSON file
@@ -1132,6 +1190,26 @@ pub async fn create_recording_zip(
 }
 
 #[tauri::command]
+pub async fn export_recording_zip(id: String, app: tauri::AppHandle) -> Result<String, String> {
+    let buf = create_recording_zip(app.clone(), id.clone()).await;
+    let selected_dir = app.dialog().file().blocking_pick_folder();
+
+    // If user cancels the dialog, selected_dir will be None
+    if let Some(dir_path) = selected_dir {
+        // Create the full path for history.zip
+        let dir_path_str = dir_path.to_string();
+        let file_path = Path::new(&dir_path_str).join(format!("export_recording_{}.zip", id));
+
+        // Write the buffer to the file
+        std::fs::write(&file_path, buf?).map_err(|e| format!("Failed to write zip file: {}", e))?;
+
+        Ok(file_path.to_string_lossy().into_owned())
+    } else {
+        Ok("".to_string())
+    }
+}
+
+#[tauri::command]
 pub async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     let path = app
         .path()
@@ -1139,4 +1217,88 @@ pub async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
         .map_err(|e| format!("Failed to get app data directory: {}", e))?;
 
     Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub async fn get_current_quest(quest_state: State<'_, QuestState>) -> Result<Option<Quest>, String> {
+    let current_quest = quest_state.current_quest.lock().map_err(|e| e.to_string())?;
+    Ok(current_quest.clone())
+}
+
+fn create_overlay_window(app: &tauri::AppHandle) -> Result<(), String> {
+    log::info!("Starting to create overlay window");
+
+    // Get primary display info
+    let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
+    let primary = displays
+        .iter()
+        .find(|d| d.is_primary)
+        .or_else(|| displays.first())
+        .ok_or_else(|| "No display found".to_string())?;
+
+    log::info!(
+        "Using primary display: {}x{} at position ({},{})",
+        primary.width,
+        primary.height,
+        primary.x,
+        primary.y
+    );
+
+    // set overlay locations for specific platforms
+    let overlay_w = 280.0;
+    let overlay_h = 280.0;
+    let overlay_x = primary.width as f64 - overlay_w;
+    let overlay_y = primary.y as f64;
+
+    log::info!(
+        "Overlay window dimensions: {}x{} at position ({},{})",
+        overlay_w,
+        overlay_h,
+        overlay_x,
+        overlay_y
+    );
+
+    // create the overlay window
+    let overlay_window =
+        tauri::WebviewWindowBuilder::new(app, "overlay", tauri::WebviewUrl::App("overlay".into()))
+            .transparent(true)
+            .always_on_top(true)
+            .decorations(false)
+            .focused(false)
+            .shadow(false)
+            .position(overlay_x, overlay_y)
+            .inner_size(overlay_w, overlay_h)
+            .skip_taskbar(true)
+            .resizable(false)
+            .visible_on_all_workspaces(true)
+            .build();
+
+    match overlay_window {
+        Ok(window) => {
+            log::info!("Successfully created overlay window");
+
+            // Check if the window is visible
+            if let Ok(visible) = window.is_visible() {
+                log::info!("Overlay window visibility: {}", visible);
+            } else {
+                log::warn!("Failed to check overlay window visibility");
+            }
+
+            // Store the window in the global state
+            if let Ok(mut overlay_state) = OVERLAY_WINDOW_STATE.lock() {
+                log::info!("Storing overlay window in global state");
+                *overlay_state = Some(window);
+            } else {
+                log::error!("Failed to acquire lock for overlay window state");
+                return Err("Failed to store overlay window: mutex lock failed".to_string());
+            }
+
+            Ok(())
+        }
+        Err(e) => {
+            log::error!("Failed to create overlay window: {}", e);
+
+            Err(format!("Failed to create overlay window: {}", e))
+        }
+    }
 }

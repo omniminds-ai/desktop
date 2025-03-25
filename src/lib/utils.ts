@@ -2,7 +2,15 @@ import { check, Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { dev } from '$app/environment';
 import { platform } from '@tauri-apps/plugin-os';
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
+import { ask } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
+import { listSubmissions } from './api/forge';
+import { walletAddress } from './stores/wallet';
+import type { Recording } from './types/gym';
+
+// Export toast utilities
+export * from './utils/toast';
 
 export function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -63,3 +71,25 @@ export const toolsInitState = writable<{ initializing: boolean; progress: number
   initializing: false,
   progress: 5
 });
+
+export async function deleteRecording(recordingId: string): Promise<Recording[]> {
+  const res = await ask(
+    'Are you sure you want to delete this recording? This action cannot be undone.',
+    {
+      title: 'Delete Recording',
+      kind: 'warning'
+    }
+  );
+  if (res) {
+    try {
+      await invoke('delete_recording', { recordingId });
+      // Refresh recordings list
+      if (get(walletAddress)) await listSubmissions();
+      return await invoke('list_recordings');
+    } catch (error) {
+      console.error('Failed to delete recording:', error);
+      alert(`Error. Recording deletion failed.\n${error}`);
+    }
+  }
+  return [];
+}

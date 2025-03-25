@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { confirm } from '@tauri-apps/plugin-dialog';
+  import InitToolsFailedModal from '$lib/components/InitToolsFailedModal.svelte';
+  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import '../../app.css';
   import { checkForUpdate, toolsInitState, updateApp } from '$lib/utils';
@@ -11,6 +14,9 @@
 
   let canceled = $state(false);
   let timer: number | undefined;
+  let unlistenInitErrors: UnlistenFn | null = null;
+  let initErrors: string[] = $state([]);
+  let showInitToolsError = $state(false);
 
   async function checkToolsStatus() {
     try {
@@ -30,7 +36,7 @@
 
       // If all tools are initialized, stop checking
       if (initializedTools === totalTools) {
-        console.log('All tools initialized:', status);
+        console.log('All tools initialized');
 
         // Hide the progress bar after a short delay
         setTimeout(() => {
@@ -55,8 +61,16 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
     // Initialize ffmpeg, ffprobe, dump-tree, and pipeline
+    unlistenInitErrors = await listen(
+      'init_tools_errors',
+      async (event: { event: string; id: number; payload: { errors: string[] } }) => {
+        initErrors = event.payload.errors;
+        showInitToolsError = true;
+        await confirm('Initializing tools failed', { cancelLabel: 'Ignore', okLabel: 'Blow up!' });
+      }
+    );
 
     // Start the tools initialization process
     invoke('init_tools');
@@ -68,6 +82,7 @@
   });
 
   onDestroy(() => {
+    unlistenInitErrors?.();
     // Clean up timer if component is destroyed
     if (timer) {
       clearInterval(timer);
@@ -107,6 +122,13 @@
     </div>
   {/if}
 {/await}
+
+<InitToolsFailedModal
+  errors={initErrors}
+  retry={async () => {
+    invoke('init_tools');
+  }}
+  open={showInitToolsError} />
 
 <style>
   :global(html, body) {

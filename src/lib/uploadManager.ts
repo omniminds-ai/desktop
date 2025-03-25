@@ -1,7 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
-import { uploadRecording, getSubmissionStatus } from '$lib/api/forge';
+import { getSubmissionStatus } from '$lib/api/forge';
 import { writable, type Writable, get } from 'svelte/store';
 import type { SubmissionStatus } from './types/forge';
+import { ChunkedUploader } from './chunkedUploader';
 
 // Define event types
 type UploadEventType = 'queueUpdate' | 'statusChange';
@@ -17,6 +18,11 @@ export type UploadQueueItem = {
   submissionId?: string;
   name?: string;
   result?: SubmissionStatus;
+  uploadId?: string;
+  currentChunk?: number;
+  totalChunks?: number;
+  uploadedBytes?: number;
+  totalBytes?: number;
 };
 
 export type UploadQueue = {
@@ -208,7 +214,7 @@ export class UploadManager {
   }
 
   /**
-   * Handles the upload process for a recording
+   * Handles the upload process for a recording using chunked uploads
    */
   async handleUpload(recordingId: string, name: string): Promise<boolean> {
     const walletAddress = this.getWalletAddress();
@@ -245,36 +251,75 @@ export class UploadManager {
       // Get zip file as bytes
       const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
 
-      // Update progress
-      this.updateQueue(recordingId, {
-        status: 'uploading',
-        name,
-        progress: 30
-      });
-
       // Convert to Blob
       const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
 
-      // Update progress
+      // Update progress after zipping
       this.updateQueue(recordingId, {
         status: 'uploading',
         name,
-        progress: 60
+        progress: 10,
+        totalBytes: zipBlob.size,
+        uploadedBytes: 0
       });
 
-      // Upload to server
-      const { submissionId } = await uploadRecording(zipBlob);
-
+      // Initialize chunked uploader
+      const uploader = new ChunkedUploader();
+      
+      // Split the blob into chunks
+      const { chunks, totalChunks } = uploader.splitIntoChunks(zipBlob);
+      
+      // Update queue with total chunks info
+      this.updateQueue(recordingId, {
+        totalChunks,
+        currentChunk: 0
+      });
+      
+      // Initialize upload
+      const initResult = await uploader.initUpload({
+        id: recordingId
+      });
+      
+      // Store upload ID
+      this.updateQueue(recordingId, {
+        uploadId: initResult.uploadId
+      });
+      
+      // Upload each chunk
+      for (let i = 0; i < chunks.length; i++) {
+        // Calculate uploaded bytes
+        const uploadedBytes = chunks.slice(0, i).reduce((total, chunk) => total + chunk.size, 0);
+        
+        // Update current chunk index and uploaded bytes
+        this.updateQueue(recordingId, {
+          currentChunk: i,
+          uploadedBytes: uploadedBytes,
+          // Calculate progress: 10% for zipping + 70% for uploading chunks
+          progress: 10 + Math.round((i / totalChunks) * 70)
+        });
+        
+        // Upload the chunk
+        await uploader.uploadChunk(chunks[i], i);
+        
+        // After successful upload, add this chunk's size to uploaded bytes
+        this.updateQueue(recordingId, {
+          uploadedBytes: uploadedBytes + chunks[i].size
+        });
+      }
+      
+      // Complete the upload
+      const completeResult = await uploader.completeUpload();
+      
       // Update status to processing
       this.updateQueue(recordingId, {
         status: 'processing',
         progress: 80,
-        submissionId,
+        submissionId: completeResult.submissionId,
         name
       });
 
       // Start polling status until processing is done
-      this.pollSubmissionStatus(recordingId, submissionId);
+      this.pollSubmissionStatus(recordingId, completeResult.submissionId);
       return true;
     } catch (error) {
       console.error('Failed to upload recording:', error);

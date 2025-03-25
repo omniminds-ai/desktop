@@ -40,12 +40,12 @@
     {#if part.type === 'text'}
       {part.content}
     {:else if part.type === 'app'}
-      <span class="inline-flex items-center gap-1 px-1.5 py-0.5 border border-2 border-neutral-500/50 font-bold rounded-full text-sm">
-        <img 
-          src="https://www.google.com/s2/favicons?domain={part.content.toLowerCase()}.com" 
+      <span
+        class="inline-flex items-center gap-1 px-1.5 py-0.5 border border-neutral-500/50 font-bold rounded-full text-sm">
+        <img
+          src="https://www.google.com/s2/favicons?domain={part.content.toLowerCase()}.com"
           alt="{part.content} icon"
-          class="w-4 h-4"
-        />
+          class="w-4 h-4" />
         {part.content}
       </span>
     {/if}

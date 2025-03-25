@@ -15,6 +15,8 @@
     unsavedSkills?: boolean;
     unsavedPrice?: boolean;
     unsavedName?: boolean;
+    unsavedApps?: boolean;
+    unsavedUploadLimit?: boolean;
   };
   export let onSave: (pool: TrainingPool, updates: any) => Promise<void>;
   export let onRefresh: (poolId: string) => Promise<void>;
@@ -25,24 +27,68 @@
   let unsavedChanges = false;
   let showSkillsModal = false;
 
+  // Reference to the TasksTab component to access its apps array
+  let tasksTabComponent: TasksTab | null = null;
+  // Direct binding for the apps array from TasksTab
+  let tasksApps: any[] = [];
+  
   async function handleSaveChanges() {
-    if (pool.unsavedSkills) {
-      await onSave(pool, { skills: pool.skills });
-      pool.unsavedSkills = false;
+    try {
+      // Create an updates object to hold all changes
+      const updates: any = {};
+      
+      console.log('Saving changes, activeTab:', activeTab, 'unsavedChanges:', unsavedChanges);
+      
+      // Add skills if they've changed
+      if (pool.unsavedSkills) {
+        updates.skills = pool.skills;
+        pool.unsavedSkills = false;
+      }
+      
+      // Add price if it's changed
+      if (pool.unsavedPrice) {
+        updates.pricePerDemo = pool.pricePerDemo;
+        pool.unsavedPrice = false;
+      }
+      
+      // Add name if it's changed
+      if (pool.unsavedName) {
+        updates.name = pool.name;
+        pool.unsavedName = false;
+      }
+      
+      // Add apps if they've changed
+      if (pool.unsavedApps) {
+        if (!tasksApps || !Array.isArray(tasksApps)) {
+          console.error('Invalid apps array:', tasksApps);
+          throw new Error('Apps array is invalid or undefined');
+        }
+        console.log('Adding apps to updates:', tasksApps);
+        updates.apps = tasksApps;
+        pool.unsavedApps = false;
+      }
+      
+      // Add upload limit if it's changed
+      if (pool.unsavedUploadLimit) {
+        updates.uploadLimit = pool.uploadLimit;
+        pool.unsavedUploadLimit = false;
+        console.log('Adding upload limit to updates:', pool.uploadLimit);
+      }
+      
+      // Only save if there are updates to make
+      if (Object.keys(updates).length > 0) {
+        console.log('Saving updates:', updates);
+        await onSave(pool, updates);
+      } else {
+        console.log('No updates to save');
+      }
+      
+      unsavedChanges = false;
+      showSkillsModal = false;
+    } catch (error) {
+      console.error('Failed to save changes:', error);
+      alert('Failed to save changes. Please try again.');
     }
-
-    if (pool.unsavedPrice) {
-      await onSave(pool, { pricePerDemo: pool.pricePerDemo });
-      pool.unsavedPrice = false;
-    }
-
-    if (pool.unsavedName) {
-      await onSave(pool, { name: pool.name });
-      pool.unsavedName = false;
-    }
-
-    unsavedChanges = false;
-    showSkillsModal = false;
   }
 
   function setTab(tab: string) {
@@ -69,12 +115,41 @@
         generatedResponse.content.apps &&
         generatedResponse.content.apps.length > 0
       ) {
-        // This will be handled by the TasksTab component
-        unsavedChanges = true;
-      }
+        // Save the generated apps along with the skills
+        const apps = generatedResponse.content.apps;
+        
+        // First save the skills
+        if (pool.unsavedSkills) {
+          await onSave(pool, { 
+            skills: pool.skills,
+            apps: apps  // Pass the apps array along with skills
+          });
+          pool.unsavedSkills = false;
+          pool.unsavedApps = false;
+        }
+        
+        // Then save other changes if needed
+        if (pool.unsavedPrice) {
+          await onSave(pool, { pricePerDemo: pool.pricePerDemo });
+          pool.unsavedPrice = false;
+        }
 
-      // Save other changes
-      await handleSaveChanges();
+        if (pool.unsavedName) {
+          await onSave(pool, { name: pool.name });
+          pool.unsavedName = false;
+        }
+        
+        if (pool.unsavedUploadLimit) {
+          await onSave(pool, { uploadLimit: pool.uploadLimit });
+          pool.unsavedUploadLimit = false;
+        }
+        
+        unsavedChanges = false;
+        showSkillsModal = false;
+      } else {
+        // If no apps were generated, just save other changes
+        await handleSaveChanges();
+      }
     } catch (error) {
       console.error('Failed to save generated apps:', error);
       // Fallback to regular save
@@ -199,7 +274,13 @@
         {unsavedChanges}
         {handleSaveChanges} />
     {:else if activeTab === 'tasks'}
-      <TasksTab {pool} {unsavedChanges} {regenerateTasks} />
+      <TasksTab 
+        bind:this={tasksTabComponent}
+        bind:apps={tasksApps}
+        {pool} 
+        bind:unsavedChanges 
+        {regenerateTasks} 
+        {handleSaveChanges} />
     {:else if activeTab === 'uploads'}
       <UploadsTab {pool} />
     {/if}

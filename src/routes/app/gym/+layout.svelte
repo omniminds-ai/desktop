@@ -5,6 +5,7 @@
   import { connectionToken, walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
   import { toolsInitState } from '$lib/utils';
+  import ToastContainer from '$lib/components/ToastContainer.svelte';
 
   const { children } = $props();
 
@@ -34,6 +35,9 @@
       hasPendingRewards = pendingRecordings.length > 0;
     } catch (error) {
       console.error('Failed to load recordings:', error);
+      // trigger signout since htis is probably from a 401 error
+      $walletAddress = null;
+      $connectionToken = null;
     }
   }
 
@@ -76,3 +80,5 @@
     {@render children()}
   </div>
 </div>
+
+<ToastContainer />

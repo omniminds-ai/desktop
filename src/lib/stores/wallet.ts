@@ -1,4 +1,5 @@
 import { API_URL } from '$lib/utils';
+import posthog from 'posthog-js';
 import { writable, get } from 'svelte/store';
 
 // Initialize from localStorage if available
@@ -16,11 +17,13 @@ if (typeof localStorage !== 'undefined') {
   walletAddress.subscribe((value) => {
     if (value) {
       localStorage.setItem('walletAddress', value);
+      // identify users by wallet address
+      posthog.identify(value);
     } else {
       localStorage.removeItem('walletAddress');
     }
   });
-  
+
   connectionToken.subscribe((value) => {
     if (value) {
       localStorage.setItem('connectionToken', value);

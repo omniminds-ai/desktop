@@ -1,7 +1,9 @@
+use crate::downloader::download_file;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
+
 // #[cfg(not(target_os = "macos"))]
 use {std::io::Write, std::process::Stdio, std::thread, std::time::Duration};
 
@@ -10,7 +12,7 @@ pub static FFPROBE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 const FFMPEG_URLS: &[(&str, &str)] = &[
     ("windows", "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"),
-    ("linux", "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"),
+    ("linux", "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl-shared.tar.xz"),
     ("macos", "https://www.osxexperts.net/ffmpeg71intel.zip")
 
 ];
@@ -22,35 +24,6 @@ fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
     temp.push("viralmind-desktop");
     temp
-}
-
-fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    log::info!(
-        "[FFmpeg] Downloading file from {} to {}",
-        url,
-        path.display()
-    );
-    let client = reqwest::blocking::Client::new();
-    let resp = client.get(url).send().map_err(|e| {
-        log::info!("[FFmpeg] Error: Failed to download FFmpeg: {}", e);
-        format!("Failed to download FFmpeg: {}", e)
-    })?;
-
-    let bytes = resp.bytes().map_err(|e| {
-        log::info!("[FFmpeg] Error: Failed to get response bytes: {}", e);
-        format!("Failed to get response bytes: {}", e)
-    })?;
-
-    fs::write(path, bytes).map_err(|e| {
-        log::info!("[FFmpeg] Error: Failed to write file: {}", e);
-        format!("Failed to write file: {}", e)
-    })?;
-
-    log::info!(
-        "[FFmpeg] Successfully downloaded file to {}",
-        path.display()
-    );
-    Ok(())
 }
 
 /// Checks for ffmpeg in the PATH and in the temp directory
@@ -131,22 +104,50 @@ pub fn get_ffprobe_dir() -> PathBuf {
 }
 
 /// Downloads and extracts a binary from an archive
+/// If keep_archive is true, the archive file will not be deleted after extraction
+/// If url is empty, it assumes the archive already exists and skips the download step
 fn download_and_extract_binary(
     url: &str,
     archive_path: &Path,
     binary_path: &Path,
     binary_name: &str,
     os_type: &str,
+    keep_archive: bool,
 ) -> Result<(), String> {
-    log::info!(
-        "[FFmpeg] Downloading {} for {} from {}",
-        binary_name,
-        os_type,
-        url
-    );
+    // Check if we need to download or just extract from existing archive
+    if !url.is_empty() {
+        log::info!(
+            "[FFmpeg] Downloading {} for {} from {}",
+            binary_name,
+            os_type,
+            url
+        );
 
-    // Download the archive
-    download_file(url, archive_path)?;
+        // Check if archive already exists before downloading
+        if !archive_path.exists() {
+            // Download the archive
+            download_file(url, archive_path)?;
+        } else {
+            log::info!(
+                "[FFmpeg] Using existing archive for {} at {}",
+                binary_name,
+                archive_path.display()
+            );
+        }
+    } else {
+        // Just using existing archive, no download needed
+        if !archive_path.exists() {
+            return Err(format!(
+                "Archive file not found at {}",
+                archive_path.display()
+            ));
+        }
+        log::info!(
+            "[FFmpeg] Using existing archive for {} at {}",
+            binary_name,
+            archive_path.display()
+        );
+    }
 
     log::info!("[FFmpeg] Extracting {} from archive", binary_name);
 
@@ -282,12 +283,25 @@ fn download_and_extract_binary(
         })?;
     }
 
-    // Clean up archive file
-    log::info!("[FFmpeg] Cleaning up archive file");
-    fs::remove_file(archive_path).map_err(|e| {
-        log::info!("[FFmpeg] Warning: Failed to cleanup archive: {}", e);
-        format!("Failed to cleanup archive: {}", e)
-    })?;
+    // Clean up archive file if not keeping it
+    if !keep_archive {
+        log::info!("[FFmpeg] Cleaning up archive file");
+        fs::remove_file(archive_path).map_err(|e| {
+            log::info!("[FFmpeg] Warning: Failed to cleanup archive: {}", e);
+            format!("Failed to cleanup archive: {}", e)
+        })?;
+    }
+
+    Ok(())
+}
+
+/// Initialize both FFmpeg and FFprobe
+pub fn init_ffmpeg_and_ffprobe() -> Result<(), String> {
+    // Initialize FFmpeg first
+    init_ffmpeg()?;
+
+    // Then initialize FFprobe
+    init_ffprobe()?;
 
     Ok(())
 }
@@ -351,7 +365,14 @@ pub fn init_ffmpeg() -> Result<(), String> {
         })?;
 
     let archive_path = temp_dir.join("ffmpeg.archive");
-    download_and_extract_binary(url, &archive_path, &ffmpeg_path, "ffmpeg", os)?;
+
+    // On Windows and Linux, we need to keep the archive for ffprobe extraction
+    #[cfg(not(target_os = "macos"))]
+    let keep_archive = true;
+    #[cfg(target_os = "macos")]
+    let keep_archive = false;
+
+    download_and_extract_binary(url, &archive_path, &ffmpeg_path, "ffmpeg", os, keep_archive)?;
 
     // Set the path
     log::info!(
@@ -416,13 +437,14 @@ pub fn init_ffprobe() -> Result<(), String> {
             &ffprobe_path,
             "ffprobe",
             "macos",
+            false, // On macOS, ffprobe has its own archive, so we don't need to keep it
         )?;
     }
 
     // For Windows and Linux, FFprobe is included in the same archive as FFmpeg
     #[cfg(not(target_os = "macos"))]
     {
-        // We need to download the FFmpeg archive which contains FFprobe
+        // We need to use the FFmpeg archive which contains FFprobe
         let (os, url) = FFMPEG_URLS
             .iter()
             .find(|(os, _)| match *os {
@@ -436,7 +458,16 @@ pub fn init_ffprobe() -> Result<(), String> {
             })?;
 
         let archive_path = temp_dir.join("ffmpeg.archive");
-        download_and_extract_binary(url, &archive_path, &ffprobe_path, "ffprobe", os)?;
+
+        // Check if the archive already exists from the ffmpeg download
+        if !archive_path.exists() {
+            log::info!("[FFmpeg] Archive not found, downloading for ffprobe extraction");
+            download_and_extract_binary(url, &archive_path, &ffprobe_path, "ffprobe", os, false)?;
+        } else {
+            log::info!("[FFmpeg] Using existing archive for ffprobe extraction");
+            // Extract ffprobe from the existing archive
+            download_and_extract_binary("", &archive_path, &ffprobe_path, "ffprobe", os, false)?;
+        }
     }
 
     // Set the path
@@ -697,20 +728,53 @@ impl FFmpegRecorder {
         if let Some(mut process) = self.process.take() {
             // Send 'q' to FFmpeg to stop recording gracefully
             if let Some(mut stdin) = process.stdin.take() {
-                let _ = stdin.write_all(b"q");
+                if let Err(e) = stdin.write_all(b"q") {
+                    log::info!("[FFmpeg] Warning: Failed to send quit command: {}", e);
+                    // Continue with the process termination even if we couldn't write to stdin
+                }
             }
 
-            log::info!("[FFmpeg] Waiting for process to finish");
-            // Give FFmpeg time to finish writing
-            thread::sleep(Duration::from_secs(2));
+            log::info!("[FFmpeg] Waiting for process to finish with timeout");
 
-            // Wait for process to finish and capture output
-            match process.wait_with_output() {
-                Ok(_output) => {
-                    // Output is already handled by the reader threads
+            // Give FFmpeg a chance to exit gracefully
+            let timeout = Duration::from_secs(5);
+            let start_time = std::time::Instant::now();
+
+            // Try waiting with a timeout
+            loop {
+                match process.try_wait() {
+                    Ok(Some(_status)) => {
+                        // Process exited naturally
+                        log::info!("[FFmpeg] Process exited gracefully");
+                        break;
+                    }
+                    Ok(None) => {
+                        // Process still running
+                        if start_time.elapsed() >= timeout {
+                            // Timeout reached, kill the process
+                            log::info!("[FFmpeg] Timeout reached, killing process");
+                            if let Err(e) = process.kill() {
+                                log::info!("[FFmpeg] Warning: Failed to kill process: {}", e);
+                            }
+                            break;
+                        }
+                        // Sleep a bit before checking again
+                        thread::sleep(Duration::from_millis(100));
+                    }
+                    Err(e) => {
+                        log::info!("[FFmpeg] Warning: Failed to check process status: {}", e);
+                        // Try to kill the process anyway
+                        let _ = process.kill();
+                        break;
+                    }
                 }
+            }
+
+            // Wait for any remaining cleanup
+            match process.wait() {
+                Ok(_) => {}
                 Err(e) => {
-                    log::info!("[FFmpeg] Warning: Failed to get process output: {}", e);
+                    log::info!("[FFmpeg] Warning: Error waiting for process: {}", e);
                 }
             }
 

@@ -6,21 +6,30 @@
   import { tweened } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
   import AppText from './AppText.svelte';
-  import type { Quest } from '$lib/types/gym';
+  import { RecordingState, type Quest } from '$lib/types/gym';
+  import { recordingState } from '$lib/stores/recording';
 
   export let title: string;
-  export let recordingLoading: boolean;
   export let objectives: string[];
   export let reward: Quest['reward'];
   export let onStartRecording: () => void;
   export let onComplete: () => void;
   export let onGiveUp: () => void;
-  export let recordingState: 'recording' | 'stopping' | 'stopped' = 'stopped';
+
+  let recordingLoading = false;
 
   let screenshot = '';
   const scale = tweened(1, {
     duration: 60000,
     easing: cubicOut
+  });
+
+  recordingState.subscribe((state) => {
+    if (state === RecordingState.starting || state == RecordingState.saving) {
+      recordingLoading = true;
+    } else {
+      recordingLoading = false;
+    }
   });
 
   async function handleStartRecording() {
@@ -73,7 +82,7 @@
         {/each}
       </ul>
     </div>
-    {#if recordingState === 'recording'}
+    {#if $recordingState === RecordingState.recording}
       <div class="flex gap-4">
         <Button variant="green" class="flex-1" onclick={onComplete}>
           <div class="flex items-center justify-center gap-2">

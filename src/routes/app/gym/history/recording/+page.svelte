@@ -13,20 +13,18 @@
     Eye,
     ChevronUp,
     ChevronDown,
-    Trash2,
-    MousePointer,
-    Keyboard
+    Trash2
   } from 'lucide-svelte';
   import { convertFileSrc, invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-  import type { Recording } from '$lib/gym';
+  import type { Recording } from '$lib/types/gym';
   import { getPlatform } from '$lib/utils';
-  import { getSubmissionStatus } from '$lib/api/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
   import { uploadManager } from '$lib/stores/misc';
+  import { JsonView } from '@zerodevx/svelte-json-view';
 
   let platform: Awaited<ReturnType<typeof getPlatform>> = 'windows';
   let submissions: SubmissionStatus[] = [];
@@ -231,7 +229,7 @@
   let submissionError: string | null = null;
   let showUploadConfirmModal = false;
   let exportingZip = false;
-  let exportZipPath: string | null = null;
+  let exportedZipPath: string | null = null;
   let exportZipError: string | null = null;
 
   // Function to export zip creation
@@ -240,47 +238,13 @@
 
     try {
       exportingZip = true;
-      exportZipPath = null;
+      exportedZipPath = null;
       exportZipError = null;
 
       // Create the zip file using the Rust backend
-      // This will create the temp directory with masked video but won't delete it
-      const zipBytes = await invoke<number[]>('create_recording_zip', { recordingId });
-
-      // Get the recordings directory path
-      const appDataDir = await invoke<string>('get_app_data_dir');
-      const recordingsDir = `${appDataDir}/recordings/${recordingId}`;
-
-      // Log the temp directory location for export
-      console.log(
-        'Temp directory with masked content should be at:',
-        `${recordingsDir}/temp_private`
-      );
-
-      // Convert to Blob and create a download link
-      const zipBlob = new Blob([Uint8Array.from(zipBytes)], { type: 'application/zip' });
-      const url = URL.createObjectURL(zipBlob);
-
-      // Create a timestamp for the filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `export_zip_${timestamp}.zip`;
-
-      // Create a download link and click it
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-
-      // Clean up
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
-
-      exportZipPath = `Downloaded as ${filename}`;
-      console.log('Export zip downloaded as:', filename);
-      console.log('Check the temp_private directory for masked content');
+      exportedZipPath = await invoke<string>('export_recording_zip', { id: recordingId });
+      if (!exportedZipPath) throw Error('No export location selected.');
+      console.log('Export zip downloaded to:', exportedZipPath);
     } catch (error) {
       console.error('Failed to export zip creation:', error);
       exportZipError = error instanceof Error ? error.message : String(error);
@@ -291,22 +255,6 @@
 
   // Poll submission status
   let statusInterval: number | null = null;
-  function pollSubmissionStatus(submissionId: string) {
-    statusInterval = setInterval(async () => {
-      try {
-        const status = await getSubmissionStatus(submissionId);
-        submission = status;
-        if (status.status === 'completed' || status.status === 'failed') {
-          if (statusInterval) {
-            clearInterval(statusInterval);
-            statusInterval = null;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to get submission status:', error);
-      }
-    }, 5000);
-  }
 
   // Clean up interval on unmount
   onDestroy(() => {
@@ -1008,10 +956,9 @@
               <p class="text-red-500 text-sm mt-2">Upload Error: {submissionError}</p>
             {/if}
 
-            {#if exportZipPath}
-              <p class="text-green-500 text-sm mt-2">Export Zip: {exportZipPath}</p>
-              <p class="text-gray-500 text-xs mt-1">
-                Check the temp_private directory in the recording folder for masked content.
+            {#if exportedZipPath}
+              <p class="text-green-500 text-sm mt-2">
+                Zip successfully exported: {exportedZipPath}
               </p>
             {/if}
 
@@ -1072,8 +1019,8 @@
                 <div class="flex flex-col">
                   {#each filteredEvents.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage) as event, i}
                     <div
-                      class={`flex gap-2 items-start min-w-0 p-2 rounded ${i % 2 === 0 ? 'bg-gray-100' : ''}`}>
-                      <div class="flex flex-col gap-1 min-w-[50px] select-none">
+                      class={`flex gap-2 p-2 rounded ${i % 2 === 0 ? 'bg-gray-100' : 'bg-white'}`}>
+                      <div class="flex flex-col gap-1 min-w-[82px] select-none">
                         <div class="flex items-center gap-1">
                           <EventTimestamp
                             timestamp={event.time}
@@ -1096,19 +1043,9 @@
                           Copy
                         </Button>
                       </div>
-                      {#if formatJson(event.data).length > 10000}
-                        <pre
-                          class="text-sm text-gray-700 whitespace-pre-wrap break-all flex-1 overflow-hidden">{formatJson(
-                            event
-                          ).slice(0, 10000)}... (Truncated for Performace)
-                      </pre>
-                      {:else}
-                        <pre
-                          class="text-sm text-gray-700 whitespace-pre-wrap break-all flex-1 overflow-hidden">{formatJson(
-                            event
-                          )}
-                      </pre>
-                      {/if}
+                      <div class="block break-all">
+                        <JsonView json={event.data} depth={1} />
+                      </div>
                     </div>
                   {/each}
 

@@ -1,12 +1,20 @@
 <script lang="ts">
+  import type { Snippet, SvelteComponent } from 'svelte';
   import type { HTMLInputAttributes } from 'svelte/elements';
 
   interface Props extends HTMLInputAttributes {
     class?: string;
     variant?: 'dark' | 'light';
+    icon?: Snippet;
   }
 
-  let { class: className = '', variant = 'dark', value = $bindable(''), ...rest }: Props = $props();
+  let {
+    class: className = '',
+    variant = 'dark',
+    value = $bindable(''),
+    icon,
+    ...rest
+  }: Props = $props();
 
   const variantClasses = $derived.by(() => {
     let classes = '';
@@ -27,7 +35,15 @@
   });
 </script>
 
-<input
-  class="{variantClasses} w-full py-2 px-3 rounded-lg border focus:outline-none focus:ring transition-all {className}"
-  bind:value
-  {...rest} />
+<div class="relative group">
+  <div
+    class="absolute text-gray-400 group-focus-within:text-secondary-300 inset-y-0 start-0 flex transition-all items-center ps-3 pointer-events-none">
+    {@render icon?.()}
+  </div>
+  <input
+    class="{variantClasses} w-full {icon
+      ? 'ps-12'
+      : ''} py-2 px-3 rounded-lg border focus:outline-none focus:ring transition-all {className}"
+    bind:value
+    {...rest} />
+</div>

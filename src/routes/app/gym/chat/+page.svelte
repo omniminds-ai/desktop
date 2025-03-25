@@ -2,22 +2,10 @@
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
   import * as gym from '$lib/gym';
-  import type { Quest } from '$lib/types/gym';
+  import { RecordingState, type Quest } from '$lib/types/gym';
   import { getReward, getSubmissionStatus } from '$lib/api/forge';
-  import { walletAddress } from '$lib/stores/wallet';
-  import { get } from 'svelte/store';
-  import {
-    Send,
-    User,
-    Video,
-    Square,
-    Upload,
-    MousePointer,
-    ArrowRight,
-    Trash2,
-    RotateCcw
-  } from 'lucide-svelte';
-  import { emit } from '@tauri-apps/api/event';
+  import { User, Upload, MousePointer, Trash2, RotateCcw } from 'lucide-svelte';
+  import { emit, listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { invoke } from '@tauri-apps/api/core';
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/Button.svelte';
@@ -28,8 +16,11 @@
   import QuestPanel from '$lib/components/gym/QuestPanel.svelte';
   import RecordingPanel from '$lib/components/gym/RecordingPanel.svelte';
   import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
-  import { API_URL } from '$lib/utils';
+  import { API_URL, deleteRecording, toolsInitState } from '$lib/utils';
   import { uploadManager } from '$lib/stores/misc';
+  import { recordingState } from '$lib/stores/recording';
+  import { goto } from '$app/navigation';
+  import { slide } from 'svelte/transition';
 
   const prompt = page.url.searchParams.get('prompt') || '';
   const appParam = page.url.searchParams.get('app');
@@ -40,6 +31,7 @@
   try {
     if (appParam) {
       app = JSON.parse(decodeURIComponent(appParam));
+      console.log('Parsed app parameter:', app);
     }
   } catch (error) {
     console.error('Failed to parse app parameter:', error);
@@ -48,8 +40,8 @@
   // Quest state
   let currentQuest = $state<Quest | null>(null);
   let activeQuest = $state<Quest | null>(null);
-  let recordingState = $state<'recording' | 'stopping' | 'stopped'>('stopped');
   let recordingLoading = $state(false);
+  let recordingProcessing = $state(false);
   let showUploadConfirmModal = $state(false);
   let currentRecordingId = $state<string | null>(null);
   let isUploading = $state(false);
@@ -82,6 +74,7 @@
   let chatContent: HTMLElement | null = null;
   let toneAudio: HTMLAudioElement | null = null;
   let blipAudio: HTMLAudioElement | null = null;
+  let unlistenState: UnlistenFn | null;
 
   const TYPE_START_DELAY = 300;
 
@@ -247,18 +240,26 @@
           content: questData.content || ''
         };
 
-        // If poolId is provided, get reward info
-        if (poolId) {
-          try {
-            const rewardInfo = await getReward(poolId);
-            currentQuest.pool_id = poolId;
-            currentQuest.reward = {
-              time: rewardInfo.time,
-              max_reward: rewardInfo.maxReward
-            };
-          } catch (error) {
-            console.error('Failed to get reward info:', error);
+          // If poolId is provided, get reward info
+          if (poolId) {
+            try {
+              // If app parameter contains task_id, use it when getting reward info
+              const taskId = app && 'task_id' in app && typeof app.task_id === 'string' ? app.task_id : undefined;
+              const rewardInfo = await getReward(poolId, taskId);
+              currentQuest.pool_id = poolId;
+              currentQuest.reward = {
+                time: rewardInfo.time,
+                max_reward: rewardInfo.maxReward
+              };
+            } catch (error) {
+              console.error('Failed to get reward info:', error);
+            }
           }
+
+        // If app parameter contains task_id, add it to the quest
+        if (app && 'task_id' in app && typeof app.task_id === 'string') {
+          console.log('Adding task_id to quest:', app.task_id);
+          currentQuest.task_id = app.task_id;
         }
 
         await addMessage({
@@ -303,23 +304,13 @@
     }
   }
 
-  async function toggleRecording() {
+  async function startRecordingHandler() {
     try {
       recordingLoading = true;
-      if (recordingState === 'stopped') {
+      if ($recordingState === RecordingState.off) {
         await gym.startRecording(activeQuest!).catch(console.error);
         await emit('quest-overlay', { quest: activeQuest! });
-        recordingState = 'recording';
-      } else if (recordingState === 'recording') {
-        // await gym.stopRecording().catch(console.error);
-        // recordingState = 'stopped';
-        // //todo: log how many minutes/events & viralm collected
-        // await addMessage({
-        //   role: 'assistant',
-        //   content: 'Training session ended.'
-        // });
-        // // Clear quest from overlay
-        // await emit('quest-overlay', { quest: null });
+        $recordingState = RecordingState.recording;
       }
       recordingLoading = false;
     } catch (error) {
@@ -484,150 +475,156 @@
     scrollToBottom();
   }
 
-  async function handleComplete() {
-    if (recordingState === 'recording') {
-      activeQuest = null;
-      recordingLoading = true;
-      await addMessage({
-        role: 'user',
-        content: `<loading>Processing recording...</loading>`
-      });
+  async function handleRecordingComplete() {
+    if (recordingLoading || recordingProcessing) return;
+    recordingLoading = true;
+    recordingProcessing = true;
+    activeQuest = null;
+    await addMessage({
+      role: 'user',
+      content: `<loading>Saving recording...</loading>`
+    });
+    await emit('quest-overlay', { quest: null });
+    recordingLoading = false;
+    if ($recordingState === RecordingState.recording) {
       const recordingId = await gym.stopRecording('done').catch((error) => {
         console.error(error);
         return null;
       });
-      await emit('quest-overlay', { quest: null });
-      recordingLoading = false;
-      recordingState = 'stopped';
-
-      // Store the recording ID for upload
       currentRecordingId = recordingId;
+      $recordingState = RecordingState.off;
+    }
 
-      // Update message to show "replaying" status
-      await removeMessage();
+    // remove saving message
+    await removeMessage();
+
+    // Try to load SFT data
+    if (currentRecordingId) {
+      // show replaying status
       await addMessage({
         role: 'user',
         content: `<loading>Replaying recording...</loading>`
       });
 
-      // Wait briefly to ensure processing has completed
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Remove the loading message
-      await removeMessage();
-
-      // Try to load SFT data
-      if (recordingId) {
-        const sftData = await loadSftData(recordingId);
-        if (sftData?.length) {
-          // Store original SFT data for filtering
-          originalSftData = [...sftData];
-
-          // Add styled start replay message
-          await addMessage(
-            {
-              role: 'assistant',
-              content: '<start>--- demonstration replay ---</start>'
-            },
-            { audio: false, delay: false }
-          );
-
-          // Process SFT messages properly alternating between VM (assistant) and user
-          for (const msg of sftData) {
-            if (
-              msg.role === 'user' &&
-              typeof msg.content === 'object' &&
-              msg.content?.type === 'image'
-            ) {
-              // VM sends the desktop screenshot
-              await addMessage(
-                {
-                  role: 'assistant',
-                  content: `<img>${msg.content.data}</img>`,
-                  timestamp: msg.timestamp
-                },
-                { audio: false, delay: false }
-              );
-
-              // Add a small delay between images for better pacing
-              // await new Promise((resolve) => setTimeout(resolve, 800));
-            } else if (msg.role === 'assistant') {
-              // Extract code block content when applicable
-              let content = msg.content;
-              if (typeof content === 'string' && content.includes('```python')) {
-                const match = content.match(/```python\s*\n(.*?)\n```/s);
-                if (match && match[1]) {
-                  content = `<action>${match[1].trim()}</action>`;
-                }
-              } else if (typeof content !== 'string') {
-                content = JSON.stringify(content);
-              }
-
-              // User sends the action (ignore scroll)
-              await addMessage(
-                {
-                  role: 'user',
-                  content: content,
-                  timestamp: msg.timestamp
-                },
-                { audio: false, delay: false }
-              );
-            }
-          }
-
-          // Add end replay message
-          await addMessage(
-            {
-              role: 'assistant',
-              content: '<end>--- end of replay ---</end>'
-            },
-            { audio: true, delay: false }
-          );
-
-          // Finish with completion message
-          await addMessage({
-            role: 'user',
-            content: 'I completed the task! 🎉'
-          });
-
-          await addMessage({
-            role: 'assistant',
-            content: 'Great job completing the task!'
-          });
-        } else {
-          // Fallback if no SFT data
-          await addMessage({
-            role: 'user',
-            content: `<recording>${recordingId}</recording>`
-          });
-
-          await addMessage({
-            role: 'user',
-            content: 'I completed the task! 🎉'
-          });
-
-          await addMessage({
-            role: 'assistant',
-            content: 'Great job completing the task!'
-          });
-        }
+      // process the recording after stopping
+      try {
+        await invoke('process_recording', { recordingId: currentRecordingId });
+        console.log('Recording processed:', currentRecordingId);
+      } catch (processError) {
+        console.error('Failed to automatically process recording:', processError);
       }
+      const sftData = await loadSftData(currentRecordingId);
+      await removeMessage();
+      if (sftData?.length) {
+        // Store original SFT data for filtering
+        originalSftData = [...sftData];
 
-      await addMessage({
-        role: 'assistant',
-        content:
-          "Review your demonstration before uploading. You can hover over messages to delete any sections containing sensitive information. Once you're ready, upload to get scored or do it later from the history page."
-      });
+        // Add styled start replay message
+        await addMessage(
+          {
+            role: 'assistant',
+            content: '<start>--- demonstration replay ---</start>'
+          },
+          { audio: false, delay: false }
+        );
 
-      // Add upload button message
-      await addMessage(
-        {
+        // Process SFT messages properly alternating between VM (assistant) and user
+        for (const msg of sftData) {
+          if (
+            msg.role === 'user' &&
+            typeof msg.content === 'object' &&
+            msg.content?.type === 'image'
+          ) {
+            // VM sends the desktop screenshot
+            await addMessage(
+              {
+                role: 'assistant',
+                content: `<img>${msg.content.data}</img>`,
+                timestamp: msg.timestamp
+              },
+              { audio: false, delay: false }
+            );
+
+            // Add a small delay between images for better pacing
+            // await new Promise((resolve) => setTimeout(resolve, 800));
+          } else if (msg.role === 'assistant') {
+            // Extract code block content when applicable
+            let content = msg.content;
+            if (typeof content === 'string' && content.includes('```python')) {
+              const match = content.match(/```python\s*\n(.*?)\n```/s);
+              if (match && match[1]) {
+                content = `<action>${match[1].trim()}</action>`;
+              }
+            } else if (typeof content !== 'string') {
+              content = JSON.stringify(content);
+            }
+
+            // User sends the action (ignore scroll)
+            await addMessage(
+              {
+                role: 'user',
+                content: content,
+                timestamp: msg.timestamp
+              },
+              { audio: false, delay: false }
+            );
+          }
+        }
+
+        // Add end replay message
+        await addMessage(
+          {
+            role: 'assistant',
+            content: '<end>--- end of replay ---</end>'
+          },
+          { audio: true, delay: false }
+        );
+
+        // Finish with completion message
+        await addMessage({
+          role: 'user',
+          content: 'I completed the task! 🎉'
+        });
+
+        await addMessage({
           role: 'assistant',
-          content: `<upload-button></upload-button>`
-        },
-        { audio: true, delay: false }
-      );
+          content: 'Great job completing the task!'
+        });
+      } else {
+        // Fallback if no SFT data
+        await addMessage({
+          role: 'user',
+          content: `<recording>${currentRecordingId}</recording>`
+        });
+
+        await addMessage({
+          role: 'user',
+          content: 'I completed the task! 🎉'
+        });
+
+        await addMessage({
+          role: 'assistant',
+          content: 'Great job completing the task!'
+        });
+      }
     }
+
+    await addMessage({
+      role: 'assistant',
+      content:
+        "Review your demonstration before uploading. You can hover over messages to delete any sections containing sensitive information. Once you're ready, upload to get scored or do it later from the history page."
+    });
+
+    // Add upload button message
+    await addMessage(
+      {
+        role: 'assistant',
+        content: `<upload-button></upload-button>`
+      },
+      { audio: true, delay: false }
+    );
+
+    recordingProcessing = false;
   }
 
   // Function to handle upload button click
@@ -727,13 +724,13 @@
   }
 
   async function handleGiveUp() {
-    if (recordingState === 'recording') {
+    if ($recordingState === RecordingState.recording) {
       activeQuest = null;
       const recordingId = await gym.stopRecording('fail').catch((error) => {
         console.error(error);
         return null;
       });
-      recordingState = 'stopped';
+      $recordingState = RecordingState.off;
       await emit('quest-overlay', { quest: null });
 
       await addMessage({
@@ -815,6 +812,17 @@
 
       // Get initial message
       await getInitialMessage();
+      // wait for a recording save event
+      unlistenState = await listen<{ state: RecordingState; id?: string }>(
+        'recording-status',
+        (event) => {
+          if (event.payload.state === RecordingState.saved) {
+            console.log('recording saved:', event.payload.id);
+            currentRecordingId = event.payload.id || currentRecordingId;
+            handleRecordingComplete();
+          }
+        }
+      );
     } catch (error) {
       console.error('Failed to initialize:', error);
     }
@@ -833,10 +841,17 @@
         blipAudio.src = '';
         blipAudio.remove();
       }
+      unlistenState?.();
     } catch (error) {
       console.error('Failed to cleanup:', error);
     }
   });
+
+  async function handleDeleteRecording() {
+    if (currentRecordingId) {
+      if ((await deleteRecording(currentRecordingId))?.length > 0) goto('/app/gym');
+    }
+  }
 
   function handleHover(index: number) {
     hoveredMessageIndex = index;
@@ -848,6 +863,17 @@
 </script>
 
 <div class="flex flex-col pb-[65px] h-full">
+  {#if $toolsInitState.initializing}
+    <div
+      transition:slide
+      class="p-3 max-w-7xl mx-auto mb-5 border-yellow-500 border-1 rounded-lg shadow-md bg-yellow-500/30">
+      <p class="text-lg font-bold text-yellow-900 border-b border-yellow-800 w-fit">WARNING</p>
+      <p class="text-black mt-1">
+        If the required tools are not installed correctly when recording a demonstration, your
+        recording may be corrupted and the application may crash.
+      </p>
+    </div>
+  {/if}
   <div
     bind:this={chatContent}
     class="flex-1 max-w-7xl w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
@@ -871,7 +897,7 @@
           role="listitem">
           <!-- Delete overlay for the entire message -->
           {#if hoveredMessageIndex === i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
-            <div
+            <button
               class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
               style="opacity: {hoveredMessageIndex === i ? '1' : '0'}"
               onclick={() => handleDeleteMessage(i, msg)}>
@@ -879,7 +905,7 @@
                 class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
                 <Trash2 size={24} />
               </div>
-            </div>
+            </button>
           {/if}
 
           {#if msg.content.startsWith('<start>') && msg.content.endsWith('</start>')}
@@ -1007,7 +1033,14 @@
                         : ''}
                     {/if}
                   </Button>
-                  <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+                  <p class="text-sm w-full text-center text-gray-500">
+                    Get scored and earn $VIRAL tokens
+                  </p>
+                  <button
+                    onclick={handleDeleteRecording}
+                    class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
+                    Don't like your recording? Click to delete it.
+                  </button>
                 </div>
               </Card>
             {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
@@ -1053,7 +1086,7 @@
                 role="listitem">
                 <!-- Delete overlay for the entire message -->
                 {#if hoveredMessageIndex === demoStartIndex + 1 + i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
-                  <div
+                  <button
                     class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
                     style="opacity: {hoveredMessageIndex === demoStartIndex + 1 + i ? '1' : '0'}"
                     onclick={() => handleDeleteMessage(demoStartIndex + 1 + i, msg)}>
@@ -1061,7 +1094,7 @@
                       class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
                       <Trash2 size={24} />
                     </div>
-                  </div>
+                  </button>
                 {/if}
 
                 {#if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
@@ -1182,7 +1215,14 @@
                               : ''}
                           {/if}
                         </Button>
-                        <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+                        <p class="text-sm w-full text-center text-gray-500">
+                          Get scored and earn $VIRAL tokens
+                        </p>
+                        <button
+                          onclick={handleDeleteRecording}
+                          class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
+                          Don't like your recording? Click to delete it.
+                        </button>
                       </div>
                     </Card>
                   {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
@@ -1227,7 +1267,7 @@
             role="listitem">
             <!-- Delete overlay for the entire message -->
             {#if hoveredMessageIndex === demoEndIndex + 1 + i && msg.timestamp !== undefined && !msg.content.startsWith('<delete>')}
-              <div
+              <button
                 class="absolute inset-0 flex items-center justify-center bg-black/5 z-10 rounded transition-opacity duration-300 cursor-pointer"
                 style="opacity: {hoveredMessageIndex === demoEndIndex + 1 + i ? '1' : '0'}"
                 onclick={() => handleDeleteMessage(demoEndIndex + 1 + i, msg)}>
@@ -1235,7 +1275,7 @@
                   class="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 transform hover:scale-110">
                   <Trash2 size={24} />
                 </div>
-              </div>
+              </button>
             {/if}
 
             {#if msg.content.startsWith('<delete>') && msg.content.includes('</delete>')}
@@ -1354,7 +1394,14 @@
                           : ''}
                       {/if}
                     </Button>
-                    <p class="text-sm text-gray-500">Get scored and earn $VIRAL tokens</p>
+                    <p class="text-sm w-full text-center text-gray-500">
+                      Get scored and earn $VIRAL tokens
+                    </p>
+                    <button
+                      onclick={handleDeleteRecording}
+                      class="text-sm w-full text-center text-gray-500 hover:text-red-500 hover:underline">
+                      Don't like your recording? Click to delete it.
+                    </button>
                   </div>
                 </Card>
               {:else if msg.content.startsWith('<img>') && msg.content.endsWith('</img>')}
@@ -1393,11 +1440,9 @@
         title={activeQuest.title}
         reward={activeQuest.reward}
         objectives={activeQuest.objectives}
-        onStartRecording={toggleRecording}
-        onComplete={handleComplete}
-        onGiveUp={handleGiveUp}
-        {recordingLoading}
-        {recordingState} />
+        onStartRecording={startRecordingHandler}
+        onComplete={handleRecordingComplete}
+        onGiveUp={handleGiveUp} />
     {/if}
 
     {#if isWaitingForResponse || loadingSftData}

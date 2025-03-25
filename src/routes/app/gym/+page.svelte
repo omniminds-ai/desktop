@@ -1,16 +1,13 @@
 <script lang="ts">
-  import { slide } from 'svelte/transition';
   import Card from '$lib/components/Card.svelte';
   import { onMount } from 'svelte';
-  import { getAppsForGym, getBalance, listSubmissions } from '$lib/api/forge';
-  import type { ForgeApp } from '$lib/types/gym';
-  import GymHeader from '$lib/components/gym/GymHeader.svelte';
+  import { getBalance, listSubmissions } from '$lib/api/forge';
   import Button from '$lib/components/Button.svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { walletAddress } from '$lib/stores/wallet';
   import { page } from '$app/state';
   import AvailableTasks from '$lib/components/gym/AvailableTasks.svelte';
-  import { Loader, Wallet, WandSparkles, History, Zap } from 'lucide-svelte';
+  import { Wallet, History, Zap } from 'lucide-svelte';
   import WalletButton from '$lib/components/WalletButton.svelte';
 
   const poolId = page.url.searchParams.get('poolId') || undefined;
@@ -20,12 +17,9 @@
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  let apps: ForgeApp[] = [];
-  let allCategories: string[] = [];
-  let selectedCategories: Set<string> = new Set();
+  let loadingApps = true;
   let viralBalance = 0;
   let unclaimedRewards = 0;
-  let showFilters = false;
   let recentSubmissions: any[] = [];
   let earnedThisMonth = 0;
   let pendingRecordings: any[] = [];
@@ -83,13 +77,6 @@
     if ($walletAddress) {
       loadBalance($walletAddress);
     }
-    try {
-      apps = await getAppsForGym({ poolId });
-      // Get unique categories across all apps
-      allCategories = [...new Set(apps.flatMap((app) => app.categories))].sort();
-    } catch (error) {
-      console.error('Failed to fetch apps:', error);
-    }
   });
 
   // Subscribe to wallet address changes
@@ -115,7 +102,7 @@
     </div>
   {:else}
     <div class="mx-auto mb-8">
-      <p class="text-gray-400">
+      <p class="text-gray-600">
         Choose a task, record a demonstration on your desktop, earn rewards. Your data helps us
         build the largest open-source dataset for training sophisticated AI assistants.
       </p>
@@ -356,6 +343,6 @@
       </Card>
     </div>
 
-    <AvailableTasks {apps} loadingApps={false} isGymBuilder={false} {poolId} />
+    <AvailableTasks {poolId} {loadingApps} isGymBuilder={false} />
   </div>
 </div>
