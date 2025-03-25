@@ -12,9 +12,9 @@
   // Generate Node.js download script
   function generateNodejsScript() {
     const submissionLinks = submissions
-      .filter(sub => sub.files && sub.files.length > 0)
-      .map(sub => {
-        return sub.files.map(file => {
+      .filter((sub) => sub.files && sub.files.length > 0)
+      .map((sub) => {
+        return sub.files.map((file) => {
           const s3Key = file.s3Key || '';
           return {
             url: `https://training-gym.s3.us-east-2.amazonaws.com/${s3Key}`,
@@ -75,9 +75,9 @@ files.forEach(file => {
   // Generate Python download script
   function generatePythonScript() {
     const submissionLinks = submissions
-      .filter(sub => sub.files && sub.files.length > 0)
-      .map(sub => {
-        return sub.files.map(file => {
+      .filter((sub) => sub.files && sub.files.length > 0)
+      .map((sub) => {
+        return sub.files.map((file) => {
           const s3Key = file.s3Key || '';
           return {
             url: `https://training-gym.s3.us-east-2.amazonaws.com/${s3Key}`,
@@ -129,9 +129,9 @@ for file in files:
   // Generate Shell script
   function generateShellScript() {
     const submissionLinks = submissions
-      .filter(sub => sub.files && sub.files.length > 0)
-      .map(sub => {
-        return sub.files.map(file => {
+      .filter((sub) => sub.files && sub.files.length > 0)
+      .map((sub) => {
+        return sub.files.map((file) => {
           const s3Key = file.s3Key || '';
           return {
             url: `https://training-gym.s3.us-east-2.amazonaws.com/${s3Key}`,
@@ -147,7 +147,7 @@ for file in files:
 
 # List of files to download
 declare -a files=(
-${submissionLinks.map(file => `  "${file.url}|${file.id}|${file.filename}"`).join('\n')}
+${submissionLinks.map((file) => `  "${file.url}|${file.id}|${file.filename}"`).join('\n')}
 )
 
 # Create downloads directory if it doesn't exist
@@ -200,11 +200,12 @@ done
 
   function copyToClipboard() {
     const scriptContent = getActiveScript();
-    navigator.clipboard.writeText(scriptContent)
+    navigator.clipboard
+      .writeText(scriptContent)
       .then(() => {
         alert('Script copied to clipboard!');
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Failed to copy script:', err);
         alert('Failed to copy script to clipboard');
       });
@@ -215,7 +216,7 @@ done
     const blob = new Blob([scriptContent], { type: 'text/plain' });
     const link = document.createElement('a');
     const extension = activeTab === 'nodejs' ? 'js' : activeTab === 'python' ? 'py' : 'sh';
-    
+
     link.href = URL.createObjectURL(blob);
     link.download = `download-submissions.${extension}`;
     document.body.appendChild(link);
@@ -229,59 +230,65 @@ done
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-4xl w-full">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold">Download Submissions Scripts</h2>
-        <button 
-          class="text-gray-500 hover:text-gray-700" 
-          onclick={onClose}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <button aria-label="Close" class="text-gray-500 hover:text-gray-700" onclick={onClose}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
-      
+
       <div class="mb-4">
         <p class="text-gray-700 mb-2">
-          These scripts will download all submission files to a "downloads" folder in the directory where you run the script.
-          Each submission will be in its own subfolder named with the submission ID.
+          These scripts will download all submission files to a "downloads" folder in the directory
+          where you run the script. Each submission will be in its own subfolder named with the
+          submission ID.
         </p>
         <p class="text-gray-700">
-          Total submissions with files: {submissions.filter(sub => sub.files && sub.files.length > 0).length}
+          Total submissions with files: {submissions.filter(
+            (sub) => sub.files && sub.files.length > 0
+          ).length}
         </p>
       </div>
-      
+
       <div class="border-b border-gray-200 mb-4">
         <ul class="flex flex-wrap -mb-px">
           <li class="mr-2">
-            <button 
+            <button
               class={`inline-block p-4 rounded-t-lg ${activeTab === 'nodejs' ? 'text-secondary-600 border-b-2 border-secondary-600' : 'text-gray-500 hover:text-gray-700'}`}
-              onclick={() => activeTab = 'nodejs'}
-            >
+              onclick={() => (activeTab = 'nodejs')}>
               Node.js
             </button>
           </li>
           <li class="mr-2">
-            <button 
+            <button
               class={`inline-block p-4 rounded-t-lg ${activeTab === 'python' ? 'text-secondary-600 border-b-2 border-secondary-600' : 'text-gray-500 hover:text-gray-700'}`}
-              onclick={() => activeTab = 'python'}
-            >
+              onclick={() => (activeTab = 'python')}>
               Python
             </button>
           </li>
           <li>
-            <button 
+            <button
               class={`inline-block p-4 rounded-t-lg ${activeTab === 'shell' ? 'text-secondary-600 border-b-2 border-secondary-600' : 'text-gray-500 hover:text-gray-700'}`}
-              onclick={() => activeTab = 'shell'}
-            >
+              onclick={() => (activeTab = 'shell')}>
               Shell Script
             </button>
           </li>
         </ul>
       </div>
-      
+
       <div class="bg-gray-100 p-4 rounded-lg mb-4">
         <pre class="text-sm text-gray-800 overflow-auto max-h-80">{getActiveScript()}</pre>
       </div>
-      
+
       <div class="flex justify-end gap-3">
         <Button variant="secondary" onclick={copyToClipboard}>Copy to Clipboard</Button>
         <Button variant="secondary" onclick={downloadScript}>Download Script</Button>

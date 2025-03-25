@@ -1,4 +1,5 @@
 import type { Component, ComponentProps } from 'svelte';
+import type { SubmissionStatus } from './forge';
 import type { TrainingPoolStatus } from './forge';
 
 export interface ForgeTask {
@@ -31,6 +32,29 @@ export interface ForgeTask {
   };
 }
 
+export interface MonitorInfo {
+  width: number;
+  height: number;
+}
+
+export interface Recording {
+  id: string;
+  timestamp: string;
+  duration_seconds: number;
+  status: string;
+  title: string;
+  description: string;
+  platform: string;
+  arch: string;
+  version: string;
+  locale: string;
+  primary_monitor: MonitorInfo;
+  meta?: {
+    quest: Quest;
+  };
+  location?: 'local' | 'database';
+  submission?: SubmissionStatus;
+}
 export interface ForgeApp {
   name: string;
   domain: string;

@@ -13,15 +13,12 @@
     Eye,
     ChevronUp,
     ChevronDown,
-    Trash2,
-    MousePointer,
-    Keyboard
+    Trash2
   } from 'lucide-svelte';
   import { convertFileSrc, invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-  import type { Recording } from '$lib/gym';
+  import type { Recording } from '$lib/types/gym';
   import { getPlatform } from '$lib/utils';
-  import { getSubmissionStatus } from '$lib/api/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';

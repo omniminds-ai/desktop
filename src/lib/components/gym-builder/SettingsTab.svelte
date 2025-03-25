@@ -218,8 +218,9 @@
     className="border border-gray-200 hover:shadow-md transition-shadow duration-300">
     <div class="space-y-4">
       <div>
-        <label class="block text-sm font-medium mb-1">Gym Name</label>
+        <label for="pool-name" class="block text-sm font-medium mb-1">Gym Name</label>
         <Input
+          id="pool-name"
           type="text"
           variant="light"
           value={pool.name}
@@ -229,7 +230,9 @@
 
       <div>
         <div class="flex justify-between justify-items-center flex-row items-center mb-1">
-          <label class="block text-sm font-medium">Deposit Address ({pool.token.symbol})</label>
+          <label for="deposit-address" class="block text-sm font-medium">
+            Deposit Address ({pool.token.symbol})
+          </label>
           <Button
             class="px-2 py-1 text-xs"
             variant="secondary"
@@ -243,6 +246,7 @@
         </div>
         <div class="flex gap-2 items-center">
           <input
+            id="deposit-address"
             type="text"
             class="flex-1 p-2 bg-gray-100 rounded-lg cursor-text text-sm"
             readonly
@@ -255,9 +259,12 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Price per Demonstration</label>
+        <label for="demo-price" class="block text-sm font-medium mb-1">
+          Price per Demonstration
+        </label>
         <div class="flex items-center gap-2">
           <input
+            id="demo-price"
             type="number"
             min="1"
             step="0.1"

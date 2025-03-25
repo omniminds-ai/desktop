@@ -315,7 +315,7 @@
       class="px-3 py-1.5 cursor-pointer text-sm rounded-md bg-secondary-300 text-white hover:bg-secondary-100 transition-colors flex items-center"
       onclick={regenerateTasks}>
       <Sparkles size={15} class="mr-1" />
-      Generate Tasks
+      Regenerate Tasks
     </button>
   </div>
 </div>
@@ -490,18 +490,22 @@
           <h3 class="text-lg font-medium mb-3">Add New App</h3>
           <div class="space-y-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">App Name</label>
+              <label for="app-name" class="block text-sm font-medium text-gray-700 mb-1">
+                App Name
+              </label>
               <input
+                id="app-name"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md"
                 placeholder="Enter app name"
                 bind:value={newAppName} />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="app-domain" class="block text-sm font-medium text-gray-700 mb-1">
                 App Domain (optional)
               </label>
               <input
+                id="app-domain"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md"
                 placeholder="e.g. example.com"
