@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { Token, TokenType } from '$lib/types/forge';
   import { fade } from 'svelte/transition';
-  import Button from './Button.svelte';
-  import Input from './Input.svelte';
-  import TextArea from './TextArea.svelte';
+  import Button from '$lib/components/form/Button.svelte';
+  import Input from '$lib/components/form/Input.svelte';
+  import TextArea from '$lib/components/form/TextArea.svelte';
 
   const {
     show = false,
@@ -99,8 +99,10 @@
           <span class="block text-sm font-semibold text-gray-300 mb-1">Treasury Token</span>
           <div class="space-y-2">
             {#each tokenOptions as option}
-              <label 
-                class="flex items-center gap-2 {option.disabled ? 'text-gray-500 cursor-not-allowed' : 'text-gray-300 cursor-pointer'}">
+              <label
+                class="flex items-center gap-2 {option.disabled
+                  ? 'text-gray-500 cursor-not-allowed'
+                  : 'text-gray-300 cursor-pointer'}">
                 <input
                   type="radio"
                   bind:group={selectedTokenType}
@@ -131,7 +133,7 @@
             onclick={handleClose}>
             Cancel
           </Button>
-          <a 
+          <a
             href={`/new-gym?name=${encodeURIComponent(name)}&skills=${encodeURIComponent(skills)}&tokenType=${encodeURIComponent(selectedTokenType)}&tokenAddress=${encodeURIComponent(selectedTokenType === 'CUSTOM' ? customTokenAddress : DEFAULT_ADDRESSES[selectedTokenType])}`}
             target="_blank"
             class="inline-block">

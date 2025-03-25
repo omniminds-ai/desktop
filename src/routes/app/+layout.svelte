@@ -1,11 +1,11 @@
 <script lang="ts">
   import { confirm } from '@tauri-apps/plugin-dialog';
-  import InitToolsFailedModal from '$lib/components/InitToolsFailedModal.svelte';
+  import InitToolsFailedModal from '$lib/components/modals/InitToolsFailedModal.svelte';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import '../../app.css';
   import { checkForUpdate, toolsInitState, updateApp } from '$lib/utils';
-  import Button from '$lib/components/Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
   import { platform } from '@tauri-apps/plugin-os';
   import { onMount, onDestroy } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';

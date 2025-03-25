@@ -1,8 +1,7 @@
 <script lang="ts">
-  import Card from '../Card.svelte';
-  import Button from '../Button.svelte';
-  import TextArea from '../TextArea.svelte';
-  import TaskEditModal from './TaskEditModal.svelte';
+  import Card from '$lib/components/Card.svelte';
+  import Button from '$lib/components/form/Button.svelte';
+  import TaskEditModal from '../modals/TaskEditModal.svelte';
   import {
     Pencil,
     Check,

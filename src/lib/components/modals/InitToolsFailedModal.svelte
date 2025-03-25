@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from './Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
 
   let {
     open = $bindable(),

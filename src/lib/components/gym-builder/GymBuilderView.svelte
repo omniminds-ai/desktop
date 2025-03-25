@@ -1,14 +1,14 @@
 <script lang="ts">
-  import Button from './Button.svelte';
-  import GenerateGymModal from './GenerateGymModal.svelte';
+  import Button from '$lib/components/form/Button.svelte';
+  import GenerateGymModal from '$lib/components/modals/GenerateGymModal.svelte';
   import { Upload, ListTodo, Sliders, LayoutDashboard } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
 
   // Import our tab components
-  import OverviewTab from './gym-builder/OverviewTab.svelte';
-  import SettingsTab from './gym-builder/SettingsTab.svelte';
-  import TasksTab from './gym-builder/TasksTab.svelte';
-  import UploadsTab from './gym-builder/UploadsTab.svelte';
+  import OverviewTab from './OverviewTab.svelte';
+  import SettingsTab from './SettingsTab.svelte';
+  import TasksTab from './TasksTab.svelte';
+  import UploadsTab from './UploadsTab.svelte';
 
   // Props
   export let pool: TrainingPool & {
@@ -21,7 +21,8 @@
   export let onSave: (pool: TrainingPool, updates: any) => Promise<void>;
   export let onRefresh: (poolId: string) => Promise<void>;
   export let refreshingPools: Set<string>;
-  export let viralPrice: number = 0;
+  // unused
+  // export let viralPrice: number = 0;
 
   let activeTab = 'overview';
   let unsavedChanges = false;
@@ -31,32 +32,32 @@
   let tasksTabComponent: TasksTab | null = null;
   // Direct binding for the apps array from TasksTab
   let tasksApps: any[] = [];
-  
+
   async function handleSaveChanges() {
     try {
       // Create an updates object to hold all changes
       const updates: any = {};
-      
+
       console.log('Saving changes, activeTab:', activeTab, 'unsavedChanges:', unsavedChanges);
-      
+
       // Add skills if they've changed
       if (pool.unsavedSkills) {
         updates.skills = pool.skills;
         pool.unsavedSkills = false;
       }
-      
+
       // Add price if it's changed
       if (pool.unsavedPrice) {
         updates.pricePerDemo = pool.pricePerDemo;
         pool.unsavedPrice = false;
       }
-      
+
       // Add name if it's changed
       if (pool.unsavedName) {
         updates.name = pool.name;
         pool.unsavedName = false;
       }
-      
+
       // Add apps if they've changed
       if (pool.unsavedApps) {
         if (!tasksApps || !Array.isArray(tasksApps)) {
@@ -67,14 +68,14 @@
         updates.apps = tasksApps;
         pool.unsavedApps = false;
       }
-      
+
       // Add upload limit if it's changed
       if (pool.unsavedUploadLimit) {
         updates.uploadLimit = pool.uploadLimit;
         pool.unsavedUploadLimit = false;
         console.log('Adding upload limit to updates:', pool.uploadLimit);
       }
-      
+
       // Only save if there are updates to make
       if (Object.keys(updates).length > 0) {
         console.log('Saving updates:', updates);
@@ -82,7 +83,7 @@
       } else {
         console.log('No updates to save');
       }
-      
+
       unsavedChanges = false;
       showSkillsModal = false;
     } catch (error) {
@@ -117,17 +118,17 @@
       ) {
         // Save the generated apps along with the skills
         const apps = generatedResponse.content.apps;
-        
+
         // First save the skills
         if (pool.unsavedSkills) {
-          await onSave(pool, { 
+          await onSave(pool, {
             skills: pool.skills,
-            apps: apps  // Pass the apps array along with skills
+            apps: apps // Pass the apps array along with skills
           });
           pool.unsavedSkills = false;
           pool.unsavedApps = false;
         }
-        
+
         // Then save other changes if needed
         if (pool.unsavedPrice) {
           await onSave(pool, { pricePerDemo: pool.pricePerDemo });
@@ -138,12 +139,12 @@
           await onSave(pool, { name: pool.name });
           pool.unsavedName = false;
         }
-        
+
         if (pool.unsavedUploadLimit) {
           await onSave(pool, { uploadLimit: pool.uploadLimit });
           pool.unsavedUploadLimit = false;
         }
-        
+
         unsavedChanges = false;
         showSkillsModal = false;
       } else {
@@ -274,12 +275,12 @@
         {unsavedChanges}
         {handleSaveChanges} />
     {:else if activeTab === 'tasks'}
-      <TasksTab 
+      <TasksTab
         bind:this={tasksTabComponent}
         bind:apps={tasksApps}
-        {pool} 
-        bind:unsavedChanges 
-        {regenerateTasks} 
+        {pool}
+        bind:unsavedChanges
+        {regenerateTasks}
         {handleSaveChanges} />
     {:else if activeTab === 'uploads'}
       <UploadsTab {pool} />

@@ -6,7 +6,7 @@
   import UploadManager from './UploadManager.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
-  import { stopRecording } from '$lib/gym';
+  import { stopRecording } from '$lib/api/gym';
   import { RecordingState } from '$lib/types/gym';
   import { recordingState } from '$lib/stores/recording';
 

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { fly, fade } from 'svelte/transition';
-  import Button from './Button.svelte';
-  import { toasts, type Toast } from '$lib/stores/toast';
+  import Button from '$lib/components/form/Button.svelte';
+  import { toasts } from '$lib/stores/toast';
+  import type { Toast } from '$lib/types/toast';
 
   const { toast } = $props<{
     toast: Toast;

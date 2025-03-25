@@ -1,6 +1,7 @@
 import { connectionToken } from '$lib/stores/wallet';
-import { API_URL } from '$lib/utils';
+import { API_URL } from '$lib/utils/platform';
 import { get } from 'svelte/store';
+import type { UploadMetadata, UploadProgress } from '$lib/types/upload';
 
 const API_BASE = `${API_URL}/api/forge`;
 
@@ -18,20 +19,6 @@ async function calculateHash(blob: Blob): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   return hashHex;
-}
-
-export interface UploadProgress {
-  uploadId: string;
-  chunkIndex: number;
-  received: number;
-  total: number;
-  progress: number;
-}
-
-export interface UploadMetadata {
-  poolId?: string;
-  generatedTime?: number;
-  id: string;
 }
 
 export class ChunkedUploader {

@@ -5,7 +5,7 @@
   import { connectionToken, walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
   import { toolsInitState } from '$lib/utils';
-  import ToastContainer from '$lib/components/ToastContainer.svelte';
+  import ToastContainer from '$lib/components/toast/ToastContainer.svelte';
 
   const { children } = $props();
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import Card from '$lib/components/Card.svelte';
-  import Button from '$lib/components/Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
   import EventTimestamp from '$lib/components/gym/EventTimestamp.svelte';
   import AxTreeOverlay from '$lib/components/gym/AxTreeOverlay.svelte';
   import {
@@ -22,7 +22,7 @@
   import type { SubmissionStatus } from '$lib/types/forge';
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
-  import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
+  import UploadConfirmModal from '$lib/components/modals/UploadConfirmModal.svelte';
   import { uploadManager } from '$lib/stores/misc';
   import { JsonView } from '@zerodevx/svelte-json-view';
 

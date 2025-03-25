@@ -1,9 +1,8 @@
 <script lang="ts">
-  import Card from '../Card.svelte';
-  import Button from '../Button.svelte';
-  import DownloadScriptsModal from '../DownloadScriptsModal.svelte';
-  import { Code, Download, Clock, Monitor, Laptop, Server, Smartphone, Globe, Languages, Check, Trash } from 'lucide-svelte';
-  import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
+  import Card from '$lib/components/Card.svelte';
+  import DownloadScriptsModal from '$lib/components/modals/DownloadScriptsModal.svelte';
+  import { Code, Download, Clock, Monitor, Laptop, Server, Smartphone, Globe } from 'lucide-svelte';
+  import type { TrainingPool } from '$lib/types/forge';
   import { getPoolSubmissions, type PoolSubmission } from '$lib/api/forge';
   import { onMount } from 'svelte';
 
@@ -52,21 +51,21 @@
     if (!submission.files || submission.files.length === 0) {
       return '-';
     }
-    
+
     let totalSize = 0;
     let hasSizeInfo = false;
-    
-    submission.files.forEach(file => {
+
+    submission.files.forEach((file) => {
       if (file.size) {
         totalSize += file.size;
         hasSizeInfo = true;
       }
     });
-    
+
     if (!hasSizeInfo) {
       return '-';
     }
-    
+
     // Format file size in MB
     return `${(totalSize / (1024 * 1024)).toFixed(2)} MB`;
   }
@@ -75,15 +74,15 @@
     const locale = submission.meta?.locale || '';
     return locale;
   }
-  
+
   function getOSIcon(submission: PoolSubmission): any {
     const platform = submission.meta?.platform?.toLowerCase() || '';
-    
+
     if (platform.includes('windows')) return Monitor;
-    if (platform.includes('mac') || platform.includes('darwin')) return Laptop; 
+    if (platform.includes('mac') || platform.includes('darwin')) return Laptop;
     if (platform.includes('linux')) return Server;
     if (platform.includes('android') || platform.includes('ios')) return Smartphone;
-    
+
     return Globe;
   }
 
@@ -91,14 +90,14 @@
     const platform = submission.meta?.platform?.toLowerCase() || '';
     return platform;
   }
-  
+
   function formatDuration(submission: PoolSubmission): string {
     const seconds = submission.meta?.duration_seconds;
     if (!seconds && seconds !== 0) return '-';
-    
+
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    
+
     if (minutes > 0) {
       return `${minutes}m ${remainingSeconds}s`;
     } else {
@@ -123,14 +122,14 @@
       selectedSubmissions.clear();
     } else {
       // Otherwise, select all
-      selectedSubmissions = new Set(submissions.map(s => s._id));
+      selectedSubmissions = new Set(submissions.map((s) => s._id));
     }
     selectedSubmissions = selectedSubmissions; // Trigger reactivity
   }
 
   // Check if all submissions are selected
   $: allSelected = submissions.length > 0 && selectedSubmissions.size === submissions.length;
-  
+
   // Count of selected submissions
   $: selectedCount = selectedSubmissions.size;
 
@@ -205,13 +204,12 @@
         <tr>
           <th class="w-10 px-3 py-3">
             <div class="flex items-center">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
                 checked={allSelected}
                 onchange={toggleSelectAll}
-                disabled={submissions.length === 0}
-              />
+                disabled={submissions.length === 0} />
             </div>
           </th>
           <th class="w-16 px-2 py-3"></th>
@@ -238,12 +236,11 @@
           <tr class={selectedSubmissions.has(submission._id) ? 'bg-secondary-50' : ''}>
             <td class="px-3 py-4 whitespace-nowrap">
               <div class="flex items-center">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
                   checked={selectedSubmissions.has(submission._id)}
-                  onchange={() => toggleSelection(submission._id)}
-                />
+                  onchange={() => toggleSelection(submission._id)} />
               </div>
             </td>
             <td class="px-2 py-4 whitespace-nowrap text-gray-500">
@@ -252,7 +249,8 @@
                   <Languages size={10} class="text-gray-500" />
                   {getLocaleCode(submission)}
                 </span> -->
-                <span class="flex items-center gap-1 bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
+                <span
+                  class="flex items-center gap-1 bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
                   <svelte:component this={getOSIcon(submission)} size={10} class="text-gray-500" />
                   {getPlatformLabel(submission)}
                 </span>
@@ -295,8 +293,9 @@
   {/if}
 </Card>
 
-<DownloadScriptsModal 
+<DownloadScriptsModal
   open={showDownloadModal}
-  submissions={selectedCount > 0 ? submissions.filter(s => selectedSubmissions.has(s._id)) : submissions}
-  onClose={() => (showDownloadModal = false)}
-/>
+  submissions={selectedCount > 0
+    ? submissions.filter((s) => selectedSubmissions.has(s._id))
+    : submissions}
+  onClose={() => (showDownloadModal = false)} />

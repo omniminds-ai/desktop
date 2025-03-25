@@ -1,33 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
 import { getSubmissionStatus } from '$lib/api/forge';
 import { writable, type Writable, get } from 'svelte/store';
-import type { SubmissionStatus } from './types/forge';
-import { ChunkedUploader } from './chunkedUploader';
-
-// Define event types
-type UploadEventType = 'queueUpdate' | 'statusChange';
-
-// Define event callback types
-type QueueUpdateCallback = (recordingId: string, item: UploadQueueItem) => void;
-type EventCallback = QueueUpdateCallback; // Can expand with more specific types if needed
-
-export type UploadQueueItem = {
-  status: 'queued' | 'uploading' | 'zipping' | 'processing' | 'completed' | 'failed';
-  progress?: number;
-  error?: string;
-  submissionId?: string;
-  name?: string;
-  result?: SubmissionStatus;
-  uploadId?: string;
-  currentChunk?: number;
-  totalChunks?: number;
-  uploadedBytes?: number;
-  totalBytes?: number;
-};
-
-export type UploadQueue = {
-  [recordingId: string]: UploadQueueItem;
-};
+import type { SubmissionStatus } from '../types/forge';
+import { ChunkedUploader } from '../api/chunkedUploader';
+import type { UploadQueue, UploadQueueItem, UploadEventType, EventCallback } from '../types/upload';
 
 export class UploadManager {
   private queueStore: Writable<UploadQueue> = writable({});
@@ -265,31 +241,31 @@ export class UploadManager {
 
       // Initialize chunked uploader
       const uploader = new ChunkedUploader();
-      
+
       // Split the blob into chunks
       const { chunks, totalChunks } = uploader.splitIntoChunks(zipBlob);
-      
+
       // Update queue with total chunks info
       this.updateQueue(recordingId, {
         totalChunks,
         currentChunk: 0
       });
-      
+
       // Initialize upload
       const initResult = await uploader.initUpload({
         id: recordingId
       });
-      
+
       // Store upload ID
       this.updateQueue(recordingId, {
         uploadId: initResult.uploadId
       });
-      
+
       // Upload each chunk
       for (let i = 0; i < chunks.length; i++) {
         // Calculate uploaded bytes
         const uploadedBytes = chunks.slice(0, i).reduce((total, chunk) => total + chunk.size, 0);
-        
+
         // Update current chunk index and uploaded bytes
         this.updateQueue(recordingId, {
           currentChunk: i,
@@ -297,19 +273,19 @@ export class UploadManager {
           // Calculate progress: 10% for zipping + 70% for uploading chunks
           progress: 10 + Math.round((i / totalChunks) * 70)
         });
-        
+
         // Upload the chunk
         await uploader.uploadChunk(chunks[i], i);
-        
+
         // After successful upload, add this chunk's size to uploaded bytes
         this.updateQueue(recordingId, {
           uploadedBytes: uploadedBytes + chunks[i].size
         });
       }
-      
+
       // Complete the upload
       const completeResult = await uploader.completeUpload();
-      
+
       // Update status to processing
       this.updateQueue(recordingId, {
         status: 'processing',

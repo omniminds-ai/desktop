@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
-  import Button from '$lib/components/Button.svelte';
-  import PopupMenu from '$lib/components/PopupMenu.svelte';
-  import MenuItem from '$lib/components/MenuItem.svelte';
+  import Button from '$lib/components/form/Button.svelte';
+  import PopupMenu from '$lib/components/popup-menu/PopupMenu.svelte';
+  import MenuItem from '$lib/components/popup-menu/MenuItem.svelte';
+  import UploadConfirmModal from '$lib/components/modals/UploadConfirmModal.svelte';
   import {
     Search,
     Upload,
@@ -23,11 +24,10 @@
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
-  import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
   import { fly } from 'svelte/transition';
   import { open } from '@tauri-apps/plugin-shell';
   import { uploadManager } from '$lib/stores/misc';
-  import type { UploadQueueItem } from '$lib/uploadManager';
+  import type { UploadQueueItem } from '$lib/types/upload';
   import { deleteRecording, showToast } from '$lib/utils';
 
   let searchQuery = $state('');

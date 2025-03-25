@@ -2,18 +2,9 @@
   import { onMount, onDestroy } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
   import { getCurrentWindow } from '@tauri-apps/api/window';
-  import {
-    ChevronDown,
-    ChevronUp,
-    LoaderCircle,
-    Lock,
-    Pause,
-    Play,
-    Square,
-    Unlock
-  } from 'lucide-svelte';
+  import { ChevronDown, ChevronUp, LoaderCircle, Lock, Square, Unlock } from 'lucide-svelte';
   import { RecordingState, type Quest } from '$lib/types/gym';
-  import { stopRecording } from '$lib/gym';
+  import { stopRecording } from '$lib/api/gym';
   import { slide } from 'svelte/transition';
   import { invoke } from '@tauri-apps/api/core';
 
@@ -95,13 +86,15 @@
     });
 
     // Get current quest data if available
-    invoke<Quest | null>('get_current_quest').then((quest) => {
-      if (quest) {
-        initializeQuest(quest);
-      }
-    }).catch((error) => {
-      console.error('Failed to get current quest:', error);
-    });
+    invoke<Quest | null>('get_current_quest')
+      .then((quest) => {
+        if (quest) {
+          initializeQuest(quest);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to get current quest:', error);
+      });
 
     // Listen for recording status changes
     listen<{ state: RecordingState }>('recording-status', (event) => {
@@ -223,18 +216,26 @@
         <!-- Task details section -->
         <div class="p-2 {focused ? 'bg-primary-400/100' : 'bg-primary-400/50'}">
           {#if currentQuest}
-            <h3 class="text-secondary-200 font-title text-sm mb-2 drop-shadow">{currentQuest.title}</h3>
+            <h3 class="text-secondary-200 font-title text-sm mb-2 drop-shadow">
+              {currentQuest.title}
+            </h3>
             <ul
               class="list-disc overflow-y-auto max-h-[120px] pl-5 text-accent-100 text-xs space-y-1">
               {#each currentQuest.objectives || [] as objective}
                 {#if objective.includes('<app>')}
                   <li class="drop-shadow">
                     {#if objective.startsWith('<app>')}
-                      <span class="bg-primary-500 text-primary-800 px-1 rounded text-xs font-semibold">{objective.match(/<app>(.*?)<\/app>/)?.[1] || ''}</span>
+                      <span
+                        class="bg-primary-500 text-primary-800 px-1 rounded text-xs font-semibold">
+                        {objective.match(/<app>(.*?)<\/app>/)?.[1] || ''}
+                      </span>
                       {objective.replace(/<app>.*?<\/app>/, '').trim()}
                     {:else}
                       {objective.split('<app>')[0].trim()}
-                      <span class="bg-primary-500 text-primary-800 px-1 rounded text-xs font-semibold">{objective.match(/<app>(.*?)<\/app>/)?.[1] || ''}</span>
+                      <span
+                        class="bg-primary-500 text-primary-800 px-1 rounded text-xs font-semibold">
+                        {objective.match(/<app>(.*?)<\/app>/)?.[1] || ''}
+                      </span>
                       {objective.split('</app>')[1]?.trim() || ''}
                     {/if}
                   </li>

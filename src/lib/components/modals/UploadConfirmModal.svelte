@@ -1,6 +1,6 @@
 <script lang="ts">
   import { uploadManager } from '$lib/stores/misc';
-  import Button from './Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
 
   let { open = $bindable(), uploader }: { open: boolean; uploader: () => Promise<void> } = $props();
   const onCancel = async () => {

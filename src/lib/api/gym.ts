@@ -1,8 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
-import { getReward } from './api/forge';
+import { getReward } from './forge';
 
-import type { Quest } from './types/gym';
-import { API_URL } from './utils';
+import type { Quest } from '../types/gym';
+import { API_URL } from '../utils';
 
 export async function generateQuest(
   prompt: string,

@@ -2,7 +2,7 @@
   import Card from '$lib/components/Card.svelte';
   import { onMount } from 'svelte';
   import { getBalance, listSubmissions } from '$lib/api/forge';
-  import Button from '$lib/components/Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { walletAddress } from '$lib/stores/wallet';
   import { page } from '$app/state';
