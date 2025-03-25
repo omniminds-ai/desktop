@@ -1,7 +1,7 @@
 <script lang="ts">
   import Card from '$lib/components/Card.svelte';
   import { onMount } from 'svelte';
-  import { getAppsForGym, getBalance, listSubmissions } from '$lib/api/forge';
+  import { getAppsForGym, getBalance, getTasksForGym, listSubmissions } from '$lib/api/forge';
   import type { ForgeApp } from '$lib/types/gym';
   import Button from '$lib/components/Button.svelte';
   import { invoke } from '@tauri-apps/api/core';
@@ -18,8 +18,6 @@
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  let apps: ForgeApp[] = [];
-  let allCategories: string[] = [];
   let loadingApps = true;
   let viralBalance = 0;
   let unclaimedRewards = 0;
@@ -79,15 +77,6 @@
     loadUnclaimedRewards();
     if ($walletAddress) {
       loadBalance($walletAddress);
-    }
-    try {
-      loadingApps = true;
-      apps = await getAppsForGym({ poolId });
-      // Get unique categories across all apps
-      allCategories = [...new Set(apps.flatMap((app) => app.categories))].sort();
-      loadingApps = false;
-    } catch (error) {
-      console.error('Failed to fetch apps:', error);
     }
   });
 
@@ -355,6 +344,6 @@
       </Card>
     </div>
 
-    <AvailableTasks {apps} {poolId} {loadingApps} isGymBuilder={false} />
+    <AvailableTasks {poolId} {loadingApps} isGymBuilder={false} />
   </div>
 </div>

@@ -1,5 +1,35 @@
 import type { Component, ComponentProps } from 'svelte';
-import type { HTMLButtonAttributes } from 'svelte/elements';
+import type { TrainingPoolStatus } from './forge';
+
+export interface ForgeTask {
+  _id: string;
+  prompt: string;
+  uploadLimit: number;
+  rewardLimit: number;
+  uploadLimitReached: boolean;
+  currentSubmissions: number;
+  limitReason: string;
+  app: {
+    _id: string;
+    name: string;
+    domain: string;
+    description: string;
+    categories: string[];
+    pool_id: {
+      uploadLimit: {
+        type: number;
+        limitType: string;
+      };
+      _id: string;
+      name: string;
+      status: TrainingPoolStatus;
+      pricePerDemo: number;
+    };
+    gymLimitType: string;
+    gymSubmissions: number;
+    gymLimitValue: number;
+  };
+}
 
 export interface ForgeApp {
   name: string;
