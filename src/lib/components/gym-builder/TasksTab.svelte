@@ -50,7 +50,7 @@
   let editingTaskId = '';
   let editingField = '';
   let editValue = '';
-  
+
   // Task editing modal
   let showTaskModal = false;
   let currentApp: ForgeApp | null = null;
@@ -94,15 +94,10 @@
     }
   }
 
-  function updateUnsavedChanges() {
-    unsavedChanges = true;
-    pool.unsavedApps = true;
-  }
-
   function openTaskModal(app: ForgeApp, taskIndex: number) {
     currentApp = app;
     currentTaskIndex = taskIndex;
-    
+
     if (taskIndex >= 0 && taskIndex < app.tasks.length) {
       const task = app.tasks[taskIndex];
       editTaskPrompt = task.prompt;
@@ -118,7 +113,7 @@
       enableRewardLimit = false;
       rewardLimitValue = 10;
     }
-    
+
     showTaskModal = true;
   }
 
@@ -130,16 +125,20 @@
 
   function saveTaskModal() {
     if (!currentApp) return;
-    
-    const appIndex = apps.findIndex(app => app.name === currentApp!.name);
+
+    const appIndex = apps.findIndex((app) => app.name === currentApp!.name);
     if (appIndex === -1) return;
-    
+
     if (currentTaskIndex >= 0 && currentTaskIndex < apps[appIndex].tasks.length) {
       // Update existing task
       apps[appIndex].tasks[currentTaskIndex].prompt = editTaskPrompt;
-      apps[appIndex].tasks[currentTaskIndex].uploadLimit = enableUploadLimit ? uploadLimitValue : undefined;
-      apps[appIndex].tasks[currentTaskIndex].rewardLimit = enableRewardLimit ? rewardLimitValue : undefined;
-      
+      apps[appIndex].tasks[currentTaskIndex].uploadLimit = enableUploadLimit
+        ? uploadLimitValue
+        : undefined;
+      apps[appIndex].tasks[currentTaskIndex].rewardLimit = enableRewardLimit
+        ? rewardLimitValue
+        : undefined;
+
       // Log the updated task for debugging
       console.log('Updated task with limits:', {
         prompt: editTaskPrompt,
@@ -154,11 +153,11 @@
         rewardLimit: enableRewardLimit ? rewardLimitValue : undefined
       };
       apps[appIndex].tasks.push(newTask);
-      
+
       // Log the new task for debugging
       console.log('Added new task with limits:', newTask);
     }
-    
+
     apps = [...apps]; // Trigger reactivity
     unsavedChanges = true;
     pool.unsavedApps = true;
@@ -334,12 +333,7 @@
     </div>
   {:else if viewMode === 'preview'}
     <!-- Preview Mode using AvailableTasks component -->
-    <AvailableTasks 
-      {apps} 
-      {loadingApps} 
-      viewMode="preview" 
-      isGymBuilder={true} 
-      poolId={pool._id} />
+    <AvailableTasks {loadingApps} viewMode="preview" isGymBuilder={true} poolId={pool._id} />
   {:else if apps.length === 0}
     <div class="text-center py-12 text-gray-500">
       <p>No apps available yet.</p>
@@ -438,16 +432,19 @@
                 <div class="space-y-2 ml-1">
                   {#each app.tasks as task, taskIndex}
                     <div class="flex items-center w-full group">
-                      <div class="w-full text-left flex items-center bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320">
+                      <div
+                        class="w-full text-left flex items-center bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320">
                         <p class="grow text-gray-800 text-sm">{task.prompt}</p>
                         <div class="flex gap-2 ml-2">
                           {#if typeof task.uploadLimit === 'number'}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <span
+                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                               {task.currentSubmissions ?? 0}/{task.uploadLimit}
                             </span>
                           {/if}
                           {#if typeof task.rewardLimit === 'number'}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            <span
+                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                               {task.rewardLimit} VIRAL
                             </span>
                           {/if}
@@ -558,10 +555,9 @@
   app={currentApp}
   taskIndex={currentTaskIndex}
   bind:prompt={editTaskPrompt}
-  bind:enableUploadLimit={enableUploadLimit}
-  bind:uploadLimitValue={uploadLimitValue}
-  bind:enableRewardLimit={enableRewardLimit}
-  bind:rewardLimitValue={rewardLimitValue}
+  bind:enableUploadLimit
+  bind:uploadLimitValue
+  bind:enableRewardLimit
+  bind:rewardLimitValue
   onClose={closeTaskModal}
-  onSave={saveTaskModal}
-/>
+  onSave={saveTaskModal} />
