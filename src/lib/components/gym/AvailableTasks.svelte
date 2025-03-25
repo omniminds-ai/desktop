@@ -122,11 +122,8 @@
     <div class="flex items-center gap-2">
       <h2 class="text-xl font-bold text-gray-800">Available Tasks</h2>
       <div class="bg-secondary-200 text-white px-2 py-0.5 rounded-full text-xs font-medium">
-        {tasks.reduce(
-          (count, task) =>
-            count + tasks.filter((task) => isGymBuilder || !task.uploadLimitReached).length,
-          0
-        )} Available
+        {tasks.length}
+        Available
       </div>
     </div>
 
