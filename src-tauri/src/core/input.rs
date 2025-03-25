@@ -1,4 +1,4 @@
-use crate::record;
+use crate::core::record;
 use log::{error, info};
 use rdev::{listen, Event as RdevEvent, EventType as RdevEventType};
 use serde::Serialize;

@@ -1,4 +1,4 @@
-use crate::downloader::download_file;
+use crate::utils::downloader::download_file;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -626,7 +626,7 @@ impl FFmpegRecorder {
                 for line in stdout_reader.lines() {
                     if let Ok(line) = line {
                         log::info!("[FFmpeg] stdout: {}", line);
-                        let _ = crate::record::log_ffmpeg(&line, false);
+                        let _ = crate::core::record::log_ffmpeg(&line, false);
                     }
                 }
             });
@@ -639,7 +639,7 @@ impl FFmpegRecorder {
                 for line in stderr_reader.lines() {
                     if let Ok(line) = line {
                         log::info!("[FFmpeg] stderr: {}", line);
-                        let _ = crate::record::log_ffmpeg(&line, true);
+                        let _ = crate::core::record::log_ffmpeg(&line, true);
                     }
                 }
             });

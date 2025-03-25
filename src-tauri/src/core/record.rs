@@ -1,8 +1,8 @@
-use crate::axtree;
-use crate::ffmpeg::{init_ffmpeg, FFmpegRecorder, FFMPEG_PATH, FFPROBE_PATH};
-use crate::input;
-use crate::logger::Logger;
-use crate::pipeline;
+use crate::tools::axtree;
+use crate::tools::ffmpeg::{init_ffmpeg, FFmpegRecorder, FFMPEG_PATH, FFPROBE_PATH};
+use crate::core::input;
+use crate::utils::logger::Logger;
+use crate::tools::pipeline;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use chrono::Local;
 use display_info::DisplayInfo;
@@ -223,7 +223,6 @@ fn get_session_path(app: &tauri::AppHandle) -> Result<(PathBuf, String), String>
     Ok((session_dir, timestamp))
 }
 
-#[tauri::command]
 pub async fn list_recordings(app: tauri::AppHandle) -> Result<Vec<RecordingMeta>, String> {
     let recordings_dir = app
         .path()
@@ -282,7 +281,6 @@ pub fn set_rec_state(
     Ok(())
 }
 
-#[tauri::command]
 pub async fn get_recording_state() -> Result<String, String> {
     let recording_state = RECORDING_STATE.lock().map_err(|e| e.to_string())?;
     recording_state
@@ -291,7 +289,6 @@ pub async fn get_recording_state() -> Result<String, String> {
         .ok_or_else(|| "Recording state not initialized".to_string())
 }
 
-#[tauri::command]
 pub async fn start_recording(
     app: tauri::AppHandle,
     quest_state: State<'_, QuestState>,
@@ -394,7 +391,6 @@ pub async fn start_recording(
     Ok(())
 }
 
-#[tauri::command]
 pub async fn stop_recording(
     app: tauri::AppHandle,
     quest_state: State<'_, QuestState>,
@@ -514,7 +510,6 @@ pub fn log_ffmpeg(output: &str, is_stderr: bool) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
 pub async fn get_recording_file(
     app: tauri::AppHandle,
     recording_id: String,
@@ -554,12 +549,10 @@ pub async fn get_recording_file(
     }
 }
 
-#[tauri::command]
 pub async fn process_recording(app: tauri::AppHandle, recording_id: String) -> Result<(), String> {
     pipeline::process_recording(&app, &recording_id)
 }
 
-#[tauri::command]
 pub async fn write_file(
     _app: tauri::AppHandle,
     path: String,
@@ -575,7 +568,6 @@ pub async fn write_file(
     Ok(())
 }
 
-#[tauri::command]
 pub async fn write_recording_file(
     app: tauri::AppHandle,
     recording_id: String,
@@ -604,7 +596,6 @@ pub async fn write_recording_file(
     Ok(())
 }
 
-#[tauri::command]
 pub async fn open_recording_folder(
     app: tauri::AppHandle,
     recording_id: String,
@@ -629,7 +620,6 @@ pub async fn open_recording_folder(
     Ok(())
 }
 
-#[tauri::command]
 pub async fn delete_recording(app: tauri::AppHandle, recording_id: String) -> Result<(), String> {
     let recordings_dir = app
         .path()
@@ -1013,7 +1003,6 @@ fn filter_input_log(
     Ok(())
 }
 
-#[tauri::command]
 pub async fn create_recording_zip(
     app: tauri::AppHandle,
     recording_id: String,
@@ -1189,7 +1178,6 @@ pub async fn create_recording_zip(
     Ok(buf)
 }
 
-#[tauri::command]
 pub async fn export_recording_zip(id: String, app: tauri::AppHandle) -> Result<String, String> {
     let buf = create_recording_zip(app.clone(), id.clone()).await;
     let selected_dir = app.dialog().file().blocking_pick_folder();
@@ -1209,7 +1197,6 @@ pub async fn export_recording_zip(id: String, app: tauri::AppHandle) -> Result<S
     }
 }
 
-#[tauri::command]
 pub async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     let path = app
         .path()
@@ -1219,7 +1206,6 @@ pub async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
-#[tauri::command]
 pub async fn get_current_quest(quest_state: State<'_, QuestState>) -> Result<Option<Quest>, String> {
     let current_quest = quest_state.current_quest.lock().map_err(|e| e.to_string())?;
     Ok(current_quest.clone())

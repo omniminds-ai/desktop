@@ -6,7 +6,7 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-use crate::downloader::download_file;
+use crate::utils::downloader::download_file;
 
 /// Metadata for a binary file downloaded from GitHub
 pub struct BinaryMetadata {

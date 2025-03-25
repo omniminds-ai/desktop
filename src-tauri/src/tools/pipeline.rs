@@ -1,5 +1,5 @@
-use crate::ffmpeg::{get_ffmpeg_dir, get_ffprobe_dir};
-use crate::github_release;
+use crate::tools::ffmpeg::{get_ffmpeg_dir, get_ffprobe_dir};
+use crate::utils::github_release;
 use log::info;
 use std::path::PathBuf;
 use std::process::Command;

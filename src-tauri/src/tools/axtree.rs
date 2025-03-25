@@ -1,4 +1,4 @@
-use crate::github_release;
+use crate::utils::github_release;
 use log::info;
 use serde_json::{json, Value};
 use std::io::{BufRead, BufReader};
@@ -109,7 +109,7 @@ pub fn start_dump_tree_polling(_: tauri::AppHandle) -> Result<(), String> {
                                         if let Some(obj) = json.as_object_mut() {
                                             obj.insert("event".to_string(), json!("axtree"));
                                             // Log the modified event
-                                            let _ = crate::record::log_input(json!(obj));
+                                            let _ = crate::core::record::log_input(json!(obj));
                                         }
                                     }
                                 }
