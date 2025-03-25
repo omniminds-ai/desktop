@@ -7,7 +7,8 @@ import { API_URL } from './utils';
 export async function generateQuest(
   prompt: string,
   address: string,
-  poolId?: string
+  poolId?: string,
+  taskId?: string
 ): Promise<Quest> {
   // Get screenshot
   // const screenshot = await invoke('take_screenshot');
@@ -41,9 +42,13 @@ export async function generateQuest(
   // If poolId is provided, get reward info
   if (poolId) {
     try {
-      const rewardInfo = await getReward(poolId);
+      const rewardInfo = await getReward(poolId, taskId);
       quest.poolId = poolId;
       quest.reward = rewardInfo;
+      // If taskId is provided, add it to the quest
+      if (taskId) {
+        quest.task_id = taskId;
+      }
     } catch (error) {
       console.error('Failed to get reward info:', error);
     }

@@ -1,5 +1,36 @@
 import type { Component, ComponentProps } from 'svelte';
 import type { SubmissionStatus } from './forge';
+import type { TrainingPoolStatus } from './forge';
+
+export interface ForgeTask {
+  _id: string;
+  prompt: string;
+  uploadLimit: number;
+  rewardLimit: number;
+  uploadLimitReached: boolean;
+  currentSubmissions: number;
+  limitReason: string;
+  app: {
+    _id: string;
+    name: string;
+    domain: string;
+    description: string;
+    categories: string[];
+    pool_id: {
+      uploadLimit: {
+        type: number;
+        limitType: string;
+      };
+      _id: string;
+      name: string;
+      status: TrainingPoolStatus;
+      pricePerDemo: number;
+    };
+    gymLimitType: string;
+    gymSubmissions: number;
+    gymLimitValue: number;
+  };
+}
 
 export interface MonitorInfo {
   width: number;
@@ -30,10 +61,16 @@ export interface ForgeApp {
   description: string;
   categories: string[];
   tasks: {
+    _id?: string; // Add _id field for task identification
     prompt: string;
+    uploadLimit?: number;
+    rewardLimit?: number;
     completed?: boolean;
     recordingId?: string;
     score?: number;
+    uploadLimitReached?: boolean;
+    currentSubmissions?: number;
+    limitReason?: string | null;
   }[];
   pool_id: {
     _id: string;
@@ -42,6 +79,10 @@ export interface ForgeApp {
     pricePerDemo: number;
   };
   seen?: boolean;
+  gymLimitReached?: boolean;
+  gymSubmissions?: number;
+  gymLimitType?: 'per-task' | 'per-day' | 'total';
+  gymLimitValue?: number;
 }
 
 export type MessageRole = 'assistant' | 'user' | 'system';
@@ -63,6 +104,7 @@ export interface Quest {
     time: number; // Unix timestamp rounded to last minute
     max_reward: number; // Match Rust struct field name
   };
+  task_id?: string; // ID of the specific task
 }
 
 export interface QuestInfo {

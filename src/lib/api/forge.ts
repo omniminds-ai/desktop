@@ -5,7 +5,7 @@ import type {
   UpdatePoolInput,
   SubmissionStatus
 } from '$lib/types/forge';
-import type { ForgeApp } from '$lib/types/gym';
+import type { ForgeApp, ForgeTask } from '$lib/types/gym';
 import { API_URL } from '$lib/utils';
 import { invoke } from '@tauri-apps/api/core';
 import { get } from 'svelte/store';
@@ -17,6 +17,35 @@ export async function getGymCategories() {
   }
   const categories = (await response.json()) as string[];
   return categories;
+}
+
+export async function getTasksForGym(filter?: {
+  poolId?: string;
+  minReward?: number;
+  maxReward?: number;
+  categories?: string[];
+  query?: string;
+}): Promise<ForgeTask[]> {
+  const filteredUrl = new URL(`${API_URL}/api/forge/tasks`);
+  if (filter?.poolId) filteredUrl.searchParams.set('pool_id', filter.poolId);
+  if (filter?.minReward) filteredUrl.searchParams.set('min_reward', filter.minReward.toString());
+  if (filter?.maxReward) filteredUrl.searchParams.set('max_reward', filter.maxReward.toString());
+  if (filter?.categories) filteredUrl.searchParams.set('categories', filter.categories.toString());
+  if (filter?.query) filteredUrl.searchParams.set('query', filter.query);
+
+  const response = await fetch(filteredUrl);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch apps');
+  }
+
+  const tasks: ForgeTask[] = await response.json();
+
+  if (filter?.poolId) {
+    return tasks;
+  }
+
+  return tasks;
 }
 
 export async function getAppsForGym(filter?: {
@@ -257,9 +286,14 @@ export async function getBalance(): Promise<number> {
   return data.balance;
 }
 
-export async function getReward(poolId: string): Promise<RewardInfo> {
+export async function getReward(poolId: string, taskId?: string): Promise<RewardInfo> {
   const token = get(connectionToken);
-  const response = await fetch(`${API_URL}/api/forge/reward?poolId=${poolId}`, {
+  let url = `${API_URL}/api/forge/reward?poolId=${poolId}`;
+  if (taskId) {
+    url += `&taskId=${taskId}`;
+  }
+
+  const response = await fetch(url, {
     headers: {
       'x-connect-token': token || ''
     }

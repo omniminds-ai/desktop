@@ -45,6 +45,8 @@ pub struct Quest {
     pool_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     reward: Option<QuestReward>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    task_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

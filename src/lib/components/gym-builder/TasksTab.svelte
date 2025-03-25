@@ -2,6 +2,7 @@
   import Card from '../Card.svelte';
   import Button from '../Button.svelte';
   import TextArea from '../TextArea.svelte';
+  import TaskEditModal from './TaskEditModal.svelte';
   import {
     Pencil,
     Check,
@@ -9,7 +10,6 @@
     Eye,
     Sparkles,
     DollarSign,
-    Train,
     Plus,
     Trash2,
     Save,
@@ -45,10 +45,21 @@
   export let regenerateTasks: () => void;
 
   let viewMode = 'edit'; // edit or preview
+  // App editing variables
   let editingAppId = '';
   let editingTaskId = '';
   let editingField = '';
   let editValue = '';
+
+  // Task editing modal
+  let showTaskModal = false;
+  let currentApp: ForgeApp | null = null;
+  let currentTaskIndex = -1;
+  let editTaskPrompt = '';
+  let enableUploadLimit = false;
+  let uploadLimitValue = 10;
+  let enableRewardLimit = false;
+  let rewardLimitValue = 10;
   let currentTaskForAppChange: { appIndex: number; taskIndex: number } | null = null;
   let newAppName = '';
   let newAppDomain = '';
@@ -83,9 +94,82 @@
     }
   }
 
-  function updateUnsavedChanges() {
+  function openTaskModal(app: ForgeApp, taskIndex: number) {
+    currentApp = app;
+    currentTaskIndex = taskIndex;
+
+    if (taskIndex >= 0 && taskIndex < app.tasks.length) {
+      const task = app.tasks[taskIndex];
+      editTaskPrompt = task.prompt;
+      enableUploadLimit = typeof task.uploadLimit === 'number';
+      uploadLimitValue = task.uploadLimit ?? 10;
+      enableRewardLimit = typeof task.rewardLimit === 'number';
+      rewardLimitValue = task.rewardLimit ?? 10;
+    } else {
+      // New task
+      editTaskPrompt = 'Enter task description here';
+      enableUploadLimit = false;
+      uploadLimitValue = 10;
+      enableRewardLimit = false;
+      rewardLimitValue = 10;
+    }
+
+    showTaskModal = true;
+  }
+
+  function closeTaskModal() {
+    showTaskModal = false;
+    currentApp = null;
+    currentTaskIndex = -1;
+  }
+
+  function saveTaskModal() {
+    if (!currentApp) return;
+
+    const appIndex = apps.findIndex((app) => app.name === currentApp!.name);
+    if (appIndex === -1) return;
+
+    if (currentTaskIndex >= 0 && currentTaskIndex < apps[appIndex].tasks.length) {
+      // Update existing task
+      apps[appIndex].tasks[currentTaskIndex].prompt = editTaskPrompt;
+      apps[appIndex].tasks[currentTaskIndex].uploadLimit = enableUploadLimit
+        ? uploadLimitValue
+        : undefined;
+      apps[appIndex].tasks[currentTaskIndex].rewardLimit = enableRewardLimit
+        ? rewardLimitValue
+        : undefined;
+
+      // Log the updated task for debugging
+      console.log('Updated task with limits:', {
+        prompt: editTaskPrompt,
+        uploadLimit: apps[appIndex].tasks[currentTaskIndex].uploadLimit,
+        rewardLimit: apps[appIndex].tasks[currentTaskIndex].rewardLimit
+      });
+    } else {
+      // Add new task
+      const newTask = {
+        prompt: editTaskPrompt,
+        uploadLimit: enableUploadLimit ? uploadLimitValue : undefined,
+        rewardLimit: enableRewardLimit ? rewardLimitValue : undefined
+      };
+      apps[appIndex].tasks.push(newTask);
+
+      // Log the new task for debugging
+      console.log('Added new task with limits:', newTask);
+    }
+
+    apps = [...apps]; // Trigger reactivity
     unsavedChanges = true;
     pool.unsavedApps = true;
+    closeTaskModal();
+  }
+
+  function handleUploadLimitChange(event: Event) {
+    enableUploadLimit = (event.target as HTMLInputElement).checked;
+  }
+
+  function handleRewardLimitChange(event: Event) {
+    enableRewardLimit = (event.target as HTMLInputElement).checked;
   }
 
   function startEditing(appId: string, taskId: string, field: string, value: string) {
@@ -110,17 +194,6 @@
       apps[appIndex].domain = editValue;
     } else if (editingField === 'name') {
       apps[appIndex].name = editValue;
-    } else if (editingField === 'prompt') {
-      const taskIndex = apps[appIndex].tasks.findIndex((_, idx) => idx === parseInt(editingTaskId));
-      if (taskIndex !== -1) {
-        apps[appIndex].tasks[taskIndex].prompt = editValue;
-      }
-    } else if (editingField === 'price') {
-      const price = parseFloat(editValue);
-      if (!isNaN(price) && price >= 1) {
-        pool.pricePerDemo = price;
-        pool.unsavedPrice = true;
-      }
     }
 
     apps = [...apps]; // Trigger reactivity
@@ -184,19 +257,9 @@
   }
 
   function addNewTask(appIndex: number) {
-    const newTask = {
-      prompt: 'Enter task description here',
-      type: 'text'
-    };
-
-    apps[appIndex].tasks.push(newTask);
-    apps = [...apps]; // Trigger reactivity
-    unsavedChanges = true;
-    pool.unsavedApps = true;
-
-    // Start editing the new task immediately
-    const taskIndex = apps[appIndex].tasks.length - 1;
-    startEditing(apps[appIndex].name, taskIndex.toString(), 'prompt', newTask.prompt);
+    if (appIndex >= 0 && appIndex < apps.length) {
+      openTaskModal(apps[appIndex], -1); // -1 indicates a new task
+    }
   }
 
   function removeTask(appIndex: number, taskIndex: number) {
@@ -270,7 +333,7 @@
     </div>
   {:else if viewMode === 'preview'}
     <!-- Preview Mode using AvailableTasks component -->
-    <AvailableTasks {apps} {loadingApps} viewMode="preview" isGymBuilder={true} />
+    <AvailableTasks {loadingApps} viewMode="preview" isGymBuilder={true} poolId={pool._id} />
   {:else if apps.length === 0}
     <div class="text-center py-12 text-gray-500">
       <p>No apps available yet.</p>
@@ -343,38 +406,6 @@
 
               <!-- App Actions -->
               <div class="flex items-center gap-2">
-                <!-- Price -->
-                {#if editingAppId === app.name && editingField === 'price'}
-                  <div class="flex items-center gap-1">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="1"
-                      class="w-20 px-2 py-1 text-sm border rounded"
-                      bind:value={editValue} />
-                    <span class="text-sm">{pool.token.symbol}</span>
-                    <button class="text-green-500 hover:text-green-700" onclick={saveEditing}>
-                      <Check size={16} />
-                    </button>
-                    <button class="text-red-500 hover:text-red-700" onclick={cancelEditing}>
-                      <X size={16} />
-                    </button>
-                  </div>
-                {:else}
-                  <button
-                    class="text-sm font-bold text-secondary-600 flex items-center gap-1 group relative cursor-pointer"
-                    onclick={() =>
-                      startEditing(app.name, '', 'price', (pool.pricePerDemo || 1).toString())}>
-                    <DollarSign size={14} />
-                    {pool.pricePerDemo}
-                    {pool.token.symbol}
-                    <div
-                      class="absolute inset-0 bg-black/0 group-hover:bg-black/50 rounded flex items-center justify-center">
-                      <Pencil size={12} class="text-white opacity-0 group-hover:opacity-100" />
-                    </div>
-                  </button>
-                {/if}
-
                 <!-- Remove App Button -->
                 <button
                   class="text-gray-400 hover:text-red-500 p-1 ml-2 transition-colors"
@@ -400,42 +431,38 @@
               {#if app.tasks && app.tasks.length > 0}
                 <div class="space-y-2 ml-1">
                   {#each app.tasks as task, taskIndex}
-                    {#if editingAppId === app.name && editingTaskId === taskIndex.toString() && editingField === 'prompt'}
-                      <div class="mb-2">
-                        <TextArea class="w-full text-sm" variant="light" bind:value={editValue}>
-                        </TextArea>
-                        <div class="flex justify-end mt-2 gap-2">
-                          <button
-                            class="text-green-500 hover:text-green-700 p-1"
-                            onclick={saveEditing}>
-                            <Check size={16} />
-                          </button>
-                          <button
-                            class="text-red-500 hover:text-red-700 p-1"
-                            onclick={cancelEditing}>
-                            <X size={16} />
-                          </button>
+                    <div class="flex items-center w-full group">
+                      <div
+                        class="w-full text-left flex items-center bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320">
+                        <p class="grow text-gray-800 text-sm">{task.prompt}</p>
+                        <div class="flex gap-2 ml-2">
+                          {#if typeof task.uploadLimit === 'number'}
+                            <span
+                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              {task.currentSubmissions ?? 0}/{task.uploadLimit}
+                            </span>
+                          {/if}
+                          {#if typeof task.rewardLimit === 'number'}
+                            <span
+                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              {task.rewardLimit} VIRAL
+                            </span>
+                          {/if}
                         </div>
-                      </div>
-                    {:else}
-                      <div class="flex items-center w-full group">
                         <button
-                          class="w-full text-left cursor-pointer flex bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320"
-                          onclick={() =>
-                            startEditing(app.name, taskIndex.toString(), 'prompt', task.prompt)}>
-                          <p class="grow text-gray-800 text-sm">{task.prompt}</p>
-                          <Pencil
-                            size={14}
-                            class="text-gray-700 grow-0 opacity-0 group-hover:opacity-100 mt-1 transition-all duration-200" />
-                        </button>
-                        <button
-                          class="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 p-1 ml-2 transition-all"
-                          title="Remove Task"
-                          onclick={() => removeTask(appIndex, taskIndex)}>
-                          <Trash2 size={14} />
+                          class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 ml-2"
+                          title="Edit Task"
+                          onclick={() => openTaskModal(app, taskIndex)}>
+                          <Pencil size={14} />
                         </button>
                       </div>
-                    {/if}
+                      <button
+                        class="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 p-1 ml-2 transition-all"
+                        title="Remove Task"
+                        onclick={() => removeTask(appIndex, taskIndex)}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   {/each}
                 </div>
               {:else}
@@ -525,3 +552,16 @@
     </div>
   {/if}
 </div>
+
+<!-- Task Editing Modal -->
+<TaskEditModal
+  show={showTaskModal}
+  app={currentApp}
+  taskIndex={currentTaskIndex}
+  bind:prompt={editTaskPrompt}
+  bind:enableUploadLimit
+  bind:uploadLimitValue
+  bind:enableRewardLimit
+  bind:rewardLimitValue
+  onClose={closeTaskModal}
+  onSave={saveTaskModal} />

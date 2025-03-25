@@ -16,6 +16,7 @@
     unsavedPrice?: boolean;
     unsavedName?: boolean;
     unsavedApps?: boolean;
+    unsavedUploadLimit?: boolean;
   };
   export let onSave: (pool: TrainingPool, updates: any) => Promise<void>;
   export let onRefresh: (poolId: string) => Promise<void>;
@@ -65,6 +66,13 @@
         console.log('Adding apps to updates:', tasksApps);
         updates.apps = tasksApps;
         pool.unsavedApps = false;
+      }
+      
+      // Add upload limit if it's changed
+      if (pool.unsavedUploadLimit) {
+        updates.uploadLimit = pool.uploadLimit;
+        pool.unsavedUploadLimit = false;
+        console.log('Adding upload limit to updates:', pool.uploadLimit);
       }
       
       // Only save if there are updates to make
@@ -129,6 +137,11 @@
         if (pool.unsavedName) {
           await onSave(pool, { name: pool.name });
           pool.unsavedName = false;
+        }
+        
+        if (pool.unsavedUploadLimit) {
+          await onSave(pool, { uploadLimit: pool.uploadLimit });
+          pool.unsavedUploadLimit = false;
         }
         
         unsavedChanges = false;
