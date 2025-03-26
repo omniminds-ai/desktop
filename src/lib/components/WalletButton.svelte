@@ -30,15 +30,7 @@
     return `https://solscan.io/tx/${txHash}`;
   }
 
-  async function loadBalance(address: string) {
-    try {
-      viralBalance = await getBalance(address);
-    } catch (error) {
-      console.error('Failed to load balance:', error);
-    }
-  }
-
-  async function loadSubmissions(address: string) {
+  async function loadSubmissions() {
     try {
       const submissions = await listSubmissions();
       // Sort by date (newest first) and take the last 3
@@ -53,15 +45,15 @@
 
   onMount(async () => {
     if ($walletAddress) {
-      loadBalance($walletAddress);
-      loadSubmissions($walletAddress);
+      getBalance($walletAddress);
+      loadSubmissions();
     }
   });
 
   // Subscribe to wallet address changes
   $: if ($walletAddress) {
-    loadBalance($walletAddress);
-    loadSubmissions($walletAddress);
+    getBalance($walletAddress);
+    loadSubmissions();
   }
 </script>
 
