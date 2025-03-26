@@ -3,9 +3,11 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { connectionToken, walletAddress } from '$lib/stores/wallet';
-  import { listSubmissions } from '$lib/api/forge';
+  import { listSubmissions } from '$lib/api/endpoints/forge';
   import { toolsInitState } from '$lib/utils';
-  import ToastContainer from '$lib/components/ToastContainer.svelte';
+  import ToastContainer from '$lib/components/toast/ToastContainer.svelte';
+  import type { ApiRecording, Quest } from '$lib/types/gym';
+  import type { SubmissionStatus } from '$lib/types/forge';
 
   const { children } = $props();
 
@@ -14,8 +16,8 @@
 
   async function checkPendingRewards() {
     try {
-      const recordings = await invoke<any[]>('list_recordings');
-      let submissions: any[] = [];
+      const recordings = await invoke<(ApiRecording & { quest?: Quest })[]>('list_recordings');
+      let submissions: SubmissionStatus[] = [];
 
       if ($walletAddress && $connectionToken) {
         submissions = await listSubmissions();

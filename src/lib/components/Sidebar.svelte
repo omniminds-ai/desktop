@@ -1,12 +1,10 @@
 <script lang="ts">
-  import { MessageSquare, Dumbbell, Hammer, Camera, Square, LoaderCircle } from 'lucide-svelte';
+  import { Dumbbell, Hammer, Square, LoaderCircle } from 'lucide-svelte';
   import { page } from '$app/state';
   import logo from '$lib/assets/Logo_Icon.png';
   import WalletButton from './WalletButton.svelte';
   import UploadManager from './UploadManager.svelte';
-  import { onMount, onDestroy } from 'svelte';
-  import { listen } from '@tauri-apps/api/event';
-  import { stopRecording } from '$lib/gym';
+  import { stopRecording } from '$lib/api/endpoints/gym';
   import { RecordingState } from '$lib/types/gym';
   import { recordingState } from '$lib/stores/recording';
 

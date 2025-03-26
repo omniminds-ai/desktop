@@ -4,9 +4,9 @@
   import { Loader, Search } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import type { ForgeTask } from '$lib/types/gym';
-  import { getGymCategories, getTasksForGym } from '$lib/api/forge';
-  import Input from '../Input.svelte';
-  import Button from '../Button.svelte';
+  import { getGymCategories, getTasksForGym } from '$lib/api/endpoints/forge';
+  import Input from '$lib/components/form/Input.svelte';
+  import Button from '$lib/components/form/Button.svelte';
 
   // Props
   let tasks: ForgeTask[] = [];

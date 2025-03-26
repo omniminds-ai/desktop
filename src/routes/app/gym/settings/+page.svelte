@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Card from '$lib/components/Card.svelte';
-  import Input from '$lib/components/Input.svelte';
+  import Input from '$lib/components/form/Input.svelte';
   import { Plus, X } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { blacklistedApps } from '$lib/stores/blacklist';

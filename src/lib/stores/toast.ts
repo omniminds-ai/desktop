@@ -1,18 +1,5 @@
 import { writable } from 'svelte/store';
-
-export interface ToastButton {
-  text: string;
-  action: () => void;
-  variant?: 'primary' | 'secondary' | 'warning' | 'destroy' | 'green';
-}
-
-export interface Toast {
-  id: string;
-  title: string;
-  message: string;
-  timeout?: number; // in milliseconds, undefined means no auto-dismiss
-  button?: ToastButton;
-}
+import type { Toast, ToastButton } from '$lib/types/toast';
 
 function createToastStore() {
   const { subscribe, update } = writable<Toast[]>([]);

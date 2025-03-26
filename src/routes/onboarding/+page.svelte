@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import Logo from '$lib/assets/Logo_Icon.png';
-  import Button from '$lib/components/Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
   import WalletButton from '$lib/components/WalletButton.svelte';
   import { getPlatform } from '$lib/utils';
   import { privacyAccepted } from '$lib/stores/privacy';

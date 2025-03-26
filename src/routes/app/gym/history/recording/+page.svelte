@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import Card from '$lib/components/Card.svelte';
-  import Button from '$lib/components/Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
   import EventTimestamp from '$lib/components/gym/EventTimestamp.svelte';
   import AxTreeOverlay from '$lib/components/gym/AxTreeOverlay.svelte';
   import {
@@ -17,12 +17,12 @@
   } from 'lucide-svelte';
   import { convertFileSrc, invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-  import type { Recording } from '$lib/types/gym';
+  import type { ApiRecording } from '$lib/types/gym';
   import { getPlatform } from '$lib/utils';
   import type { SubmissionStatus } from '$lib/types/forge';
   import { walletAddress } from '$lib/stores/wallet';
-  import { listSubmissions } from '$lib/api/forge';
-  import UploadConfirmModal from '$lib/components/UploadConfirmModal.svelte';
+  import { listSubmissions } from '$lib/api/endpoints/forge';
+  import UploadConfirmModal from '$lib/components/modals/UploadConfirmModal.svelte';
   import { uploadManager } from '$lib/stores/misc';
   import { JsonView } from '@zerodevx/svelte-json-view';
 
@@ -221,7 +221,7 @@
     // Save changes to disk
     await savePrivateRanges();
   }
-  let recording: Recording | null = null;
+  let recording: ApiRecording | null = null;
   let processing = false;
   let checkingData = false;
   let uploading = false;
@@ -550,7 +550,7 @@
 
   onMount(async () => {
     try {
-      const recordings = await invoke<Recording[]>('list_recordings');
+      const recordings = await invoke<ApiRecording[]>('list_recordings');
       recording = recordings.find((r) => r.id === recordingId) || null;
 
       platform = await getPlatform();
