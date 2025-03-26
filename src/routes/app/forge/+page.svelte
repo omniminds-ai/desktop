@@ -5,15 +5,8 @@
   import { ChevronRight, RefreshCw } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import { walletAddress } from '$lib/stores/wallet';
-  import {
-    listPools,
-    createPool,
-    updatePool,
-    refreshPool,
-    generateApps,
-    createPoolWithApps
-  } from '$lib/api/forge';
-  import { type TrainingPool, type Token, TrainingPoolStatus } from '$lib/types/forge';
+  import { listPools, updatePool, refreshPool, createPoolWithApps } from '$lib/api/endpoints/forge';
+  import { type TrainingPool, TrainingPoolStatus } from '$lib/types/forge';
   import WalletButton from '$lib/components/WalletButton.svelte';
 
   // Extended TrainingPool for UI state

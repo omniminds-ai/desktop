@@ -1,9 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
-  import * as gym from '$lib/api/gym';
   import { RecordingState, type Quest } from '$lib/types/gym';
-  import { getReward, getSubmissionStatus } from '$lib/api/forge';
+  import { getReward, getSubmissionStatus } from '$lib/api/endpoints/forge';
   import { User, Upload, MousePointer, Trash2, RotateCcw } from 'lucide-svelte';
   import { emit, listen, type UnlistenFn } from '@tauri-apps/api/event';
   import { invoke } from '@tauri-apps/api/core';
@@ -20,6 +19,7 @@
   import { recordingState } from '$lib/stores/recording';
   import { goto } from '$app/navigation';
   import { slide } from 'svelte/transition';
+  import { startRecording, stopRecording } from '$lib/api/endpoints/gym';
 
   const prompt = page.url.searchParams.get('prompt') || '';
   const appParam = page.url.searchParams.get('app');
@@ -249,7 +249,7 @@
             currentQuest.pool_id = poolId;
             currentQuest.reward = {
               time: rewardInfo.time,
-              max_reward: rewardInfo.maxReward
+              maxReward: rewardInfo.maxReward
             };
           } catch (error) {
             console.error('Failed to get reward info:', error);
@@ -308,7 +308,7 @@
     try {
       recordingLoading = true;
       if ($recordingState === RecordingState.off) {
-        await gym.startRecording(activeQuest!).catch(console.error);
+        await startRecording(activeQuest!).catch(console.error);
         await emit('quest-overlay', { quest: activeQuest! });
         $recordingState = RecordingState.recording;
       }
@@ -487,7 +487,7 @@
     await emit('quest-overlay', { quest: null });
     recordingLoading = false;
     if ($recordingState === RecordingState.recording) {
-      const recordingId = await gym.stopRecording('done').catch((error) => {
+      const recordingId = await stopRecording('done').catch((error) => {
         console.error(error);
         return null;
       });
@@ -726,7 +726,7 @@
   async function handleGiveUp() {
     if ($recordingState === RecordingState.recording) {
       activeQuest = null;
-      const recordingId = await gym.stopRecording('fail').catch((error) => {
+      const recordingId = await stopRecording('fail').catch((error) => {
         console.error(error);
         return null;
       });

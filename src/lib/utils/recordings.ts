@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { get } from 'svelte/store';
 import { walletAddress } from '$lib/stores/wallet';
-import { listSubmissions } from '$lib/api/forge';
+import { listSubmissions } from '$lib/api/endpoints/forge';
 import type { Recording } from '$lib/types/gym';
 
 /**

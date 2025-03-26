@@ -4,7 +4,7 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { ChevronDown, ChevronUp, LoaderCircle, Lock, Square, Unlock } from 'lucide-svelte';
   import { RecordingState, type Quest } from '$lib/types/gym';
-  import { stopRecording } from '$lib/api/gym';
+  import { stopRecording } from '$lib/api/endpoints/gym';
   import { slide } from 'svelte/transition';
   import { invoke } from '@tauri-apps/api/core';
 

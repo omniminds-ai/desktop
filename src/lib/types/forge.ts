@@ -1,9 +1,57 @@
+import type { ForgeApp, Quest } from '$lib/types/gym';
+
 export type TokenType = 'SOL' | 'VIRAL' | 'CUSTOM';
 
 export interface Token {
   type: TokenType;
   symbol: string;
   address: string;
+}
+
+export interface RewardInfo {
+  time: number; // Unix timestamp rounded to last minute
+  maxReward: number; // Value between 1-128
+}
+export interface GenerateResponse {
+  content: {
+    name: string;
+    apps: ForgeApp[];
+  };
+}
+
+// Update create pool interface to accept apps
+export interface CreatePoolInputWithApps extends CreatePoolInput {
+  apps?: ForgeApp[];
+}
+
+export interface PoolSubmission {
+  _id: string;
+  address: string;
+  meta: {
+    poolId: string;
+    id: string;
+    generatedTime: number;
+    quest: {
+      pool_id: string;
+      app_id: string;
+      title?: string;
+      app?: string;
+    };
+    [key: string]: any;
+  };
+  status: string; // PENDING, PROCESSING, COMPLETED, FAILED, etc.
+  files: {
+    file: string;
+    s3Key: string;
+    _id?: string;
+    size?: number;
+  }[];
+  grade_result?: any;
+  reward: number;
+  maxReward: number;
+  clampedScore: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export enum TrainingPoolStatus {
@@ -102,18 +150,7 @@ export interface SubmissionMeta {
     width: number;
     height: number;
   };
-  quest: {
-    title: string;
-    app: string;
-    icon_url: string;
-    objectives: string[];
-    content: string;
-    pool_id: string;
-    reward: {
-      time: number;
-      max_reward: number;
-    };
-  };
+  quest: Quest;
 }
 
 export interface SubmissionStatus {

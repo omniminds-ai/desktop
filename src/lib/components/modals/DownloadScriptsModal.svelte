@@ -1,7 +1,7 @@
 <script lang="ts">
   import Button from '$lib/components/form/Button.svelte';
   import { onMount } from 'svelte';
-  import type { PoolSubmission } from '$lib/api/forge';
+  import type { PoolSubmission } from '$lib/types/forge';
 
   export let open = false;
   export let submissions: PoolSubmission[] = [];

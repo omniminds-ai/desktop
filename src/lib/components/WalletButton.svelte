@@ -11,7 +11,7 @@
   export let theme: 'dark' | 'light' = 'dark';
   import { LogOut, Wallet, ExternalLink, Coins } from 'lucide-svelte';
   import { onMount } from 'svelte';
-  import { getBalance, listSubmissions } from '$lib/api/forge';
+  import { getBalance, listSubmissions } from '$lib/api/endpoints/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
 
   let viralBalance = 0;
@@ -32,7 +32,7 @@
 
   async function loadBalance(address: string) {
     try {
-      viralBalance = await getBalance();
+      viralBalance = await getBalance(address);
     } catch (error) {
       console.error('Failed to load balance:', error);
     }

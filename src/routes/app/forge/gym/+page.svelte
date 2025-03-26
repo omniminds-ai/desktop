@@ -5,7 +5,7 @@
   import GymBuilderView from '$lib/components/gym-builder/GymBuilderView.svelte';
   import Button from '$lib/components/form/Button.svelte';
   import { walletAddress } from '$lib/stores/wallet';
-  import { listPools, updatePool, refreshPool } from '$lib/api/forge';
+  import { listPools, updatePool, refreshPool } from '$lib/api/endpoints/forge';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
 
   export let data;

@@ -16,13 +16,12 @@
     Trash2,
     Download,
     Info,
-    Globe,
     Cloud
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import type { Recording } from '$lib/types/gym';
+  import type { Quest, Recording } from '$lib/types/gym';
   import { walletAddress } from '$lib/stores/wallet';
-  import { listSubmissions } from '$lib/api/forge';
+  import { listSubmissions } from '$lib/api/endpoints/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
   import { fly } from 'svelte/transition';
   import { open } from '@tauri-apps/plugin-shell';
@@ -164,7 +163,7 @@
   }
 
   function getMaxReward(
-    recording: Recording & { submission?: SubmissionStatus; quest?: any }
+    recording: Recording & { submission?: SubmissionStatus; quest?: Quest }
   ): number {
     // if (
     //   (recording.meta?.quest?.reward?.max_reward ||
@@ -174,9 +173,9 @@
     // )
     //   console.log(recording);
     return (
-      recording.meta?.quest?.reward?.max_reward ||
-      recording.submission?.meta?.quest?.reward?.max_reward ||
-      recording.quest?.reward?.max_reward ||
+      recording.meta?.quest?.reward?.maxReward ||
+      recording.submission?.meta?.quest?.reward?.maxReward ||
+      recording.quest?.reward?.maxReward ||
       0
     );
   }

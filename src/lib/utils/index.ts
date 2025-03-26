@@ -15,7 +15,7 @@ export * from './platform';
 export * from './svg';
 
 // Export update utilities
-export * from './updates';
+export * from './tools';
 
 // Export recording utilities
 export * from './recordings';

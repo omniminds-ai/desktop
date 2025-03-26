@@ -1,8 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import { getSubmissionStatus } from '$lib/api/forge';
+import { getSubmissionStatus } from '$lib/api/endpoints/forge';
 import { writable, type Writable, get } from 'svelte/store';
-import type { SubmissionStatus } from '../types/forge';
-import { ChunkedUploader } from '../api/chunkedUploader';
+import { ChunkedUploader } from '$lib/api/upload/chunkedUploader';
 import type { UploadQueue, UploadQueueItem, UploadEventType, EventCallback } from '../types/upload';
 
 export class UploadManager {

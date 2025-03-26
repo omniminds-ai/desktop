@@ -2,20 +2,11 @@
   import Card from '$lib/components/Card.svelte';
   import Button from '$lib/components/form/Button.svelte';
   import TaskEditModal from '../modals/TaskEditModal.svelte';
-  import {
-    Pencil,
-    Check,
-    X,
-    Eye,
-    Sparkles,
-    DollarSign,
-    Plus,
-    Trash2,
-    Save,
-    RotateCcw
-  } from 'lucide-svelte';
+  import { Pencil, Check, X, Eye, Sparkles, Plus, Trash2, Save, RotateCcw } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
   import type { ForgeApp } from '$lib/types/gym';
+  import { getAppsForGym } from '$lib/api/endpoints/forge';
+  import AvailableTasks from '$lib/components/gym/AvailableTasks.svelte';
   import { onMount } from 'svelte';
 
   // Function to save changes to the backend
@@ -31,8 +22,6 @@
 
   // Store original apps for reset functionality
   let originalApps: ForgeApp[] = [];
-  import { getAppsForGym } from '$lib/api/forge';
-  import AvailableTasks from '../gym/AvailableTasks.svelte';
 
   export let pool: TrainingPool & {
     unsavedSkills?: boolean;

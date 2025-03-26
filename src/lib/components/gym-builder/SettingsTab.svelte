@@ -7,8 +7,7 @@
   import { RefreshCw, Play, Pause, AlertTriangle } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
   import { onMount } from 'svelte';
-  import { getPoolSubmissions, getAppsForGym } from '$lib/api/forge';
-  import { writable } from 'svelte/store';
+  import { getPoolSubmissions, getAppsForGym } from '$lib/api/endpoints/forge';
   import type { ForgeApp } from '$lib/types/gym';
 
   export let pool: TrainingPool & {

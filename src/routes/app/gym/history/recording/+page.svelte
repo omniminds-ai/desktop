@@ -21,7 +21,7 @@
   import { getPlatform } from '$lib/utils';
   import type { SubmissionStatus } from '$lib/types/forge';
   import { walletAddress } from '$lib/stores/wallet';
-  import { listSubmissions } from '$lib/api/forge';
+  import { listSubmissions } from '$lib/api/endpoints/forge';
   import UploadConfirmModal from '$lib/components/modals/UploadConfirmModal.svelte';
   import { uploadManager } from '$lib/stores/misc';
   import { JsonView } from '@zerodevx/svelte-json-view';

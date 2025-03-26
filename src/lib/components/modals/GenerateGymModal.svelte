@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
   import Button from '$lib/components/form/Button.svelte';
   import TextArea from '$lib/components/form/TextArea.svelte';
-  import Card from '../Card.svelte';
-  import { ArrowLeft, ArrowRight, Sparkles, RefreshCw, Code, Check } from 'lucide-svelte';
-  import { generateApps, type GenerateResponse } from '$lib/api/forge';
-  import type { ForgeApp } from '$lib/types/gym';
+  import { ArrowLeft, Sparkles, RefreshCw } from 'lucide-svelte';
+  import { generateApps } from '$lib/api/endpoints/forge';
+  import type { GenerateResponse } from '$lib/types/forge';
 
   // Props
   export let show = false;

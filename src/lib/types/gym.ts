@@ -102,7 +102,7 @@ export interface Quest {
   pool_id?: string; // Match Rust struct field name
   reward?: {
     time: number; // Unix timestamp rounded to last minute
-    max_reward: number; // Match Rust struct field name
+    maxReward: number; // Match Rust struct field name
   };
   task_id?: string; // ID of the specific task
 }

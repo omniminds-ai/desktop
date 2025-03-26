@@ -1,9 +1,7 @@
-import { connectionToken } from '$lib/stores/wallet';
-import { API_URL } from '$lib/utils/platform';
+import { apiClient } from '../core/client';
 import { get } from 'svelte/store';
+import { connectionToken } from '$lib/stores/wallet';
 import type { UploadMetadata, UploadProgress } from '$lib/types/upload';
-
-const API_BASE = `${API_URL}/api/forge`;
 
 /**
  * Calculates a simple hash of a blob
@@ -42,24 +40,20 @@ export class ChunkedUploader {
     this.token = get(connectionToken) || '';
     this.abortController = new AbortController();
 
-    const response = await fetch(`${API_BASE}/upload/init`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-connect-token': this.token
-      },
-      body: JSON.stringify({
+    const result = await apiClient.post<{ uploadId: string; expiresIn: number; chunkSize: number }>(
+      '/forge/upload/init',
+      {
         totalChunks: this.totalChunks,
         metadata
-      }),
-      signal: this.abortController.signal
-    });
+      },
+      {
+        requiresAuth: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
 
-    if (!response.ok) {
-      throw new Error(`Failed to initialize upload: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json();
     this.uploadId = result.uploadId;
     this.chunkSize = result.chunkSize;
     
@@ -89,20 +83,12 @@ export class ChunkedUploader {
     formData.append('checksum', checksum);
 
     // Upload the chunk
-    const response = await fetch(`${API_BASE}/upload/chunk/${this.uploadId}`, {
-      method: 'POST',
-      headers: {
-        'x-connect-token': this.token
-      },
-      body: formData,
-      signal: this.abortController?.signal
-    });
+    const result = await apiClient.post<UploadProgress>(
+      `/forge/upload/chunk/${this.uploadId}`,
+      formData,
+      { requiresAuth: true }
+    );
 
-    if (!response.ok) {
-      throw new Error(`Failed to upload chunk: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json();
     this.uploadedChunks.add(chunkIndex);
     
     return result;
@@ -126,18 +112,14 @@ export class ChunkedUploader {
 
     this.token = get(connectionToken) || '';
     
-    const response = await fetch(`${API_BASE}/upload/status/${this.uploadId}`, {
-      headers: {
-        'x-connect-token': this.token
-      },
-      signal: this.abortController?.signal
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get upload status: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
+    return apiClient.get<{
+      uploadId: string;
+      received: number;
+      total: number;
+      progress: number;
+      createdAt: string;
+      lastUpdated: string;
+    }>(`/forge/upload/status/${this.uploadId}`, {}, { requiresAuth: true });
   }
 
   /**
@@ -159,25 +141,20 @@ export class ChunkedUploader {
 
     this.token = get(connectionToken) || '';
     
-    const response = await fetch(`${API_BASE}/upload/complete/${this.uploadId}`, {
-      method: 'POST',
+    return apiClient.post<{
+      message: string;
+      submissionId: string;
+      files: Array<{
+        file: string;
+        s3Key: string;
+        size: number;
+      }>;
+    }>(`/forge/upload/complete/${this.uploadId}`, {}, {
+      requiresAuth: true,
       headers: {
-        'Content-Type': 'application/json',
-        'x-connect-token': this.token
-      },
-      signal: this.abortController?.signal
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      if (errorData.error === 'Upload incomplete' && errorData.missing) {
-        throw new Error(`Upload incomplete. Missing chunks: ${errorData.missing.join(', ')}`);
+        'Content-Type': 'application/json'
       }
-      throw new Error(`Failed to complete upload: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    return result;
+    });
   }
 
   /**
@@ -197,19 +174,7 @@ export class ChunkedUploader {
       this.abortController = new AbortController();
     }
     
-    const response = await fetch(`${API_BASE}/upload/cancel/${this.uploadId}`, {
-      method: 'DELETE',
-      headers: {
-        'x-connect-token': this.token
-      },
-      signal: this.abortController?.signal
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to cancel upload: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
+    return apiClient.delete<{ message: string }>(`/forge/upload/cancel/${this.uploadId}`, { requiresAuth: true });
   }
 
   /**

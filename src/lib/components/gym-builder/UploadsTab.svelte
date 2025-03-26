@@ -2,8 +2,8 @@
   import Card from '$lib/components/Card.svelte';
   import DownloadScriptsModal from '$lib/components/modals/DownloadScriptsModal.svelte';
   import { Code, Download, Clock, Monitor, Laptop, Server, Smartphone, Globe } from 'lucide-svelte';
-  import type { TrainingPool } from '$lib/types/forge';
-  import { getPoolSubmissions, type PoolSubmission } from '$lib/api/forge';
+  import type { TrainingPool, PoolSubmission } from '$lib/types/forge';
+  import { getPoolSubmissions } from '$lib/api/endpoints/forge';
   import { onMount } from 'svelte';
 
   export let pool: TrainingPool & {
