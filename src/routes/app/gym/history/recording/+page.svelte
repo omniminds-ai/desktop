@@ -17,7 +17,7 @@
   } from 'lucide-svelte';
   import { convertFileSrc, invoke } from '@tauri-apps/api/core';
   import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-  import type { Recording } from '$lib/types/gym';
+  import type { ApiRecording } from '$lib/types/gym';
   import { getPlatform } from '$lib/utils';
   import type { SubmissionStatus } from '$lib/types/forge';
   import { walletAddress } from '$lib/stores/wallet';
@@ -221,7 +221,7 @@
     // Save changes to disk
     await savePrivateRanges();
   }
-  let recording: Recording | null = null;
+  let recording: ApiRecording | null = null;
   let processing = false;
   let checkingData = false;
   let uploading = false;
@@ -550,7 +550,7 @@
 
   onMount(async () => {
     try {
-      const recordings = await invoke<Recording[]>('list_recordings');
+      const recordings = await invoke<ApiRecording[]>('list_recordings');
       recording = recordings.find((r) => r.id === recordingId) || null;
 
       platform = await getPlatform();

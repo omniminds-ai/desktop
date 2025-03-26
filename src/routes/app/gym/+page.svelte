@@ -9,6 +9,7 @@
   import AvailableTasks from '$lib/components/gym/AvailableTasks.svelte';
   import { Wallet, History, Zap } from 'lucide-svelte';
   import WalletButton from '$lib/components/WalletButton.svelte';
+  import { type ApiRecording, type LocalRecording, type Quest } from '$lib/types/gym';
 
   const poolId = page.url.searchParams.get('poolId') || undefined;
   const poolName = page.url.searchParams.get('poolName');
@@ -22,7 +23,7 @@
   let unclaimedRewards = 0;
   let recentSubmissions: any[] = [];
   let earnedThisMonth = 0;
-  let pendingRecordings: any[] = [];
+  let pendingRecordings: LocalRecording[] = [];
 
   // Calculate total rewards from submissions
   function calculateEarnedRewards(submissions: any[]): number {
@@ -45,7 +46,7 @@
 
   async function loadUnclaimedRewards() {
     try {
-      const recordings = await invoke<any[]>('list_recordings');
+      const recordings = await invoke<LocalRecording[]>('list_recordings');
       let submissions: any[] = [];
       if ($walletAddress) {
         submissions = await listSubmissions();

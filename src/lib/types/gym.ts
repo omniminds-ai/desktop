@@ -37,7 +37,24 @@ export interface MonitorInfo {
   height: number;
 }
 
-export interface Recording {
+export interface LocalRecording {
+  id: string;
+  timestamp: string;
+  duration_seconds: number;
+  status: string;
+  title: string;
+  description: string;
+  platform: string;
+  arch: string;
+  version: string;
+  locale: string;
+  primary_monitor: MonitorInfo;
+  quest?: Quest & { reward?: { time: number; max_reward: number } };
+  submission?: SubmissionStatus;
+  location?: 'local' | 'database';
+}
+
+export interface ApiRecording {
   id: string;
   timestamp: string;
   duration_seconds: number;
@@ -102,7 +119,7 @@ export interface Quest {
   pool_id?: string; // Match Rust struct field name
   reward?: {
     time: number; // Unix timestamp rounded to last minute
-    maxReward: number; // Match Rust struct field name
+    max_reward: number; // Match Rust struct field name
   };
   task_id?: string; // ID of the specific task
 }

@@ -37,7 +37,7 @@ export async function generateQuest(
     try {
       const rewardInfo = await getReward(poolId, taskId);
       quest.pool_id = poolId;
-      quest.reward = rewardInfo;
+      quest.reward = { time: rewardInfo.time, max_reward: rewardInfo.maxReward };
       // If taskId is provided, add it to the quest
       if (taskId) {
         quest.task_id = taskId;

@@ -16,10 +16,11 @@
     Trash2,
     Download,
     Info,
-    Cloud
+    Cloud,
+    UploadIcon
   } from 'lucide-svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import type { Quest, Recording } from '$lib/types/gym';
+  import type { Quest, ApiRecording, LocalRecording } from '$lib/types/gym';
   import { walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/endpoints/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
@@ -33,12 +34,12 @@
   let exporting = $state(false);
   let exportingZip = $state(false);
   let sortOrder: 'newest' | 'oldest' = $state('newest');
-  let recordings: Recording[] = $state([]);
+  let localRecordings: LocalRecording[] = $state([]);
   let uploadedRecordings: SubmissionStatus[] = $state([]);
   let showUploadConfirmModal = $state(false);
   let dataExported = $state('');
   let statusIntervals: { [key: string]: number } = {};
-  let uploadConfirmRecording: Recording = $state({} as Recording);
+  let uploadConfirmRecording: ApiRecording = $state({} as ApiRecording);
 
   onDestroy(() => {
     // Clear all intervals
@@ -77,11 +78,11 @@
       if ($walletAddress) {
         uploadedRecordings = await listSubmissions();
       }
-      recordings = await invoke('list_recordings');
+      localRecordings = await invoke('list_recordings');
 
       $uploadManager.on('statusChange', '*', async () => {
         if ($walletAddress) uploadedRecordings = await listSubmissions();
-        recordings = await invoke('list_recordings');
+        localRecordings = await invoke('list_recordings');
       });
     } catch (error) {
       console.error('Failed to fetch recordings:', error);
@@ -89,11 +90,11 @@
   });
 
   const mergedRecordings = $derived.by(() => {
-    let res: Recording[] = [];
+    let res: ApiRecording[] = [];
     // first add recordings from the database
     res = [
       ...uploadedRecordings
-        .filter((s) => !recordings.some((r) => r.id === s.meta?.id))
+        .filter((s) => !localRecordings.some((r) => r.id === s.meta?.id))
         .map(
           (s) =>
             ({
@@ -114,19 +115,20 @@
               },
               submission: s,
               location: 'database'
-            }) as Recording
+            }) as ApiRecording
         )
     ];
     // Then set state for the local recordings
     res = [
       ...res,
-      ...recordings.map((recording) => {
+      ...localRecordings.map((recording) => {
         const submission = uploadedRecordings.find((s) => s.meta?.id === recording.id);
         return {
           ...recording,
           location: 'local',
-          submission
-        } as Recording;
+          submission,
+          meta: { quest: recording.quest }
+        } as ApiRecording;
       })
     ];
     return res;
@@ -162,9 +164,7 @@
     img.src = 'https://placehold.co/40x40/gray/white?text=App';
   }
 
-  function getMaxReward(
-    recording: Recording & { submission?: SubmissionStatus; quest?: Quest }
-  ): number {
+  function getMaxReward(recording: ApiRecording): number {
     // if (
     //   (recording.meta?.quest?.reward?.max_reward ||
     //     recording.submission?.meta?.quest?.reward?.max_reward ||
@@ -173,14 +173,13 @@
     // )
     //   console.log(recording);
     return (
-      recording.meta?.quest?.reward?.maxReward ||
-      recording.submission?.meta?.quest?.reward?.maxReward ||
-      recording.quest?.reward?.maxReward ||
+      recording.meta?.quest?.reward?.max_reward ||
+      recording.submission?.meta?.quest?.reward?.max_reward ||
       0
     );
   }
 
-  const uploadRecording = async (recording: Recording) => {
+  const uploadRecording = async (recording: ApiRecording) => {
     const uploadStarted = await $uploadManager.handleUpload(recording.id, recording.title);
     if (!uploadStarted) {
       uploadConfirmRecording = recording;
@@ -360,54 +359,60 @@
                 <span class="text-sm font-semibold">Upload Failed</span>
               </div>
             </div>
-          {/if}
-
-          {#if recording.submission?.status === 'processing'}
+          {:else if recording.submission?.status === 'processing' || recording.submission?.status === 'pending' || $uploadQueue[recording.id]?.status === 'processing'}
             <div class="text-center px-2">
               <div class="text-yellow-600 flex items-center gap-1">
                 <Info class="w-4 h-4" />
                 <span class="text-sm font-semibold">Processing</span>
               </div>
             </div>
-          {/if}
-          <!-- Rating (if claimed) -->
-          {#if recording.submission?.clampedScore !== undefined}
+          {:else if recording.submission?.status === 'uploading' || $uploadQueue[recording.id]?.status === 'uploading'}
             <div class="text-center px-2">
-              <div class="text-lg font-bold text-secondary-300">
-                {recording.submission.clampedScore}%
+              <div class="text-blue-600 flex items-center gap-1">
+                <UploadIcon class="w-4 h-4" />
+                <span class="text-sm font-semibold">Uploading</span>
               </div>
-              <div class="text-xs text-gray-500">Rating</div>
             </div>
-          {:else if recording.duration_seconds < 1}
-            <div class="text-red-500 flex items-center gap-1">
-              <AlertTriangle class="w-4 h-4" />
-              <span class="text-sm font-semibold">Recording Error</span>
-            </div>
-          {:else if recording.submission?.grade_result?.score}
-            <div class="text-center px-2">
-              <div class="text-lg font-bold text-secondary-300">
-                {recording.submission.grade_result.score}%
+          {:else}
+            <!-- Rating (if claimed) -->
+            {#if recording.submission?.clampedScore !== undefined}
+              <div class="text-center px-2">
+                <div class="text-lg font-bold text-secondary-300">
+                  {recording.submission.clampedScore}%
+                </div>
+                <div class="text-xs text-gray-500">Rating</div>
               </div>
-              <div class="text-xs text-gray-500">Rating</div>
-            </div>
-          {:else if recording.submission}
-            <div class="text-center px-2">
-              <div class="text-lg font-bold text-secondary-300">0%</div>
-              <div class="text-xs text-gray-500">Rating</div>
-            </div>
-          {/if}
+            {:else if recording.duration_seconds < 1}
+              <div class="text-red-500 flex items-center gap-1">
+                <AlertTriangle class="w-4 h-4" />
+                <span class="text-sm font-semibold">Recording Error</span>
+              </div>
+            {:else if recording.submission?.grade_result?.score}
+              <div class="text-center px-2">
+                <div class="text-lg font-bold text-secondary-300">
+                  {recording.submission.grade_result.score}%
+                </div>
+                <div class="text-xs text-gray-500">Rating</div>
+              </div>
+            {:else if recording.submission}
+              <div class="text-center px-2">
+                <div class="text-lg font-bold text-secondary-300">0%</div>
+                <div class="text-xs text-gray-500">Rating</div>
+              </div>
+            {/if}
 
-          <!-- Reward -->
-          {#if recording.submission?.reward}
-            <div class="text-right min-w-[120px]">
-              <div class="text-sm font-semibold text-secondary-300">
-                {formatNumber(recording.submission.reward)} VIRAL
+            <!-- Reward -->
+            {#if recording.submission?.reward}
+              <div class="text-right min-w-[120px]">
+                <div class="text-sm font-semibold text-secondary-300">
+                  {formatNumber(recording.submission.reward)} VIRAL
+                </div>
               </div>
-            </div>
-          {:else if recording.submission}
-            <div class="text-right min-w-[120px]">
-              <div class="text-sm font-semibold text-secondary-300">0 VIRAL</div>
-            </div>
+            {:else if recording.submission}
+              <div class="text-right min-w-[120px]">
+                <div class="text-sm font-semibold text-secondary-300">0 VIRAL</div>
+              </div>
+            {/if}
           {/if}
 
           <!-- Action Buttons -->
@@ -500,7 +505,7 @@
           if (activeRecordingId) {
             const res = await deleteRecording(activeRecordingId);
             if (res?.length > 0) {
-              recordings = res;
+              localRecordings = res;
             }
           }
           showMenu = false;

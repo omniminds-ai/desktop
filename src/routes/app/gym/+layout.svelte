@@ -6,7 +6,7 @@
   import { listSubmissions } from '$lib/api/endpoints/forge';
   import { toolsInitState } from '$lib/utils';
   import ToastContainer from '$lib/components/toast/ToastContainer.svelte';
-  import type { Recording, Quest } from '$lib/types/gym';
+  import type { ApiRecording, Quest } from '$lib/types/gym';
   import type { SubmissionStatus } from '$lib/types/forge';
 
   const { children } = $props();
@@ -16,7 +16,7 @@
 
   async function checkPendingRewards() {
     try {
-      const recordings = await invoke<(Recording & { quest?: Quest })[]>('list_recordings');
+      const recordings = await invoke<(ApiRecording & { quest?: Quest })[]>('list_recordings');
       let submissions: SubmissionStatus[] = [];
 
       if ($walletAddress && $connectionToken) {
@@ -30,7 +30,7 @@
       pendingRecordings = recordings.filter(
         (recording) =>
           recording.status === 'completed' &&
-          recording.quest?.reward?.maxReward &&
+          recording.quest?.reward?.max_reward &&
           !submissions.some((s) => s.meta?.id === recording.id)
       );
 

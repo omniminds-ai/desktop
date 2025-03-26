@@ -249,7 +249,7 @@
             currentQuest.pool_id = poolId;
             currentQuest.reward = {
               time: rewardInfo.time,
-              maxReward: rewardInfo.maxReward
+              max_reward: rewardInfo.maxReward
             };
           } catch (error) {
             console.error('Failed to get reward info:', error);
