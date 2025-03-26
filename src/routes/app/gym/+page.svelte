@@ -35,7 +35,7 @@
   }
   async function loadBalance(address: string) {
     try {
-      viralBalance = await getBalance();
+      viralBalance = await getBalance(address);
       recentSubmissions = await listSubmissions();
       earnedThisMonth = calculateEarnedRewards(recentSubmissions);
     } catch (error) {
