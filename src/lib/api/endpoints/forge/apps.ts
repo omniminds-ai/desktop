@@ -19,7 +19,7 @@ export async function generateApps(prompt: string): Promise<{
       name: string;
       apps: ForgeApp[];
     };
-  }>('/forge/generate', { prompt });
+  }>('/forge/apps', { prompt });
 }
 
 /**
@@ -179,7 +179,6 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
     const unseenToAdd = Math.min(2, Math.max(0, 3 - seen.length));
     result = [...result, ...shuffledUnseen.slice(0, unseenToAdd)];
   }
-
   return result;
 }
 
@@ -188,7 +187,5 @@ export async function getAppsForSkills(): Promise<ForgeApp[]> {
  * @returns Promise resolving to an array of category strings
  */
 export async function getGymCategories(): Promise<string[]> {
-  return apiClient.get<string[]>('/forge/categories');
+  return apiClient.get<string[]>('/forge/apps/categories');
 }
-
-// generateApps function moved to generation.ts

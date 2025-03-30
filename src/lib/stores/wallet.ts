@@ -1,3 +1,4 @@
+import { checkConnection } from '$lib/api/endpoints/wallet';
 import { API_URL } from '$lib/utils';
 import posthog from 'posthog-js';
 import { writable, get } from 'svelte/store';
@@ -67,11 +68,10 @@ export function startPolling() {
   // Poll for connection status
   currentInterval = setInterval(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/forge/check-connection?token=${token}`);
-      const data = await response.json();
+      const data = await checkConnection(token);
 
       if (data.connected) {
-        walletAddress.set(data.address);
+        walletAddress.set(data.address!);
         if (currentInterval) {
           clearInterval(currentInterval);
           currentInterval = null;

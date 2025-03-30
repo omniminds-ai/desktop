@@ -1,7 +1,7 @@
 import { API_URL } from '$lib/utils/platform';
 import { get } from 'svelte/store';
 import { connectionToken } from '$lib/stores/wallet';
-import { handleApiError } from './errors';
+import { ApiError, handleApiError } from './errors';
 
 export type RequestOptions = {
   requiresAuth?: boolean;
@@ -25,7 +25,7 @@ export enum ErrorCode {
   INVALID_WALLET_SIGNATURE = 'INVALID_WALLET_SIGNATURE',
   FORBIDDEN = 'FORBIDDEN',
   NOT_FOUND = 'NOT_FOUND',
-  REQ_VALIDATION_ERROR = 'REQ_VALIDATION_ERROR',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
   CONFLICT = 'CONFLICT',
   PAYMENT_REQUIRED = 'PAYMENT_REQUIRED',
@@ -45,7 +45,7 @@ export enum ErrorCode {
 export class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl = `${API_URL}/api`) {
+  constructor(baseUrl = `${API_URL}/api/v1`) {
     this.baseUrl = baseUrl;
   }
 
@@ -67,7 +67,7 @@ export class ApiClient {
     endpoint: string,
     params?: Record<string, any>,
     options: RequestOptions = {}
-  ): Promise<ApiResponse<T>> {
+  ): Promise<T> {
     const url = new URL(`${this.baseUrl}${endpoint}`);
 
     if (params) {
@@ -88,17 +88,24 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      handleApiError(response);
+      await handleApiError(response);
     }
 
-    return response.json() as Promise<ApiResponse<T>>;
+    const res: ApiResponse<T> = await response.json();
+
+    if (!res.success || !res.data) {
+      throw new ApiError(
+        400,
+        res.error?.code || 'Unknown Error',
+        res.error?.message || `GET: ${response.url}`,
+        res
+      );
+    } else {
+      return res.data;
+    }
   }
 
-  async post<T>(
-    endpoint: string,
-    data?: any,
-    options: RequestOptions = {}
-  ): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<T> {
     const headers = this.getHeaders(options);
 
     if (data && !(data instanceof FormData)) {
@@ -112,17 +119,24 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      handleApiError(response);
+      await handleApiError(response);
     }
 
-    return response.json() as Promise<ApiResponse<T>>;
+    const res: ApiResponse<T> = await response.json();
+
+    if (!res.success || !res.data) {
+      throw new ApiError(
+        400,
+        res.error?.code || 'Unknown Error',
+        res.error?.message || `POST: ${response.url}`,
+        res
+      );
+    } else {
+      return res.data;
+    }
   }
 
-  async put<T>(
-    endpoint: string,
-    data?: any,
-    options: RequestOptions = {}
-  ): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<T> {
     const headers = this.getHeaders(options);
 
     if (data && !(data instanceof FormData)) {
@@ -136,23 +150,45 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      handleApiError(response);
+      await handleApiError(response);
     }
 
-    return response.json() as Promise<ApiResponse<T>>;
+    const res: ApiResponse<T> = await response.json();
+
+    if (!res.success || !res.data) {
+      throw new ApiError(
+        400,
+        res.error?.code || 'Unknown Error',
+        res.error?.message || `PUT: ${response.url}`,
+        res
+      );
+    } else {
+      return res.data;
+    }
   }
 
-  async delete<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+  async delete<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'DELETE',
       headers: this.getHeaders(options)
     });
 
     if (!response.ok) {
-      handleApiError(response);
+      await handleApiError(response);
     }
 
-    return response.json() as Promise<ApiResponse<T>>;
+    const res: ApiResponse<T> = await response.json();
+
+    if (!res.success || !res.data) {
+      throw new ApiError(
+        400,
+        res.error?.code || 'Unknown Error',
+        res.error?.message || `DELETE: ${response.url}`,
+        res
+      );
+    } else {
+      return res.data;
+    }
   }
 }
 

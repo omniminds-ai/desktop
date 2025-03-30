@@ -31,7 +31,9 @@ export async function handleApiError(response: Response): Promise<never> {
     data = await response.json();
     if (data?.error) {
       errorMessage = `${data.error.code}: ${data.error.message}${
-        data.error.details ? `\n${data.error.details}` : ''
+        Object.keys(data.error.details || {}).length > 0
+          ? `\n${JSON.stringify(data.error.details)}`
+          : ''
       }`;
     }
   } catch (e) {
