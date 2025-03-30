@@ -1,6 +1,7 @@
 import { API_URL } from '$lib/utils/platform';
 import { get } from 'svelte/store';
 import { connectionToken } from '$lib/stores/wallet';
+import { ApiError, handleApiError } from './errors';
 
 export type RequestOptions = {
   requiresAuth?: boolean;
@@ -20,17 +21,21 @@ export class ApiClient {
 
   private getHeaders(options: RequestOptions = {}): Headers {
     const headers = new Headers(options.headers);
-    
+
     if (options.requiresAuth) {
       headers.set('x-connect-token', this.getAuthToken());
     }
-    
+
     return headers;
   }
 
-  async get<T>(endpoint: string, params?: Record<string, any>, options: RequestOptions = {}): Promise<T> {
+  async get<T>(
+    endpoint: string,
+    params?: Record<string, any>,
+    options: RequestOptions = {}
+  ): Promise<T> {
     const url = new URL(`${this.baseUrl}${endpoint}`);
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -42,56 +47,56 @@ export class ApiClient {
         }
       });
     }
-    
+
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: this.getHeaders(options)
     });
-    
+
     if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+      handleApiError(response);
     }
-    
+
     return response.json();
   }
 
   async post<T>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<T> {
     const headers = this.getHeaders(options);
-    
+
     if (data && !(data instanceof FormData)) {
       headers.set('Content-Type', 'application/json');
     }
-    
+
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers,
       body: data instanceof FormData ? data : JSON.stringify(data)
     });
-    
+
     if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+      handleApiError(response);
     }
-    
+
     return response.json();
   }
 
   async put<T>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<T> {
     const headers = this.getHeaders(options);
-    
+
     if (data && !(data instanceof FormData)) {
       headers.set('Content-Type', 'application/json');
     }
-    
+
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'PUT',
       headers,
       body: data instanceof FormData ? data : JSON.stringify(data)
     });
-    
+
     if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+      handleApiError(response);
     }
-    
+
     return response.json();
   }
 
@@ -100,11 +105,11 @@ export class ApiClient {
       method: 'DELETE',
       headers: this.getHeaders(options)
     });
-    
+
     if (!response.ok) {
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+      handleApiError(response);
     }
-    
+
     return response.json();
   }
 }
