@@ -1,12 +1,46 @@
 import { API_URL } from '$lib/utils/platform';
 import { get } from 'svelte/store';
 import { connectionToken } from '$lib/stores/wallet';
-import { ApiError, handleApiError } from './errors';
+import { handleApiError } from './errors';
 
 export type RequestOptions = {
   requiresAuth?: boolean;
   headers?: Record<string, string>;
 };
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: ErrorCode;
+    message: string;
+    details?: Record<string, any>;
+  };
+}
+
+export enum ErrorCode {
+  // Client errors (4xx)
+  BAD_REQUEST = 'BAD_REQUEST',
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  INVALID_WALLET_SIGNATURE = 'INVALID_WALLET_SIGNATURE',
+  FORBIDDEN = 'FORBIDDEN',
+  NOT_FOUND = 'NOT_FOUND',
+  REQ_VALIDATION_ERROR = 'REQ_VALIDATION_ERROR',
+  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
+  CONFLICT = 'CONFLICT',
+  PAYMENT_REQUIRED = 'PAYMENT_REQUIRED',
+  GONE = 'GONE',
+
+  // Server errors (5xx)
+  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
+
+  // Domain-specific errors
+  INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',
+  TRANSACTION_FAILED = 'TRANSACTION_FAILED',
+  CHALLENGE_EXPIRED = 'CHALLENGE_EXPIRED',
+  UPLOAD_INCOMPLETE = 'UPLOAD_INCOMPLETE'
+}
 
 export class ApiClient {
   private baseUrl: string;
@@ -33,7 +67,7 @@ export class ApiClient {
     endpoint: string,
     params?: Record<string, any>,
     options: RequestOptions = {}
-  ): Promise<T> {
+  ): Promise<ApiResponse<T>> {
     const url = new URL(`${this.baseUrl}${endpoint}`);
 
     if (params) {
@@ -57,10 +91,14 @@ export class ApiClient {
       handleApiError(response);
     }
 
-    return response.json();
+    return response.json() as Promise<ApiResponse<T>>;
   }
 
-  async post<T>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<T> {
+  async post<T>(
+    endpoint: string,
+    data?: any,
+    options: RequestOptions = {}
+  ): Promise<ApiResponse<T>> {
     const headers = this.getHeaders(options);
 
     if (data && !(data instanceof FormData)) {
@@ -77,10 +115,14 @@ export class ApiClient {
       handleApiError(response);
     }
 
-    return response.json();
+    return response.json() as Promise<ApiResponse<T>>;
   }
 
-  async put<T>(endpoint: string, data?: any, options: RequestOptions = {}): Promise<T> {
+  async put<T>(
+    endpoint: string,
+    data?: any,
+    options: RequestOptions = {}
+  ): Promise<ApiResponse<T>> {
     const headers = this.getHeaders(options);
 
     if (data && !(data instanceof FormData)) {
@@ -97,10 +139,10 @@ export class ApiClient {
       handleApiError(response);
     }
 
-    return response.json();
+    return response.json() as Promise<ApiResponse<T>>;
   }
 
-  async delete<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  async delete<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'DELETE',
       headers: this.getHeaders(options)
@@ -110,7 +152,7 @@ export class ApiClient {
       handleApiError(response);
     }
 
-    return response.json();
+    return response.json() as Promise<ApiResponse<T>>;
   }
 }
 
