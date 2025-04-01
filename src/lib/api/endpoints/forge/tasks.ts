@@ -10,7 +10,7 @@ import type { TaskFilter } from '$lib/types/api';
 export async function getTasksForGym(filter?: TaskFilter): Promise<ForgeTask[]> {
   // Convert filter parameters to API-friendly format if needed
   const params: Record<string, any> = {};
-  
+
   if (filter) {
     if (filter.poolId) params.pool_id = filter.poolId;
     if (filter.minReward) params.min_reward = filter.minReward;
@@ -18,9 +18,9 @@ export async function getTasksForGym(filter?: TaskFilter): Promise<ForgeTask[]> 
     if (filter.categories) params.categories = filter.categories;
     if (filter.query) params.query = filter.query;
   }
-  
+
   // Use the API client to make the request
-  const tasks = await apiClient.get<ForgeTask[]>('/forge/tasks', params);
-  
+  const tasks = await apiClient.get<ForgeTask[]>('/forge/apps/tasks', params);
+
   return tasks;
 }

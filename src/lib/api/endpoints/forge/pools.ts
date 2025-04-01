@@ -7,7 +7,7 @@ import type { ForgeApp } from '$lib/types/gym';
  * @returns Promise resolving to an array of TrainingPool objects
  */
 export async function listPools(): Promise<TrainingPool[]> {
-  return apiClient.post<TrainingPool[]>('/forge/list', {}, { requiresAuth: true });
+  return apiClient.get<TrainingPool[]>('/forge/pools', {}, { requiresAuth: true });
 }
 
 /**
@@ -16,7 +16,7 @@ export async function listPools(): Promise<TrainingPool[]> {
  * @returns Promise resolving to the created TrainingPool
  */
 export async function createPool(input: CreatePoolInput): Promise<TrainingPool> {
-  return apiClient.post<TrainingPool>('/forge/create', input, { requiresAuth: true });
+  return apiClient.post<TrainingPool>('/forge/pools/', input, { requiresAuth: true });
 }
 
 /**
@@ -25,7 +25,7 @@ export async function createPool(input: CreatePoolInput): Promise<TrainingPool> 
  * @returns Promise resolving to the updated TrainingPool
  */
 export async function updatePool(input: UpdatePoolInput): Promise<TrainingPool> {
-  return apiClient.post<TrainingPool>('/forge/update', input, { requiresAuth: true });
+  return apiClient.put<TrainingPool>('/forge/pools/', input, { requiresAuth: true });
 }
 
 /**
@@ -34,7 +34,11 @@ export async function updatePool(input: UpdatePoolInput): Promise<TrainingPool> 
  * @returns Promise resolving to the refreshed TrainingPool
  */
 export async function refreshPool(poolId: string): Promise<TrainingPool> {
-  return apiClient.post<TrainingPool>('/forge/refresh', { id: poolId }, { requiresAuth: true });
+  return apiClient.post<TrainingPool>(
+    '/forge/pools/refresh',
+    { id: poolId },
+    { requiresAuth: true }
+  );
 }
 
 /**
@@ -43,7 +47,11 @@ export async function refreshPool(poolId: string): Promise<TrainingPool> {
  * @returns Promise resolving to the balance
  */
 export async function getBalance(address: string): Promise<number> {
-  const data = await apiClient.get<{ balance: number }>(`/forge/balance/${address}`, {}, { requiresAuth: true });
+  const data = await apiClient.get<{ balance: number }>(
+    `/wallet/balance/${address}`,
+    {},
+    { requiresAuth: true }
+  );
   return data.balance;
 }
 
@@ -53,7 +61,10 @@ export async function getBalance(address: string): Promise<number> {
  * @param taskId Optional task ID
  * @returns Promise resolving to reward information
  */
-export async function getReward(poolId: string, taskId?: string): Promise<{
+export async function getReward(
+  poolId: string,
+  taskId?: string
+): Promise<{
   time: number;
   maxReward: number;
 }> {
@@ -61,8 +72,10 @@ export async function getReward(poolId: string, taskId?: string): Promise<{
   if (taskId) {
     params.taskId = taskId;
   }
-  
-  return apiClient.get<{ time: number; maxReward: number }>('/forge/reward', params, { requiresAuth: true });
+
+  return apiClient.get<{ time: number; maxReward: number }>('/forge/pools/reward', params, {
+    requiresAuth: true
+  });
 }
 
 /**
@@ -70,6 +83,8 @@ export async function getReward(poolId: string, taskId?: string): Promise<{
  * @param input The pool creation input with apps
  * @returns Promise resolving to the created TrainingPool
  */
-export async function createPoolWithApps(input: CreatePoolInput & { apps?: ForgeApp[] }): Promise<TrainingPool> {
-  return apiClient.post<TrainingPool>('/forge/create', input, { requiresAuth: true });
+export async function createPoolWithApps(
+  input: CreatePoolInput & { apps?: ForgeApp[] }
+): Promise<TrainingPool> {
+  return apiClient.post<TrainingPool>('/forge/pools', input, { requiresAuth: true });
 }

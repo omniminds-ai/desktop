@@ -1,8 +1,8 @@
+use crate::core::input;
 use crate::tools::axtree;
 use crate::tools::ffmpeg::{init_ffmpeg, FFmpegRecorder, FFMPEG_PATH, FFPROBE_PATH};
-use crate::core::input;
-use crate::utils::logger::Logger;
 use crate::tools::pipeline;
+use crate::utils::logger::Logger;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use chrono::Local;
 use display_info::DisplayInfo;
@@ -88,6 +88,7 @@ impl Recorder {
     }
 
     fn new(video_path: &PathBuf, primary: &DisplayInfo) -> Result<Self, String> {
+        log::info!("[record] Starting new recorder");
         // #[cfg(target_os = "macos")]
         // {
         //     return Ok(Recorder::MacOS(MacOSScreenRecorder::new(
@@ -123,6 +124,8 @@ impl Recorder {
                             })?;
 
                     let output_str = String::from_utf8_lossy(&output.stderr);
+
+                    log::info!("[record] FFmpeg screen devices output:\n{}", output_str);
 
                     // Find the screen capture device
                     let mut screen_device_index = None;
@@ -165,8 +168,10 @@ impl Recorder {
                     let input_device = if let Some(index) = screen_device_index {
                         format!("{}:", index)
                     } else {
+                        log::info!("[record] No screen capture device found.");
+                        log::info!("[record] Defualting to device [1].");
                         // Fallback to a default if no screen capture device found
-                        "1:".to_string() // Common default for screen capture
+                        "1".to_string() // Common default for screen capture
                     };
 
                     ("avfoundation", input_device)
@@ -307,12 +312,12 @@ pub async fn start_recording(
     init_ffmpeg()?;
 
     create_overlay_window(&app)?;
-    
+
     // Store quest data in state if available
     if let Some(quest_data) = &quest {
         // Store in QuestState for later retrieval
         *quest_state.current_quest.lock().unwrap() = Some(quest_data.clone());
-        
+
         // Also emit the event for backward compatibility
         app.emit(
             "quest-overlay",
@@ -1206,8 +1211,13 @@ pub async fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
-pub async fn get_current_quest(quest_state: State<'_, QuestState>) -> Result<Option<Quest>, String> {
-    let current_quest = quest_state.current_quest.lock().map_err(|e| e.to_string())?;
+pub async fn get_current_quest(
+    quest_state: State<'_, QuestState>,
+) -> Result<Option<Quest>, String> {
+    let current_quest = quest_state
+        .current_quest
+        .lock()
+        .map_err(|e| e.to_string())?;
     Ok(current_quest.clone())
 }
 

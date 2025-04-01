@@ -67,6 +67,7 @@ impl InputEvent {
 }
 
 pub fn start_input_listener<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Result<(), String> {
+    info!("[Input] Starting input listener");
     // Check if already listening
     let mut state = INPUT_LISTENER_STATE.lock().map_err(|e| e.to_string())?;
     if state.is_some() {

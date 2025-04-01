@@ -7,7 +7,11 @@ import type { PoolSubmission, SubmissionStatus } from '$lib/types/forge';
  * @returns Promise resolving to the submission status
  */
 export async function getSubmissionStatus(submissionId: string): Promise<SubmissionStatus> {
-  return apiClient.get<SubmissionStatus>(`/forge/submission/${submissionId}`);
+  return apiClient.get<SubmissionStatus>(
+    `/forge/submissions/${submissionId}`,
+    {},
+    { requiresAuth: true }
+  );
 }
 
 /**
@@ -15,7 +19,7 @@ export async function getSubmissionStatus(submissionId: string): Promise<Submiss
  * @returns Promise resolving to an array of submission statuses
  */
 export async function listSubmissions(): Promise<SubmissionStatus[]> {
-  return apiClient.get<SubmissionStatus[]>('/forge/submissions', {}, { requiresAuth: true });
+  return apiClient.get<SubmissionStatus[]>('/forge/submissions/user', {}, { requiresAuth: true });
 }
 
 /**
@@ -25,7 +29,7 @@ export async function listSubmissions(): Promise<SubmissionStatus[]> {
  */
 export async function getPoolSubmissions(poolId: string): Promise<PoolSubmission[]> {
   return apiClient.get<PoolSubmission[]>(
-    `/forge/pool-submissions/${poolId}`,
+    `/forge/submissions/pool/${poolId}`,
     {},
     { requiresAuth: true }
   );

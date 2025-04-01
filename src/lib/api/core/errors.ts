@@ -1,3 +1,5 @@
+import type { ApiResponse } from './client';
+
 /**
  * Custom API error class
  */
@@ -21,26 +23,25 @@ export class ApiError extends Error {
  * @returns Promise that rejects with an ApiError
  */
 export async function handleApiError(response: Response): Promise<never> {
-  let errorData: any;
+  let data: ApiResponse<any> | null;
   let errorMessage = `${response.status} ${response.statusText}`;
 
   try {
     // Try to parse error data from response
-    errorData = await response.json();
-    if (errorData.message || errorData.error) {
-      errorMessage = errorData.message || errorData.error;
+    data = await response.json();
+    if (data?.error) {
+      errorMessage = `${data.error.code}: ${data.error.message}${
+        Object.keys(data.error.details || {}).length > 0
+          ? `\n${JSON.stringify(data.error.details)}`
+          : ''
+      }`;
     }
   } catch (e) {
     // If parsing fails, use the status text
-    errorData = null;
+    data = null;
   }
 
-  throw new ApiError(
-    response.status,
-    response.statusText,
-    errorMessage,
-    errorData
-  );
+  throw new ApiError(response.status, response.statusText, errorMessage, data);
 }
 
 /**
@@ -49,10 +50,7 @@ export async function handleApiError(response: Response): Promise<never> {
  * @returns ApiError instance
  */
 export function createTimeoutError(timeoutMs: number): ApiError {
-  return new ApiError(
-    408,
-    'Request Timeout',
-    `Request timed out after ${timeoutMs}ms`,
-    { timeoutMs }
-  );
+  return new ApiError(408, 'Request Timeout', `Request timed out after ${timeoutMs}ms`, {
+    timeoutMs
+  });
 }
