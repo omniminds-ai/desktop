@@ -5,6 +5,7 @@ export interface TaskFilter {
   maxReward?: number;
   categories?: string[];
   query?: string;
+  hideAdult?: boolean;
 }
 
 // API response types can be added here if needed
