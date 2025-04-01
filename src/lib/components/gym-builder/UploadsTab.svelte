@@ -1,7 +1,7 @@
 <script lang="ts">
   import Card from '$lib/components/Card.svelte';
   import DownloadScriptsModal from '$lib/components/modals/DownloadScriptsModal.svelte';
-  import { Code, Download, Clock, Monitor, Laptop, Server, Smartphone, Globe } from 'lucide-svelte';
+  import { Code, Download, Clock, Monitor, Laptop, Server, Smartphone, Globe, Info } from 'lucide-svelte';
   import type { TrainingPool, PoolSubmission } from '$lib/types/forge';
   import { getPoolSubmissions } from '$lib/api/endpoints/forge';
   import { onMount } from 'svelte';
@@ -12,7 +12,7 @@
     unsavedName?: boolean;
   };
 
-  let submissions: PoolSubmission[] = [];
+  export let submissions: PoolSubmission[] = [];
   let selectedSubmissions: Set<string> = new Set();
   let loading = true;
   let error: string | null = null;
@@ -199,7 +199,8 @@
       </button>
     </div>
   {:else}
-    <table class="min-w-full divide-y divide-gray-200">
+<div class="overflow-x-auto overflow-y-visible">
+  <table class="min-w-full divide-y divide-gray-200 relative">
       <thead class="bg-gray-50">
         <tr>
           <th class="w-10 px-3 py-3">
@@ -228,6 +229,14 @@
           <th
             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             File Size
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Quality
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Reward
           </th>
         </tr>
       </thead>
@@ -279,17 +288,48 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {getTotalFileSize(submission)}
             </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm">
+              {#if submission.grade_result?.score}
+                <span class="{submission.grade_result.score >= 50 
+                  ? 'text-green-600 font-semibold' 
+                  : submission.grade_result.score >= 25 
+                    ? 'text-yellow-600 font-semibold' 
+                    : 'text-red-600 font-semibold'}">
+                  {submission.grade_result.score}%
+                </span>
+              {:else}
+                <span class="text-gray-500">-</span>
+              {/if}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              {#if submission.reward && submission.reward > 0}
+                {submission.reward} VIRAL
+              {:else}
+                <div class="flex items-center gap-1">
+                  <span class="text-gray-500">FREE</span>
+                  {#if submission.grade_result?.reasoning}
+                    <div class="relative group">
+                      <Info size={14} class="text-gray-400" />
+                      <div class="absolute right-0 bottom-full mb-2 w-64 bg-gray-900 text-white text-xs rounded p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none whitespace-normal break-words">
+                        {(submission.grade_result.reasoning.match(/\(\s*system:\s*(.*?)\s*\)/) || ['', ''])[1]}
+                      </div>
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+            </td>
           </tr>
         {/each}
         {#if submissions.length === 0}
           <tr>
-            <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+            <td colspan="7" class="px-6 py-8 text-center text-gray-500">
               No submissions yet. Submissions will appear here when users upload demonstrations.
             </td>
           </tr>
         {/if}
       </tbody>
     </table>
+  </div>
   {/if}
 </Card>
 

@@ -2,7 +2,7 @@
   import Button from '$lib/components/form/Button.svelte';
   import GenerateGymModal from '$lib/components/modals/GenerateGymModal.svelte';
   import { Upload, ListTodo, Sliders, LayoutDashboard } from 'lucide-svelte';
-  import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
+  import { TrainingPoolStatus, type TrainingPool, type PoolSubmission } from '$lib/types/forge';
 
   // Import our tab components
   import OverviewTab from './OverviewTab.svelte';
@@ -27,6 +27,7 @@
   let activeTab = 'overview';
   let unsavedChanges = false;
   let showSkillsModal = false;
+  let submissions: PoolSubmission[] = [];
 
   // Reference to the TasksTab component to access its apps array
   let tasksTabComponent: TasksTab | null = null;
@@ -283,7 +284,7 @@
         {regenerateTasks}
         {handleSaveChanges} />
     {:else if activeTab === 'uploads'}
-      <UploadsTab {pool} />
+      <UploadsTab {pool} bind:submissions />
     {/if}
   </div>
 </div>

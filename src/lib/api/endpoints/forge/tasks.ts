@@ -17,6 +17,7 @@ export async function getTasksForGym(filter?: TaskFilter): Promise<ForgeTask[]> 
     if (filter.maxReward) params.max_reward = filter.maxReward;
     if (filter.categories) params.categories = filter.categories;
     if (filter.query) params.query = filter.query;
+    if (filter.hideAdult !== undefined) params.hide_adult = filter.hideAdult;
   }
 
   // Use the API client to make the request
