@@ -1,4 +1,5 @@
 use crate::utils::downloader::download_file;
+use crate::core::archive;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -103,6 +104,46 @@ pub fn get_ffprobe_dir() -> PathBuf {
     PathBuf::new()
 }
 
+/// Extracts binary from archive based on OS type
+fn extract_binary(
+    archive_path: &Path,
+    binary_path: &Path,
+    binary_name: &str,
+    os_type: &str,
+) -> Result<bool, String> {
+    if os_type.starts_with("windows") {
+        // For Windows, look for bin/ffmpeg.exe or bin/ffprobe.exe
+        archive::extract_from_zip(
+            archive_path, 
+            binary_path, 
+            &format!("/bin/{}.exe", binary_name)
+        )
+    } else if os_type.starts_with("macos") {
+        // For macOS, just look for the binary name
+        archive::extract_from_zip(
+            archive_path, 
+            binary_path, 
+            binary_name
+        )
+    } else if os_type.starts_with("linux") {
+        // For Linux, we need to handle ffmpeg vs ffprobe differently
+        let exclude_pattern = if binary_name == "ffmpeg" {
+            Some("ffprobe")
+        } else {
+            None
+        };
+        
+        archive::extract_from_tar_xz(
+            archive_path, 
+            binary_path, 
+            binary_name,
+            exclude_pattern
+        )
+    } else {
+        Err(format!("Unsupported OS type: {}", os_type))
+    }
+}
+
 /// Downloads and extracts a binary from an archive
 /// If keep_archive is true, the archive file will not be deleted after extraction
 /// If url is empty, it assumes the archive already exists and skips the download step
@@ -114,34 +155,42 @@ fn download_and_extract_binary(
     os_type: &str,
     keep_archive: bool,
 ) -> Result<(), String> {
-    // Check if we need to download or just extract from existing archive
-    if !url.is_empty() {
-        log::info!(
-            "[FFmpeg] Downloading {} for {} from {}",
-            binary_name,
-            os_type,
-            url
-        );
+    // We'll use this to track if we've already attempted a retry
+    let mut retry_attempted = false;
 
-        // Check if archive already exists before downloading
-        if !archive_path.exists() {
+    // Function to handle the download process
+    let download_archive = || -> Result<(), String> {
+        if !url.is_empty() {
+            log::info!(
+                "[FFmpeg] Downloading {} for {} from {}",
+                binary_name,
+                os_type,
+                url
+            );
+
             // Download the archive
             download_file(url, archive_path)?;
         } else {
+            // Just using existing archive, no download needed
+            if !archive_path.exists() {
+                return Err(format!(
+                    "Archive file not found at {}",
+                    archive_path.display()
+                ));
+            }
             log::info!(
                 "[FFmpeg] Using existing archive for {} at {}",
                 binary_name,
                 archive_path.display()
             );
         }
+        Ok(())
+    };
+
+    // Initial download attempt
+    if !archive_path.exists() || url.is_empty() {
+        download_archive()?;
     } else {
-        // Just using existing archive, no download needed
-        if !archive_path.exists() {
-            return Err(format!(
-                "Archive file not found at {}",
-                archive_path.display()
-            ));
-        }
         log::info!(
             "[FFmpeg] Using existing archive for {} at {}",
             binary_name,
@@ -149,147 +198,57 @@ fn download_and_extract_binary(
         );
     }
 
-    log::info!("[FFmpeg] Extracting {} from archive", binary_name);
-
-    let mut found_binary = false;
-
-    // Extract based on OS type
-    if os_type.starts_with("windows") {
-        let file = fs::File::open(archive_path).map_err(|e| {
-            log::info!("[FFmpeg] Error: Failed to open zip: {}", e);
-            format!("Failed to open zip: {}", e)
-        })?;
-        let mut archive = zip::ZipArchive::new(file).map_err(|e| {
-            log::info!("[FFmpeg] Error: Failed to read zip: {}", e);
-            format!("Failed to read zip: {}", e)
-        })?;
-
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i).map_err(|e| {
-                log::info!("[FFmpeg] Error: Failed to read zip entry: {}", e);
-                format!("Failed to read zip entry: {}", e)
-            })?;
-
-            let name = file.name();
-            // For Windows, look for bin/ffmpeg.exe or bin/ffprobe.exe in the release essentials package
-            if name.contains(&format!("/bin/{}.exe", binary_name)) {
-                log::info!("[FFmpeg] Found {} binary in zip: {}", binary_name, name);
-                let mut outfile = fs::File::create(binary_path).map_err(|e| {
-                    log::info!("[FFmpeg] Error: Failed to create {}: {}", binary_name, e);
-                    format!("Failed to create {}: {}", binary_name, e)
-                })?;
-                std::io::copy(&mut file, &mut outfile).map_err(|e| {
-                    log::info!("[FFmpeg] Error: Failed to extract {}: {}", binary_name, e);
-                    format!("Failed to extract {}: {}", binary_name, e)
-                })?;
-                found_binary = true;
+    // Extraction process with retry logic
+    loop {
+        log::info!("[FFmpeg] Extracting {} from archive", binary_name);
+        
+        match extract_binary(archive_path, binary_path, binary_name, os_type) {
+            Ok(true) => {
+                // Binary was found and extracted successfully
                 break;
             }
-        }
-    } else if os_type.starts_with("macos") {
-        let file = fs::File::open(archive_path).map_err(|e| {
-            log::info!("[FFmpeg] Error: Failed to open zip: {}", e);
-            format!("Failed to open zip: {}", e)
-        })?;
-        let mut archive = zip::ZipArchive::new(file).map_err(|e| {
-            log::info!("[FFmpeg] Error: Failed to read zip: {}", e);
-            format!("Failed to read zip: {}", e)
-        })?;
-
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i).map_err(|e| {
-                log::info!("[FFmpeg] Error: Failed to read zip entry: {}", e);
-                format!("Failed to read zip entry: {}", e)
-            })?;
-            let name = file.name();
-
-            if name.contains(binary_name) {
-                log::info!("[FFmpeg] Found {} binary in zip: {}", binary_name, name);
-                let mut outfile = fs::File::create(binary_path).map_err(|e| {
-                    log::info!("[FFmpeg] Error: Failed to create {}: {}", binary_name, e);
-                    format!("Failed to create {}: {}", binary_name, e)
-                })?;
-                std::io::copy(&mut file, &mut outfile).map_err(|e| {
-                    log::info!("[FFmpeg] Error: Failed to extract {}: {}", binary_name, e);
-                    format!("Failed to extract {}: {}", binary_name, e)
-                })?;
-                found_binary = true;
-                break;
+            Ok(false) => {
+                // Archive was processed but binary wasn't found
+                let error_msg = format!("Could not find {} binary in archive", binary_name);
+                log::info!("[FFmpeg] Error: {}", error_msg);
+                return Err(error_msg);
+            }
+            Err(e) if e == "RETRY_NEEDED" && !retry_attempted => {
+                // Need to retry - download again
+                log::info!("[FFmpeg] Retrying download after archive corruption");
+                retry_attempted = true;
+                
+                // Delete corrupted archive
+                if let Err(del_err) = fs::remove_file(archive_path) {
+                    log::info!(
+                        "[FFmpeg] Warning: Failed to delete corrupted archive: {}",
+                        del_err
+                    );
+                }
+                
+                // Re-download if URL was provided
+                if !url.is_empty() {
+                    download_file(url, archive_path)?;
+                } else {
+                    return Err("Archive is corrupted and no URL provided for retry".to_string());
+                }
+                
+                continue;
+            }
+            Err(e) => {
+                // Any other error or retry already attempted
+                return Err(e);
             }
         }
-    } else if os_type.starts_with("linux") {
-        let file = fs::File::open(archive_path).map_err(|e| {
-            log::info!("[FFmpeg] Error: Failed to open tar.xz: {}", e);
-            format!("Failed to open tar.xz: {}", e)
-        })?;
-        let tar = xz2::read::XzDecoder::new(file);
-        let mut archive = tar::Archive::new(tar);
-
-        for entry in archive.entries().map_err(|e| {
-            log::info!("[FFmpeg] Error: Failed to read tar entries: {}", e);
-            format!("Failed to read tar entries: {}", e)
-        })? {
-            let mut entry = entry.map_err(|e| {
-                log::info!("[FFmpeg] Error: Failed to read tar entry: {}", e);
-                format!("Failed to read tar entry: {}", e)
-            })?;
-            let path = entry.path().map_err(|e| {
-                log::info!("[FFmpeg] Error: Failed to get entry path: {}", e);
-                format!("Failed to get entry path: {}", e)
-            })?;
-            let path_str = path.to_string_lossy();
-
-            // For ffmpeg, we want to match "ffmpeg" but not "ffprobe"
-            // For ffprobe, we just match "ffprobe"
-            let is_match = if binary_name == "ffmpeg" {
-                path_str.contains("ffmpeg") && !path_str.contains("ffprobe")
-            } else {
-                path_str.contains(binary_name)
-            };
-
-            if is_match {
-                log::info!("[FFmpeg] Found {} binary in tar.xz", binary_name);
-                let mut outfile = fs::File::create(binary_path).map_err(|e| {
-                    log::info!("[FFmpeg] Error: Failed to create {}: {}", binary_name, e);
-                    format!("Failed to create {}: {}", binary_name, e)
-                })?;
-                std::io::copy(&mut entry, &mut outfile).map_err(|e| {
-                    log::info!("[FFmpeg] Error: Failed to extract {}: {}", binary_name, e);
-                    format!("Failed to extract {}: {}", binary_name, e)
-                })?;
-                found_binary = true;
-                break;
-            }
-        }
-    }
-
-    if !found_binary {
-        let error_msg = format!("Could not find {} binary in archive", binary_name);
-        log::info!("[FFmpeg] Error: {}", error_msg);
-        return Err(error_msg);
     }
 
     // Make executable on Unix
     #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        log::info!(
-            "[FFmpeg] Setting executable permissions for {}",
-            binary_name
-        );
-        fs::set_permissions(binary_path, fs::Permissions::from_mode(0o755)).map_err(|e| {
-            log::info!("[FFmpeg] Error: Failed to make binary executable: {}", e);
-            format!("Failed to make binary executable: {}", e)
-        })?;
-    }
-
+    archive::make_file_executable(binary_path)?;
+    
     // Clean up archive file if not keeping it
     if !keep_archive {
-        log::info!("[FFmpeg] Cleaning up archive file");
-        fs::remove_file(archive_path).map_err(|e| {
-            log::info!("[FFmpeg] Warning: Failed to cleanup archive: {}", e);
-            format!("Failed to cleanup archive: {}", e)
-        })?;
+        archive::cleanup_archive(archive_path)?;
     }
 
     Ok(())
