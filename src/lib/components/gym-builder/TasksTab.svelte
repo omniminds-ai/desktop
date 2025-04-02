@@ -1,22 +1,12 @@
 <script lang="ts">
-  import Card from '../Card.svelte';
-  import Button from '../Button.svelte';
-  import TextArea from '../TextArea.svelte';
-  import TaskEditModal from './TaskEditModal.svelte';
-  import {
-    Pencil,
-    Check,
-    X,
-    Eye,
-    Sparkles,
-    DollarSign,
-    Plus,
-    Trash2,
-    Save,
-    RotateCcw
-  } from 'lucide-svelte';
+  import Card from '$lib/components/Card.svelte';
+  import Button from '$lib/components/form/Button.svelte';
+  import TaskEditModal from '../modals/TaskEditModal.svelte';
+  import { Pencil, Check, X, Eye, Sparkles, Plus, Trash2, Save, RotateCcw, Video } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
   import type { ForgeApp } from '$lib/types/gym';
+  import { getAppsForGym } from '$lib/api/endpoints/forge';
+  import AvailableTasks from '$lib/components/gym/AvailableTasks.svelte';
   import { onMount } from 'svelte';
 
   // Function to save changes to the backend
@@ -32,8 +22,6 @@
 
   // Store original apps for reset functionality
   let originalApps: ForgeApp[] = [];
-  import { getAppsForGym } from '$lib/api/forge';
-  import AvailableTasks from '../gym/AvailableTasks.svelte';
 
   export let pool: TrainingPool & {
     unsavedSkills?: boolean;
@@ -435,26 +423,39 @@
                       <div
                         class="w-full text-left flex items-center bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320">
                         <p class="grow text-gray-800 text-sm">{task.prompt}</p>
-                        <div class="flex gap-2 ml-2">
-                          {#if typeof task.uploadLimit === 'number'}
-                            <span
-                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                              {task.currentSubmissions ?? 0}/{task.uploadLimit}
-                            </span>
-                          {/if}
-                          {#if typeof task.rewardLimit === 'number'}
-                            <span
-                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                              {task.rewardLimit} VIRAL
-                            </span>
-                          {/if}
-                        </div>
+                      <div class="flex items-center gap-2 ml-2">
+                        {#if typeof task.uploadLimit === 'number'}
+                          <span
+                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            {task.currentSubmissions ?? 0}/{task.uploadLimit}
+                          </span>
+                        {/if}
+                        {#if typeof task.rewardLimit === 'number'}
+                          <span
+                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            {task.rewardLimit} VIRAL
+                          </span>
+                        {/if}
+                        <a
+                          href="/app/gym/chat?prompt={encodeURIComponent(task.prompt)}&app={encodeURIComponent(
+                            JSON.stringify({
+                              type: 'website',
+                              name: app.name,
+                              url: `https://${app.domain}`,
+                              task_id: task._id
+                            })
+                          )}&poolId={app.pool_id._id}"
+                          class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          title="Record Task">
+                          <Video size={14} />
+                        </a>
                         <button
-                          class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 ml-2"
+                          class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200"
                           title="Edit Task"
                           onclick={() => openTaskModal(app, taskIndex)}>
                           <Pencil size={14} />
                         </button>
+                      </div>
                       </div>
                       <button
                         class="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 p-1 ml-2 transition-all"

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import Button from '../Button.svelte';
-  import Card from '../Card.svelte';
+  import Button from '$lib/components/form/Button.svelte';
+  import Card from '$lib/components/Card.svelte';
   import { ExternalLink } from 'lucide-svelte';
 
   export let recordingId: string;

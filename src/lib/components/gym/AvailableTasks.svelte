@@ -4,9 +4,9 @@
   import { Loader, Search } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import type { ForgeTask } from '$lib/types/gym';
-  import { getGymCategories, getTasksForGym } from '$lib/api/forge';
-  import Input from '../Input.svelte';
-  import Button from '../Button.svelte';
+  import { getGymCategories, getTasksForGym } from '$lib/api/endpoints/forge';
+  import Input from '$lib/components/form/Input.svelte';
+  import Button from '$lib/components/form/Button.svelte';
 
   // Props
   let tasks: ForgeTask[] = [];
@@ -21,9 +21,10 @@
   // Filtering state
   let allCategories: string[] = [];
   let selectedCategories: Set<string> = new Set();
-  let sort: 'lth' | 'htl' = 'lth';
-  let search: string = '';
-  let showFilters = false;
+let sort: 'lth' | 'htl' = 'htl';
+let search: string = '';
+let showFilters = false;
+let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
   // Initialize with localStorage values or defaults
   let minPrice: number | null = parseInt(localStorage.getItem('gymMinPrice') || '0', 10);
   let maxPrice: number | null = parseInt(localStorage.getItem('gymMaxPrice') || '500', 10);
@@ -46,7 +47,8 @@
       minReward: minPrice || priceRangeMin,
       maxReward: maxPrice || priceRangeMax,
       query: search,
-      categories: Array.from(selectedCategories)
+      categories: Array.from(selectedCategories),
+      hideAdult: hideAdultTasks
     });
     // task rewardLimit is set to individaul or the pool's -- won't be undefined from this function
     switch (sort) {
@@ -62,8 +64,8 @@
     }
     showFilters = false;
     loadingApps = false;
-    // only show tasks that haven't reached their limit
-    tasks = ts.filter((t) => t.uploadLimitReached === false);
+    // Only show tasks that haven't reached their limit
+    tasks = ts.filter((t) => !t.uploadLimitReached);
   }
 
   async function updateCategories() {
@@ -99,11 +101,12 @@
     }
   }
 
-  // Save min/max price to localStorage whenever they change
+  // Save filter settings to localStorage whenever they change
   $: {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('gymMinPrice', minPrice?.toString() || '0');
       localStorage.setItem('gymMaxPrice', maxPrice?.toString() || '500');
+      localStorage.setItem('gymShowAdult', (!hideAdultTasks).toString());
     }
   }
 
@@ -136,8 +139,10 @@
               selectedCategories = new Set();
               minPrice = priceRangeMin;
               maxPrice = priceRangeMax;
+              hideAdultTasks = true;
               localStorage.removeItem('gymMinPrice');
               localStorage.removeItem('gymMaxPrice');
+              localStorage.removeItem('gymShowAdult');
               getTasks();
             }}>
             Reset Filters
@@ -213,6 +218,7 @@
               </div>
             </div>
           </div>
+
           <!-- Categories -->
           <div>
             <p class="font-medium text-gray-700 mb-2">Category</p>
@@ -238,11 +244,25 @@
               {/each}
             </div>
           </div>
+          <!-- Content Filter -->
+          <div>
+            <p class="font-medium text-gray-700 mb-2">Content Filter</p>
+            <div class="flex items-center mb-4">
+              <input 
+                type="checkbox" 
+                id="hideAdult" 
+                bind:checked={hideAdultTasks}
+                class="rounded border-gray-300 text-secondary-600 focus:ring-secondary-500" />
+              <label for="hideAdult" class="ml-2 text-sm text-gray-700">Hide adult content</label>
+            </div>
+          </div>
+          
           <div class="flex w-full">
             <Button class="ml-auto" variant="primary" behavior="none" onclick={getTasks}>
               Apply
             </Button>
           </div>
+          
         </div>
       </Card>
     </div>

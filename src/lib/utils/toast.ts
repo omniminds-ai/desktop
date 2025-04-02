@@ -1,4 +1,5 @@
-import { toasts, type ToastButton } from '$lib/stores/toast';
+import { toasts } from '$lib/stores/toast';
+import type { ToastButton } from '$lib/types/toast';
 
 /**
  * Show a toast notification

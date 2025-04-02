@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Video } from 'lucide-svelte';
   import { onDestroy } from 'svelte';
-  import Button from '../Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
 
   let countingDown = $state(false);
   let countdown = $state(3);

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import Button from '../Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
   import { Video, Check, X } from 'lucide-svelte';
   import { fade } from 'svelte/transition';
   import { tweened } from 'svelte/motion';

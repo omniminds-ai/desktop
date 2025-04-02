@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as d3 from 'd3';
-  import { getAppsForSkills } from '$lib/api/forge';
+  import { getAppsForSkills } from '$lib/api/endpoints/forge';
   import { svgToCssTransform, getPlatform } from '$lib/utils';
 
   type NodeData = {

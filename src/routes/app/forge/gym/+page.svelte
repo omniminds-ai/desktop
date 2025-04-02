@@ -2,10 +2,10 @@
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { ArrowLeft, AlertTriangle, X } from 'lucide-svelte';
-  import GymBuilderView from '$lib/components/GymBuilderView.svelte';
-  import Button from '$lib/components/Button.svelte';
+  import GymBuilderView from '$lib/components/gym-builder/GymBuilderView.svelte';
+  import Button from '$lib/components/form/Button.svelte';
   import { walletAddress } from '$lib/stores/wallet';
-  import { listPools, updatePool, refreshPool } from '$lib/api/forge';
+  import { listPools, updatePool, refreshPool } from '$lib/api/endpoints/forge';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
 
   export let data;
@@ -190,8 +190,7 @@
         {pool}
         onSave={handleUpdatePool}
         onRefresh={refreshPoolData}
-        refreshingPools={new Set([refreshingPool ? gymId : ''])}
-        {viralPrice} />
+        refreshingPools={new Set([refreshingPool ? gymId : ''])} />
     </div>
   {:else}
     <div class="p-4 bg-yellow-500/10 text-yellow-600 rounded-lg">

@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { relaunch } from '@tauri-apps/plugin-process';
-  import Button from '$lib/components/Button.svelte';
+  import Button from '$lib/components/form/Button.svelte';
   import { getPlatform } from '$lib/utils';
   import { goto } from '$app/navigation';
 

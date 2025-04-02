@@ -1,6 +1,6 @@
 [package]
 name = "viralmind-desktop"
-version = "0.1.2"
+version = "0.1.3"
 description = "The Viralmind desktop app."
 authors = ["Dillon DuPont", "Morgan Dean"]
 edition = "2021"

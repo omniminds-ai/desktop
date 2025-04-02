@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Button from '../Button.svelte';
-  import AppText from './AppText.svelte';
+  import Button from '$lib/components/form/Button.svelte';
+  import AppText from '$lib/components/gym/AppText.svelte';
   import notifySound from '$lib/assets/notify.wav';
 
   onMount(() => {
