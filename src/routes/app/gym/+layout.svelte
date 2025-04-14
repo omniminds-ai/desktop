@@ -5,7 +5,6 @@
   import { connectionToken, disconnectWallet, walletAddress } from '$lib/stores/wallet';
   import { listSubmissions } from '$lib/api/endpoints/forge';
   import { toolsInitState } from '$lib/utils';
-  import ToastContainer from '$lib/components/toast/ToastContainer.svelte';
   import type { ApiRecording, Quest } from '$lib/types/gym';
   import type { SubmissionStatus } from '$lib/types/forge';
   import type { ApiError } from '$lib/api';
@@ -81,5 +80,3 @@
     {@render children()}
   </div>
 </div>
-
-<ToastContainer />

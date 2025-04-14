@@ -1,7 +1,7 @@
 <script lang="ts">
   import Button from '$lib/components/form/Button.svelte';
   import GenerateGymModal from '$lib/components/modals/GenerateGymModal.svelte';
-  import { Upload, ListTodo, Sliders, LayoutDashboard } from 'lucide-svelte';
+  import { Upload, ListTodo, Sliders, LayoutDashboard, LoaderCircle } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool, type PoolSubmission } from '$lib/types/forge';
 
   // Import our tab components
@@ -27,6 +27,7 @@
   let activeTab = 'overview';
   let unsavedChanges = false;
   let showSkillsModal = false;
+  let savingChanges = false;
   let submissions: PoolSubmission[] = [];
 
   // Reference to the TasksTab component to access its apps array
@@ -36,6 +37,7 @@
 
   async function handleSaveChanges() {
     try {
+      savingChanges = true;
       // Create an updates object to hold all changes
       const updates: any = {};
 
@@ -90,6 +92,8 @@
     } catch (error) {
       console.error('Failed to save changes:', error);
       alert('Failed to save changes. Please try again.');
+    } finally {
+      savingChanges = false;
     }
   }
 
@@ -268,24 +272,32 @@
     {#if activeTab === 'overview'}
       <OverviewTab {pool} />
     {:else if activeTab === 'settings'}
-      <SettingsTab
-        {pool}
-        {onSave}
-        {onRefresh}
-        {refreshingPools}
-        {unsavedChanges}
-        {handleSaveChanges} />
+      <SettingsTab {pool} {onRefresh} {refreshingPools} bind:unsavedChanges />
     {:else if activeTab === 'tasks'}
       <TasksTab
         bind:this={tasksTabComponent}
         bind:apps={tasksApps}
         {pool}
         bind:unsavedChanges
-        {regenerateTasks}
-        {handleSaveChanges} />
+        {regenerateTasks} />
     {:else if activeTab === 'uploads'}
       <UploadsTab {pool} bind:submissions />
     {/if}
+
+    <div class="flex py-2 flex-col gap-2">
+      {#if unsavedChanges}
+        <Button
+          class="w-full justify-center border-green-500! hover:border-green-600! bg-green-500! text-white! hover:bg-green-600!"
+          disabled={savingChanges}
+          onclick={handleSaveChanges}>
+          {#if !savingChanges}
+            Save Changes
+          {:else}
+            <LoaderCircle class="animate-spin w-8 h-8 mx-auto" />
+          {/if}
+        </Button>
+      {/if}
+    </div>
   </div>
 </div>
 

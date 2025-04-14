@@ -35,15 +35,22 @@
   });
 </script>
 
-<div class="relative group">
-  <div
-    class="absolute text-gray-400 group-focus-within:text-secondary-300 inset-y-0 start-0 flex transition-all items-center ps-3 pointer-events-none">
-    {@render icon?.()}
+{#if icon}
+  <div class="relative group">
+    <div
+      class="absolute text-gray-400 group-focus-within:text-secondary-300 inset-y-0 start-0 flex transition-all items-center ps-3 pointer-events-none">
+      {@render icon?.()}
+    </div>
+    <input
+      class="{variantClasses} w-full ps-12 py-2 px-3 rounded-lg border focus:outline-none focus:ring transition-all {className}"
+      bind:value
+      {...rest} />
   </div>
+{:else}
   <input
     class="{variantClasses} w-full {icon
       ? 'ps-12'
       : ''} py-2 px-3 rounded-lg border focus:outline-none focus:ring transition-all {className}"
     bind:value
     {...rest} />
-</div>
+{/if}
