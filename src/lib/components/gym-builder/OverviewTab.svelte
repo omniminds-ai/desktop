@@ -38,7 +38,8 @@
       if ((e as ApiError).status === 400) {
         showToast(
           'Error Saving Email',
-          'There was an error validating your email. Make sure you entered it correctly.'
+          'There was an error validating your email. Make sure you entered it correctly.',
+          { timeout: 4000 }
         );
         loading = false;
         return;
@@ -47,7 +48,7 @@
     showToast(
       'Email Saved',
       'You will now get email notifications when your gym runs out of funds!',
-      { timeout: 5000 }
+      { timeout: 4000 }
     );
     loading = false;
   }
