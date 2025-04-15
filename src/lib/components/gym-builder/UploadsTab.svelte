@@ -1,7 +1,17 @@
 <script lang="ts">
   import Card from '$lib/components/Card.svelte';
   import DownloadScriptsModal from '$lib/components/modals/DownloadScriptsModal.svelte';
-  import { Code, Download, Clock, Monitor, Laptop, Server, Smartphone, Globe, Info } from 'lucide-svelte';
+  import {
+    Code,
+    Download,
+    Clock,
+    Monitor,
+    Laptop,
+    Server,
+    Smartphone,
+    Globe,
+    Info
+  } from 'lucide-svelte';
   import type { TrainingPool, PoolSubmission } from '$lib/types/forge';
   import { getPoolSubmissions } from '$lib/api/endpoints/forge';
   import { onMount } from 'svelte';
@@ -199,142 +209,149 @@
       </button>
     </div>
   {:else}
-<div class="overflow-x-auto overflow-y-visible">
-  <table class="min-w-full divide-y divide-gray-200 relative">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="w-10 px-3 py-3">
-            <div class="flex items-center">
-              <input
-                type="checkbox"
-                class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
-                checked={allSelected}
-                onchange={toggleSelectAll}
-                disabled={submissions.length === 0} />
-            </div>
-          </th>
-          <th class="w-16 px-2 py-3"></th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Task
-          </th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Status
-          </th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Duration
-          </th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            File Size
-          </th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Quality
-          </th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Reward
-          </th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        {#each submissions as submission}
-          <tr class={selectedSubmissions.has(submission._id) ? 'bg-secondary-50' : ''}>
-            <td class="px-3 py-4 whitespace-nowrap">
+    <div class="overflow-x-auto overflow-y-visible">
+      <table class="min-w-full divide-y divide-gray-200 relative">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="w-10 px-3 py-3">
               <div class="flex items-center">
                 <input
                   type="checkbox"
                   class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
-                  checked={selectedSubmissions.has(submission._id)}
-                  onchange={() => toggleSelection(submission._id)} />
+                  checked={allSelected}
+                  onchange={toggleSelectAll}
+                  disabled={submissions.length === 0} />
               </div>
-            </td>
-            <td class="px-2 py-4 whitespace-nowrap text-gray-500">
-              <div class="flex items-center gap-2">
-                <!-- <span class="flex items-center gap-1 bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
+            </th>
+            <th class="w-16 px-2 py-3"></th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Task
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Status
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Duration
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              File Size
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Quality
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Reward
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {#each submissions as submission}
+            <tr class={selectedSubmissions.has(submission._id) ? 'bg-secondary-50' : ''}>
+              <td class="px-3 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 text-secondary-600 focus:ring-secondary-500 border-gray-300 rounded cursor-pointer"
+                    checked={selectedSubmissions.has(submission._id)}
+                    onchange={() => toggleSelection(submission._id)} />
+                </div>
+              </td>
+              <td class="px-2 py-4 whitespace-nowrap text-gray-500">
+                <div class="flex items-center gap-2">
+                  <!-- <span class="flex items-center gap-1 bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
                   <Languages size={10} class="text-gray-500" />
                   {getLocaleCode(submission)}
                 </span> -->
-                <span
-                  class="flex items-center gap-1 bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
-                  <svelte:component this={getOSIcon(submission)} size={10} class="text-gray-500" />
-                  {getPlatformLabel(submission)}
-                </span>
-              </div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {getTitle(submission)}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span
-                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                {submission.status === 'completed'
-                  ? 'bg-green-100 text-green-800'
-                  : submission.status === 'failed'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-yellow-100 text-yellow-800'}">
-                {submission.status}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              <div class="flex items-center space-x-1">
-                <Clock size={14} class="text-gray-400" />
-                <span>{formatDuration(submission)}</span>
-              </div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {getTotalFileSize(submission)}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm">
-              {#if submission.grade_result?.score}
-                <span class="{submission.grade_result.score >= 50 
-                  ? 'text-green-600 font-semibold' 
-                  : submission.grade_result.score >= 25 
-                    ? 'text-yellow-600 font-semibold' 
-                    : 'text-red-600 font-semibold'}">
-                  {submission.grade_result.score}%
-                </span>
-              {:else}
-                <span class="text-gray-500">-</span>
-              {/if}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {#if submission.reward && submission.reward > 0}
-                {submission.reward} VIRAL
-              {:else}
-                <div class="flex items-center gap-1">
-                  <span class="text-gray-500">FREE</span>
-                  {#if submission.grade_result?.reasoning}
-                    <div class="relative group">
-                      <Info size={14} class="text-gray-400" />
-                      <div class="absolute right-0 bottom-full mb-2 w-64 bg-gray-900 text-white text-xs rounded p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none whitespace-normal break-words">
-                        {(submission.grade_result.reasoning.match(/\(\s*system:\s*(.*?)\s*\)/) || ['', ''])[1]}
-                      </div>
-                    </div>
-                  {/if}
+                  <span
+                    class="flex items-center gap-1 bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
+                    <svelte:component
+                      this={getOSIcon(submission)}
+                      size={10}
+                      class="text-gray-500" />
+                    {getPlatformLabel(submission)}
+                  </span>
                 </div>
-              {/if}
-            </td>
-          </tr>
-        {/each}
-        {#if submissions.length === 0}
-          <tr>
-            <td colspan="7" class="px-6 py-8 text-center text-gray-500">
-              No submissions yet. Submissions will appear here when users upload demonstrations.
-            </td>
-          </tr>
-        {/if}
-      </tbody>
-    </table>
-  </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {getTitle(submission)}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span
+                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                {submission.status === 'completed'
+                    ? 'bg-green-100 text-green-800'
+                    : submission.status === 'failed'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-yellow-100 text-yellow-800'}">
+                  {submission.status}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div class="flex items-center space-x-1">
+                  <Clock size={14} class="text-gray-400" />
+                  <span>{formatDuration(submission)}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {getTotalFileSize(submission)}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                {#if submission.grade_result?.score}
+                  <span
+                    class={submission.grade_result.score >= 50
+                      ? 'text-green-600 font-semibold'
+                      : submission.grade_result.score >= 25
+                        ? 'text-yellow-600 font-semibold'
+                        : 'text-red-600 font-semibold'}>
+                    {submission.grade_result.score}%
+                  </span>
+                {:else}
+                  <span class="text-gray-500">-</span>
+                {/if}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {#if submission.reward && submission.reward > 0}
+                  {submission.reward} VIRAL
+                {:else}
+                  <div class="flex items-center gap-1">
+                    <span class="text-gray-500">FREE</span>
+                    {#if submission.grade_result?.reasoning}
+                      <div class="relative group">
+                        <Info size={14} class="text-gray-400" />
+                        <div
+                          class="absolute right-0 bottom-full mb-2 w-64 bg-gray-900 text-white text-xs rounded p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none whitespace-normal break-words">
+                          {(submission.grade_result.reasoning.match(
+                            /\(\s*system:\s*(.*?)\s*\)/
+                          ) || ['', ''])[1]}
+                        </div>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              </td>
+            </tr>
+          {/each}
+          {#if submissions.length === 0}
+            <tr>
+              <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                No submissions yet. Submissions will appear here when users upload demonstrations.
+              </td>
+            </tr>
+          {/if}
+        </tbody>
+      </table>
+    </div>
   {/if}
 </Card>
 
 <DownloadScriptsModal
-  open={showDownloadModal}
+  bind:open={showDownloadModal}
   submissions={selectedCount > 0
     ? submissions.filter((s) => selectedSubmissions.has(s._id))
     : submissions}

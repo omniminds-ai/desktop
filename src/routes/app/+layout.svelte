@@ -128,7 +128,7 @@
   retry={async () => {
     invoke('init_tools');
   }}
-  open={showInitToolsError} />
+  bind:open={showInitToolsError} />
 
 <style>
   :global(html, body) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Dumbbell, Hammer, Square, LoaderCircle } from 'lucide-svelte';
+  import { Dumbbell, Hammer, Square, LoaderCircle, Trophy } from 'lucide-svelte';
   import { page } from '$app/state';
   import logo from '$lib/assets/Logo_Icon.png';
   import WalletButton from './WalletButton.svelte';
@@ -9,8 +9,8 @@
   import { recordingState } from '$lib/stores/recording';
 
   const earnButtons = [
-    { path: '/app/gym', icon: Dumbbell, label: 'Gym' }
-    // { path: "/app/node", icon: Server, label: "Node" },
+    { path: '/app/gym', icon: Dumbbell, label: 'Gym' },
+    { path: '/app/leaderboards', icon: Trophy, label: 'Loaderboards' }
   ];
 
   const spendButtons = [
@@ -70,7 +70,7 @@
         {@const Icon = button.icon}
         <a
           href={button.path}
-          class="w-full py-2 flex justify-center rounded-full transition-colors {page.url.pathname.split(
+          class="w-full my-1 py-2 flex justify-center rounded-full transition-colors {page.url.pathname.split(
             '/'
           )[2] == button.path.split('/')[2]
             ? 'bg-secondary-300 text-white'

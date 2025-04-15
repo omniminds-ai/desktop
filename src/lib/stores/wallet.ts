@@ -10,6 +10,7 @@ const storedToken =
   typeof localStorage !== 'undefined' ? localStorage.getItem('connectionToken') : null;
 
 export const walletAddress = writable<string | null>(storedAddress);
+export const nickname = writable<string | undefined>('');
 export const connectionToken = writable<string | null>(storedToken);
 export const isConnecting = writable(false);
 
