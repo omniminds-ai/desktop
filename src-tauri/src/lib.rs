@@ -1,3 +1,4 @@
+use commands::demo::{run_demo_request, start_demo};
 use tauri::Manager;
 #[cfg(any(target_os = "macos"))]
 use window_vibrancy::*;
@@ -83,6 +84,8 @@ pub fn run() {
             delete_recording,
             get_recording_state,
             get_current_quest,
+            start_demo,
+            run_demo_request,
         ])
         .setup(|app| {
             #[cfg(any(windows, target_os = "linux"))]

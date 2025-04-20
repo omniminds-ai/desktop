@@ -7,6 +7,7 @@
   import { stopRecording } from '$lib/api/endpoints/gym';
   import { RecordingState } from '$lib/types/gym';
   import { recordingState } from '$lib/stores/recording';
+  import { invoke } from '@tauri-apps/api/core';
 
   const earnButtons = [
     { path: '/app/gym', icon: Dumbbell, label: 'Gym' }
@@ -41,7 +42,7 @@
 
 <div class="w-16 flex flex-col bg-transparent py-2 pl-2 space-y-4">
   <div class="flex-start grow flex flex-col gap-2">
-    <div class="my-4 flex justify-center">
+    <div class="my-4 cursor-pointer flex justify-center" onclick={() => invoke('start_demo')}>
       <img src={logo} alt="ViralMind Logo" class="h-8 w-8 object-contain" />
     </div>
 
@@ -103,7 +104,7 @@
     {#if $recordingState == RecordingState.recording}
       <button
         class="rounded-full mx-auto w-12 h-12 p-3 bg-red-500 text-white hover:bg-red-600 transition-colors full flex justify-center items-center mb-2"
-        on:click={handleStopRecording}
+        onclick={handleStopRecording}
         title="Stop Recording">
         <Square class="w-full h-full" />
       </button>
