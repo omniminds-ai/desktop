@@ -30,7 +30,7 @@ pub fn create_demo_window(app: &tauri::AppHandle) -> Result<(), String> {
     let demo_w = 1000.0;
     let demo_h = 70.0;
     let demo_x = primary.x as f64 + (primary.width as f64 - demo_w) / 2.0;
-    let demo_y = primary.y as f64 + ((primary.height as f64 - demo_h) / 2.0) - 200.0;
+    let demo_y = primary.y as f64 + ((primary.height as f64 - demo_h) / 2.0) - 700.0;
 
     log::info!(
         "Demo window dimensions: {}x{} at position ({},{})",
