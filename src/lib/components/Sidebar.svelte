@@ -10,7 +10,7 @@
 
   const earnButtons = [
     { path: '/app/gym', icon: Dumbbell, label: 'Gym' },
-    { path: '/app/leaderboards', icon: Trophy, label: 'Loaderboards' }
+    { path: '/app/leaderboards', icon: Trophy, label: 'Leaderboards' }
   ];
 
   const spendButtons = [
@@ -39,7 +39,7 @@
   }
 </script>
 
-<div class="w-16 flex flex-col bg-transparent py-2 pl-2 space-y-4">
+<div class="w-16 flex flex-col bg-transparent pt-2 pb-6 pl-2 space-y-4">
   <div class="flex-start grow flex flex-col gap-2">
     <div class="my-4 flex justify-center">
       <img src={logo} alt="ViralMind Logo" class="h-8 w-8 object-contain" />

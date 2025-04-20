@@ -2,7 +2,7 @@
   import { getLeaderboardData } from '$lib/api/endpoints/gym/leaderboards';
   import Card from '$lib/components/Card.svelte';
   import NicknameModal from '$lib/components/modals/NicknameModal.svelte';
-  import { nickname } from '$lib/stores';
+  import { nickname, walletAddress } from '$lib/stores';
   import { Users, Zap, Hammer, DollarSign, Check, LoaderCircle } from 'lucide-svelte';
   import { onMount } from 'svelte';
 
@@ -22,6 +22,7 @@
     nickname?: string;
     tasks: number;
     rewards: number;
+    avgScore: number;
   }[] = $state([]);
 
   let topForges: {
@@ -45,12 +46,16 @@
   // Leaderboard data to display based on active tab and view mode
   const leaderboardData = $derived(
     activeTab === 'workers'
-      ? topWorkers.map((worker) => ({
-          ...worker
-        }))
-      : topForges.map((forge) => ({
-          ...forge
-        }))
+      ? topWorkers
+          .map((worker) => ({
+            ...worker
+          }))
+          .sort((a, b) => b.avgScore - a.avgScore)
+      : topForges
+          .map((forge) => ({
+            ...forge
+          }))
+          .sort((a, b) => b.payout - a.payout)
   );
 
   // Helper functions
@@ -98,10 +103,15 @@
         <Card padding="none">
           <div class="grid grid-cols-12 px-6 py-4 bg-accent-200 text-accent-600 text-sm">
             <div class="col-span-1">Rank</div>
-            <div class="col-span-6">
+            <div class="col-span-5">
               {activeTab === 'workers' ? 'Address' : 'Name'}
             </div>
-            <div class="col-span-5 grid grid-cols-2 text-right">
+            <div class="col-span-6 grid grid-cols-3 text-center">
+              <div class="col-span-1">
+                {#if activeTab === 'workers'}
+                  Average Grade
+                {/if}
+              </div>
               <div class="col-span-1">
                 {#if activeTab === 'workers'}
                   Tasks Completed
@@ -111,9 +121,9 @@
               </div>
               <div class="col-span-1">
                 {#if activeTab === 'workers'}
-                  $VIRAL Rewards Earned
+                  $VIRAL Rewards
                 {:else}
-                  $VIRAL Paid Out
+                  $VIRAL Paid
                 {/if}
               </div>
             </div>
@@ -140,7 +150,7 @@
                 </div>
 
                 <!-- Address/Name column -->
-                <div class="col-span-6 flex items-center">
+                <div class="col-span-5 flex items-center">
                   {#if activeTab === 'workers' && 'address' in item}
                     <div class="flex flex-col">
                       <span class="font-medium text-primary-100 font-mono text-xs">
@@ -150,6 +160,12 @@
                         <span class="text-xs text-secondary-300">
                           {item.nickname}
                         </span>
+                      {:else if item.address === $walletAddress}
+                        <button
+                          onclick={() => (openNickModal = true)}
+                          class="text-xs -ml-2 text-secondary-500 hover:underline">
+                          set your nickname
+                        </button>
                       {/if}
                     </div>
                   {:else if 'name' in item}
@@ -158,8 +174,18 @@
                 </div>
 
                 <!-- Value column -->
-                <div class="col-span-5 grid grid-cols-2 text-right">
-                  <div class="col-span-1 flex items-center justify-end">
+                <div class="col-span-6 grid grid-cols-3 text-right">
+                  <div class="col-span-1 flex items-center justify-center">
+                    {#if activeTab === 'workers' && 'avgScore' in item}
+                      <div class="flex items-center">
+                        <span
+                          class="text-sm bg-green-500/30 font-semibold bg-opacity-20 px-2 py-0.5 rounded-lg text-green-600">
+                          {Math.floor(item.avgScore)}%
+                        </span>
+                      </div>
+                    {/if}
+                  </div>
+                  <div class="col-span-1 flex items-center justify-center">
                     <div class="flex items-center">
                       <span
                         class="text-sm font-semibold bg-secondary-600/30 px-2 py-0.5 rounded-lg text-secondary-600">
@@ -168,7 +194,7 @@
                       </span>
                     </div>
                   </div>
-                  <div class="col-span-1 flex items-center justify-end">
+                  <div class="col-span-1 flex items-center justify-center">
                     <div class="flex items-center">
                       <span
                         class="text-sm bg-secondary-300/30 font-semibold bg-opacity-20 px-2 py-0.5 rounded-lg text-secondary-300">
@@ -185,11 +211,14 @@
             {/each}
           </div>
         </Card>
-        <button
-          onclick={() => (openNickModal = true)}
-          class="text-gray-600 ml-2 text-xs italic hover:underline transition-all">
-          Set your leaderboard nickname.
-        </button>
+        <p
+          class="text-gray-600 mt-1 mr-1 float-right text-xs italic hover:underline transition-all">
+          {#if activeTab === 'workers'}
+            Sorted by Average Grade
+          {:else}
+            Sorted by $VIRAL Paid Out
+          {/if}
+        </p>
       </div>
 
       <!-- Global Stats Section -->

@@ -11,6 +11,7 @@ export async function getLeaderboardData(): Promise<{
     nickname?: string;
     tasks: number;
     rewards: number;
+    avgScore: number;
   }[];
   forgeLeaderboard: {
     rank: number;
@@ -32,6 +33,7 @@ export async function getLeaderboardData(): Promise<{
       nickname?: string;
       tasks: number;
       rewards: number;
+      avgScore: number;
     }[];
     forgeLeaderboard: {
       rank: number;
