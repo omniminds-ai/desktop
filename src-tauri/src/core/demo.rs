@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 
 use display_info::DisplayInfo;
-use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
 lazy_static::lazy_static! {
     static ref DEMO_WINDOW_STATE: Mutex<Option<tauri::WebviewWindow>> = Mutex::new(None);
@@ -30,7 +29,7 @@ pub fn create_demo_window(app: &tauri::AppHandle) -> Result<(), String> {
     let demo_w = 1000.0;
     let demo_h = 70.0;
     let demo_x = primary.x as f64 + (primary.width as f64 - demo_w) / 2.0;
-    let demo_y = primary.y as f64 + ((primary.height as f64 - demo_h) / 2.0) - 700.0;
+    let demo_y = primary.y as f64 + ((primary.height as f64 - demo_h) / 2.0) - 600.0;
 
     log::info!(
         "Demo window dimensions: {}x{} at position ({},{})",
@@ -54,12 +53,6 @@ pub fn create_demo_window(app: &tauri::AppHandle) -> Result<(), String> {
             .resizable(false)
             .visible_on_all_workspaces(true)
             .build();
-
-    #[cfg(target_os = "macos")]
-    if let Ok(window) = &demo_window {
-        apply_vibrancy(window, NSVisualEffectMaterial::HudWindow, None, None)
-            .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
-    }
 
     match demo_window {
         Ok(window) => {
