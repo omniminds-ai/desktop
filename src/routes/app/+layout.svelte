@@ -129,7 +129,7 @@
   retry={async () => {
     invoke('init_tools');
   }}
-  open={showInitToolsError} />
+  bind:open={showInitToolsError} />
 
 <ToastContainer />
 

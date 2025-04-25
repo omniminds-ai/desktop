@@ -232,6 +232,7 @@
                   disabled={submissions.length === 0} />
               </div>
             </th>
+            <th class="w-16 px-2 py-3"></th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Platform
@@ -274,7 +275,7 @@
                     onchange={() => toggleSelection(submission._id)} />
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-gray-500">
+              <td class="px-2 py-4 whitespace-nowrap text-gray-500">
                 <div class="flex items-center gap-2">
                   <!-- <span class="flex items-center gap-1 bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
                   <Languages size={10} class="text-gray-500" />
@@ -363,7 +364,7 @@
 </Card>
 
 <DownloadScriptsModal
-  open={showDownloadModal}
+  bind:open={showDownloadModal}
   submissions={selectedCount > 0
     ? submissions.filter((s) => selectedSubmissions.has(s._id))
     : submissions}

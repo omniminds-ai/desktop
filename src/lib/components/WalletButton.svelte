@@ -4,18 +4,25 @@
     isConnecting,
     getConnectionUrl,
     startPolling,
-    disconnectWallet
+    disconnectWallet,
+    nickname
   } from '$lib/stores/wallet';
 
-  export let variant: 'compact' | 'large' = 'compact';
-  export let theme: 'dark' | 'light' = 'dark';
   import { LogOut, Wallet, ExternalLink, Coins } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import { getBalance, listSubmissions } from '$lib/api/endpoints/forge';
   import type { SubmissionStatus } from '$lib/types/forge';
+  import { getNickname } from '$lib/api/endpoints/wallet';
+  import NicknameModal from './modals/NicknameModal.svelte';
 
-  let viralBalance = 0;
-  let recentSubmissions: SubmissionStatus[] = [];
+  const {
+    variant = 'compact',
+    theme = 'dark'
+  }: { variant?: 'compact' | 'large'; theme?: 'dark' | 'light' } = $props();
+
+  let viralBalance = $state(0);
+  let nickNameModalOpen = $state(false);
+  let recentSubmissions: SubmissionStatus[] = $state([]);
 
   function formatNumber(num: number): string {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -45,16 +52,20 @@
 
   onMount(async () => {
     if ($walletAddress) {
-      getBalance($walletAddress);
+      viralBalance = await getBalance($walletAddress);
+      $nickname = await getNickname($walletAddress);
       loadSubmissions();
     }
   });
 
   // Subscribe to wallet address changes
-  $: if ($walletAddress) {
-    getBalance($walletAddress);
-    loadSubmissions();
-  }
+  walletAddress.subscribe(async (address) => {
+    if (address) {
+      viralBalance = await getBalance(address);
+      $nickname = await getNickname(address);
+      loadSubmissions();
+    }
+  });
 </script>
 
 {#if $walletAddress}
@@ -83,6 +94,17 @@
         <div class="flex justify-between items-center">
           <span class="text-gray-400">Wallet</span>
           <span class="font-mono">{$walletAddress.slice(0, 4)}...{$walletAddress.slice(-4)}</span>
+        </div>
+        <!-- Nickname -->
+        <div class="flex justify-between items-center">
+          <span class="text-gray-400">Nickname</span>
+          <button
+            onclick={() => (nickNameModalOpen = true)}
+            class=" {$nickname
+              ? ''
+              : 'text-gray-500'} font-semibold hover:text-white transition-all hover:underline">
+            {$nickname || 'Set Your Nickname'}
+          </button>
         </div>
 
         <!-- Balance -->
@@ -166,3 +188,5 @@
     {/if}
   </a>
 {/if}
+
+<NicknameModal bind:open={nickNameModalOpen} oldNick={$nickname} />

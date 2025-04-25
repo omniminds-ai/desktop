@@ -1253,4 +1253,4 @@
   </div>
 </div>
 
-<UploadConfirmModal open={showUploadConfirmModal} uploader={handleUploadClick} />
+<UploadConfirmModal bind:open={showUploadConfirmModal} uploader={handleUploadClick} />
