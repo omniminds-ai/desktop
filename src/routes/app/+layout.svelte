@@ -1,6 +1,7 @@
 <script lang="ts">
   import { confirm } from '@tauri-apps/plugin-dialog';
   import InitToolsFailedModal from '$lib/components/modals/InitToolsFailedModal.svelte';
+  import ToastContainer from '$lib/components/toast/ToastContainer.svelte';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import '../../app.css';
@@ -128,7 +129,9 @@
   retry={async () => {
     invoke('init_tools');
   }}
-  open={showInitToolsError} />
+  bind:open={showInitToolsError} />
+
+<ToastContainer />
 
 <style>
   :global(html, body) {

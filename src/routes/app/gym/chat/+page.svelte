@@ -252,6 +252,11 @@
               max_reward: rewardInfo.maxReward
             };
           } catch (error) {
+            await addMessage({
+              role: 'assistant',
+              content:
+                'Failed to get task reward info.\nWARNING: This quest will not provide rewards.'
+            });
             console.error('Failed to get reward info:', error);
           }
         }
@@ -1502,4 +1507,4 @@
   </div>
 </div> -->
 
-<UploadConfirmModal uploader={handleUploadClick} open={showUploadConfirmModal} />
+<UploadConfirmModal uploader={handleUploadClick} bind:open={showUploadConfirmModal} />
