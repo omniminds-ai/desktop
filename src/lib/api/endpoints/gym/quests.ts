@@ -34,16 +34,12 @@ export async function generateQuest(
 
   // If poolId is provided, get reward info
   if (poolId) {
-    try {
-      const rewardInfo = await getReward(poolId, taskId);
-      quest.pool_id = poolId;
-      quest.reward = { time: rewardInfo.time, max_reward: rewardInfo.maxReward };
-      // If taskId is provided, add it to the quest
-      if (taskId) {
-        quest.task_id = taskId;
-      }
-    } catch (error) {
-      console.error('Failed to get reward info:', error);
+    quest.pool_id = poolId;
+    const rewardInfo = await getReward(poolId, taskId);
+    quest.reward = { time: rewardInfo.time, max_reward: rewardInfo.maxReward };
+    // If taskId is provided, add it to the quest
+    if (taskId) {
+      quest.task_id = taskId;
     }
   }
 
