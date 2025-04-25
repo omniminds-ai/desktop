@@ -60,7 +60,10 @@
 
   // Helper functions
   const formatCurrency = (value: number) => {
-    return value.toFixed(2);
+    return value.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   };
 
   const truncateAddress = (address: string) => {
@@ -137,15 +140,15 @@
                   : ''} {index % 2 === 0 ? 'bg-accent-100' : 'bg-accent-200'}">
                 <div class="col-span-1">
                   <div
-                    class="w-8 h-8 rounded-full flex items-center justify-center {item.rank <= 3
+                    class="w-8 h-8 rounded-full flex items-center justify-center {index <= 2
                       ? 'text-accent-100 ' +
-                        (item.rank === 1
+                        (index === 0
                           ? 'bg-yellow-500'
-                          : item.rank === 2
+                          : index === 1
                             ? 'bg-accent-500'
                             : 'bg-amber-700')
                       : 'bg-accent-400 text-primary-300'}">
-                    {item.rank}
+                    {index}
                   </div>
                 </div>
 
