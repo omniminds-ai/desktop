@@ -67,8 +67,10 @@ export interface TrainingPool {
   status: TrainingPoolStatus;
   demonstrations: number;
   funds: number;
+  solBalance: number;
   token: Token;
   skills: string;
+  ownerEmail?: string;
   ownerAddress: string;
   depositAddress: string;
   expanded?: boolean;

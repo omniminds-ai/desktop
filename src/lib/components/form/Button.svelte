@@ -9,6 +9,7 @@
     children: Snippet;
     variant?: 'primary' | 'destroy' | 'warning' | 'secondary' | 'green';
     behavior?: 'invert' | 'none';
+    rest?: HTMLButtonAttributes;
   };
 
   let {
