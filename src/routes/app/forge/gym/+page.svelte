@@ -16,6 +16,7 @@
     unsavedName?: boolean;
   };
   let loading = true;
+  let savingChanges = false;
   let error: string | null = null;
   let refreshingPool = false;
   let viralPrice = 0;
@@ -25,7 +26,9 @@
   $: gymId = data.gymId;
 
   onMount(async () => {
+    loading = true;
     await loadPool();
+    loading = false;
     fetchPrices();
 
     // Set up periodic refresh
@@ -44,7 +47,6 @@
     if (!gymId || !$walletAddress) return;
 
     try {
-      loading = true;
       error = null;
 
       // Get all pools for the user
@@ -69,8 +71,6 @@
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load AI agent gym';
       console.error('Failed to load gym:', err);
-    } finally {
-      loading = false;
     }
   }
 
@@ -119,7 +119,9 @@
         id: poolToUpdate._id,
         ...updates
       });
+      savingChanges = true;
       await loadPool(); // Reload to get latest data
+      savingChanges = true;
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to update AI agent gym';
     }

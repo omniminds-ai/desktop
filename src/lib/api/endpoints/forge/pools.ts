@@ -88,3 +88,12 @@ export async function createPoolWithApps(
 ): Promise<TrainingPool> {
   return apiClient.post<TrainingPool>('/forge/pools', input, { requiresAuth: true });
 }
+
+/**
+ * Update a pool with an email address
+ * @param email The email address
+ * @returns Promise resolving to void
+ */
+export async function updatePoolEmail(poolID: string, email: string): Promise<void> {
+  return apiClient.put('/forge/pools/email', { id: poolID, email }, { requiresAuth: true });
+}

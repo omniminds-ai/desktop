@@ -15,6 +15,7 @@
   import type { TrainingPool, PoolSubmission } from '$lib/types/forge';
   import { getPoolSubmissions } from '$lib/api/endpoints/forge';
   import { onMount } from 'svelte';
+  import { ApiError, ErrorCode } from '$lib/api';
 
   export let pool: TrainingPool & {
     unsavedSkills?: boolean;
@@ -33,8 +34,12 @@
       error = null;
       submissions = await getPoolSubmissions(pool._id);
     } catch (err) {
-      console.error('Failed to fetch pool submissions:', err);
-      error = 'Failed to load submissions. Please try again later.';
+      if ((err as ApiError).message.includes(ErrorCode.UNAUTHORIZED)) {
+        error = 'Not authenticated to load submissions. Please re-connect your wallet.';
+      } else {
+        console.error('Failed to reload submissions:', err);
+        error = 'Failed to load submissions. Please try again later.';
+      }
     } finally {
       loading = false;
     }
@@ -198,8 +203,12 @@
               error = null;
             })
             .catch((err) => {
-              console.error('Failed to reload submissions:', err);
-              error = 'Failed to load submissions. Please try again later.';
+              if ((err as ApiError).message.includes(ErrorCode.UNAUTHORIZED)) {
+                error = 'Not authenticated to load submissions. Please re-connect your wallet.';
+              } else {
+                console.error('Failed to reload submissions:', err);
+                error = 'Failed to load submissions. Please try again later.';
+              }
             })
             .finally(() => {
               loading = false;
@@ -213,7 +222,7 @@
       <table class="min-w-full divide-y divide-gray-200 relative">
         <thead class="bg-gray-50">
           <tr>
-            <th class="w-10 px-3 py-3">
+            <th class="w-10 px-3 py-3 overflow-x-scroll">
               <div class="flex items-center">
                 <input
                   type="checkbox"
@@ -224,6 +233,10 @@
               </div>
             </th>
             <th class="w-16 px-2 py-3"></th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Platform
+            </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Task

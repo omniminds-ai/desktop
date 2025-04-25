@@ -16,11 +16,9 @@
     unsavedName?: boolean;
     unsavedUploadLimit?: boolean;
   };
-  export let onSave: (pool: TrainingPool, updates: any) => Promise<void>;
   export let onRefresh: (poolId: string) => Promise<void>;
   export let refreshingPools: Set<string>;
   export let unsavedChanges: boolean;
-  export let handleSaveChanges: () => Promise<void>;
 
   // Upload limit stats
   let currentCount = 0;
@@ -268,15 +266,16 @@
           Price per Demonstration
         </label>
         <div class="flex items-center gap-2">
-          <input
+          <Input
+            variant="light"
             id="demo-price"
             type="number"
             min="1"
             step="0.1"
-            class="flex-1 p-2 bg-gray-100 rounded-lg border-0"
+            class="flex-1 p-2  w-full! grow!"
             value={pool.pricePerDemo || 1}
             oninput={handlePriceChange} />
-          <span class="text-sm font-medium">{pool.token.symbol}</span>
+          <span class="text-sm font-medium grow-0">{pool.token.symbol}</span>
         </div>
         <p class="text-xs text-gray-500 mt-1">
           Minimum price: 1 {pool.token.symbol}
@@ -487,37 +486,4 @@
       </div>
     </div>
   </Card>
-
-  <div class="flex flex-col gap-2">
-    {#if unsavedChanges}
-      <Button
-        class="w-full justify-center border-green-500! hover:border-green-600! bg-green-500! text-white! hover:bg-green-600!"
-        onclick={handleSaveChanges}>
-        Save Changes
-      </Button>
-    {/if}
-
-    <Button
-      behavior="none"
-      class="py-4!"
-      variant={pool.status === TrainingPoolStatus.live ? 'secondary' : 'green'}
-      title={pool.status === TrainingPoolStatus.live ? 'Pause Gym' : 'Activate Gym'}
-      onclick={() =>
-        onSave(pool, {
-          status:
-            pool.status === TrainingPoolStatus.live
-              ? TrainingPoolStatus.paused
-              : TrainingPoolStatus.live
-        })}>
-      <div class="flex items-center">
-        {#if pool.status === TrainingPoolStatus.live}
-          <Pause size={16} class="mr-2" />
-          Pause Gym
-        {:else}
-          <Play size={16} class="mr-2" />
-          Activate Gym
-        {/if}
-      </div>
-    </Button>
-  </div>
 </div>

@@ -1,24 +1,24 @@
 <script lang="ts">
   import Card from '$lib/components/Card.svelte';
-  import Button from '$lib/components/form/Button.svelte';
   import TaskEditModal from '../modals/TaskEditModal.svelte';
-  import { Pencil, Check, X, Eye, Sparkles, Plus, Trash2, Save, RotateCcw, Video } from 'lucide-svelte';
+  import {
+    Pencil,
+    Check,
+    X,
+    Eye,
+    Sparkles,
+    Plus,
+    Trash2,
+    Save,
+    RotateCcw,
+    Video
+  } from 'lucide-svelte';
   import { TrainingPoolStatus, type TrainingPool } from '$lib/types/forge';
   import type { ForgeApp } from '$lib/types/gym';
   import { getAppsForGym } from '$lib/api/endpoints/forge';
   import AvailableTasks from '$lib/components/gym/AvailableTasks.svelte';
   import { onMount } from 'svelte';
-
-  // Function to save changes to the backend
-  export let handleSaveChanges: () => Promise<void>;
-
-  // Wrap the original handleSaveChanges to update originalApps after saving
-  async function saveChanges() {
-    await handleSaveChanges();
-    // Update originalApps after saving
-    originalApps = JSON.parse(JSON.stringify(apps));
-    pool.unsavedApps = false;
-  }
+  import Input from '../form/Input.svelte';
 
   // Store original apps for reset functionality
   let originalApps: ForgeApp[] = [];
@@ -52,6 +52,8 @@
   let newAppName = '';
   let newAppDomain = '';
   let showNewAppForm = false;
+  let scrollableContainer: HTMLDivElement;
+  let newAppFormRef: HTMLDivElement;
   // Make apps public so it can be accessed by the parent component
   export let apps: ForgeApp[] = [];
   let loadingApps = true;
@@ -61,14 +63,6 @@
     // Store a deep copy of the original apps
     originalApps = JSON.parse(JSON.stringify(apps));
   });
-
-  // Function to reset changes
-  function resetChanges() {
-    // Restore apps from the original copy
-    apps = JSON.parse(JSON.stringify(originalApps));
-    unsavedChanges = false;
-    pool.unsavedApps = false;
-  }
 
   async function loadApps() {
     loadingApps = true;
@@ -95,7 +89,7 @@
       rewardLimitValue = task.rewardLimit ?? 10;
     } else {
       // New task
-      editTaskPrompt = 'Enter task description here';
+      editTaskPrompt = '';
       enableUploadLimit = false;
       uploadLimitValue = 10;
       enableRewardLimit = false;
@@ -244,6 +238,14 @@
     showNewAppForm = false;
   }
 
+  // Watch for changes to showNewAppForm and scroll to the form when it becomes true
+  $: if (showNewAppForm && newAppFormRef) {
+    // Use setTimeout to ensure the DOM has updated
+    setTimeout(() => {
+      newAppFormRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  }
+
   function addNewTask(appIndex: number) {
     if (appIndex >= 0 && appIndex < apps.length) {
       openTaskModal(apps[appIndex], -1); // -1 indicates a new task
@@ -310,6 +312,7 @@
 
 <!-- Scrollable task container -->
 <div
+  bind:this={scrollableContainer}
   class="overflow-y-auto px-3 relative"
   style={`max-height: calc(100vh - ${(pool.status === TrainingPoolStatus.noFunds || pool.status === TrainingPoolStatus.noGas ? 120 : 0) + 220}px);`}>
   <!-- Tasks Tab Content -->
@@ -423,39 +426,41 @@
                       <div
                         class="w-full text-left flex items-center bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320">
                         <p class="grow text-gray-800 text-sm">{task.prompt}</p>
-                      <div class="flex items-center gap-2 ml-2">
-                        {#if typeof task.uploadLimit === 'number'}
-                          <span
-                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            {task.currentSubmissions ?? 0}/{task.uploadLimit}
-                          </span>
-                        {/if}
-                        {#if typeof task.rewardLimit === 'number'}
-                          <span
-                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                            {task.rewardLimit} VIRAL
-                          </span>
-                        {/if}
-                        <a
-                          href="/app/gym/chat?prompt={encodeURIComponent(task.prompt)}&app={encodeURIComponent(
-                            JSON.stringify({
-                              type: 'website',
-                              name: app.name,
-                              url: `https://${app.domain}`,
-                              task_id: task._id
-                            })
-                          )}&poolId={app.pool_id._id}"
-                          class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                          title="Record Task">
-                          <Video size={14} />
-                        </a>
-                        <button
-                          class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                          title="Edit Task"
-                          onclick={() => openTaskModal(app, taskIndex)}>
-                          <Pencil size={14} />
-                        </button>
-                      </div>
+                        <div class="flex items-center gap-2 ml-2">
+                          {#if typeof task.uploadLimit === 'number'}
+                            <span
+                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              {task.currentSubmissions ?? 0}/{task.uploadLimit}
+                            </span>
+                          {/if}
+                          {#if typeof task.rewardLimit === 'number'}
+                            <span
+                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              {task.rewardLimit} VIRAL
+                            </span>
+                          {/if}
+                          <a
+                            href="/app/gym/chat?prompt={encodeURIComponent(
+                              task.prompt
+                            )}&app={encodeURIComponent(
+                              JSON.stringify({
+                                type: 'website',
+                                name: app.name,
+                                url: `https://${app.domain}`,
+                                task_id: task._id
+                              })
+                            )}&poolId={app.pool_id._id}"
+                            class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                            title="Record Task">
+                            <Video size={14} />
+                          </a>
+                          <button
+                            class="text-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                            title="Edit Task"
+                            onclick={() => openTaskModal(app, taskIndex)}>
+                            <Pencil size={14} />
+                          </button>
+                        </div>
                       </div>
                       <button
                         class="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 p-1 ml-2 transition-all"
@@ -480,77 +485,61 @@
       <div class="mt-4 flex justify-center">
         <button
           class="px-4 py-2 bg-secondary-500 text-white rounded-md hover:bg-secondary-600 transition-colors flex items-center gap-2"
-          onclick={() => (showNewAppForm = true)}>
+          onclick={() => {
+            showNewAppForm = true;
+          }}>
           <Plus size={16} />
           Add New App
         </button>
       </div>
     {:else}
-      <Card padding="md" className="border border-gray-200 mt-4">
-        <div class="p-2">
-          <h3 class="text-lg font-medium mb-3">Add New App</h3>
-          <div class="space-y-3">
-            <div>
-              <label for="app-name" class="block text-sm font-medium text-gray-700 mb-1">
-                App Name
-              </label>
-              <input
-                id="app-name"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="Enter app name"
-                bind:value={newAppName} />
-            </div>
-            <div>
-              <label for="app-domain" class="block text-sm font-medium text-gray-700 mb-1">
-                App Domain (optional)
-              </label>
-              <input
-                id="app-domain"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="e.g. example.com"
-                bind:value={newAppDomain} />
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-              <button
-                class="px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-100"
-                onclick={resetNewAppForm}>
-                Cancel
-              </button>
-              <button
-                class="px-3 py-1.5 bg-secondary-500 text-white rounded-md hover:bg-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!newAppName}
-                onclick={addNewApp}>
-                Add App
-              </button>
+      <div bind:this={newAppFormRef}>
+        <Card padding="md" className="border border-gray-200 mt-4">
+          <div class="p-2">
+            <h3 class="text-lg font-medium mb-3">Add New App</h3>
+            <div class="space-y-3">
+              <div>
+                <label for="app-name" class="block text-sm font-medium text-gray-700 mb-1">
+                  App Name
+                </label>
+                <Input
+                  variant="light"
+                  id="app-name"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Enter app name"
+                  bind:value={newAppName} />
+              </div>
+              <div>
+                <label for="app-domain" class="block text-sm font-medium text-gray-700 mb-1">
+                  App Domain (optional)
+                </label>
+                <Input
+                  variant="light"
+                  id="app-domain"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="e.g. example.com"
+                  bind:value={newAppDomain} />
+              </div>
+              <div class="flex justify-end gap-2 pt-2">
+                <button
+                  class="px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-100"
+                  onclick={resetNewAppForm}>
+                  Cancel
+                </button>
+                <button
+                  class="px-3 py-1.5 bg-secondary-500 text-white rounded-md hover:bg-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!newAppName}
+                  onclick={addNewApp}>
+                  Add App
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
-    {/if}
-  {/if}
-
-  <!-- Sticky bottom buttons for save/reset -->
-  {#if unsavedChanges}
-    <div class="sticky bottom-0 w-full bg-gray-50 border-gray-200 p-4 z-10">
-      <div class="flex gap-2">
-        <Button
-          class="w-1/2 justify-center border-green-500! hover:border-green-600! bg-green-500! text-white! hover:bg-green-600!"
-          onclick={saveChanges}>
-          <div class="flex items-center">
-            <Save size={16} class="mr-2" />
-            Save Changes
-          </div>
-        </Button>
-        <Button class="flex-1 justify-center" variant="secondary" onclick={resetChanges}>
-          <div class="flex items-center">
-            <RotateCcw size={16} class="mr-2" />
-            Reset Changes
-          </div>
-        </Button>
+        </Card>
       </div>
-    </div>
+    {/if}
   {/if}
 </div>
 
