@@ -32,6 +32,6 @@
   });
 </script>
 
-<svelte:head>viralmind desktop</svelte:head>
+<svelte:head>Omniminds Desktop</svelte:head>
 
 {@render children()}

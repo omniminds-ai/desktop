@@ -17,7 +17,7 @@ export async function getPlatform(): Promise<ReturnType<typeof platform>> {
 /**
  * API URL based on environment
  */
-export const API_URL = dev ? 'http://localhost' : 'https://viralmind.ai';
+export const API_URL = dev ? 'http://localhost' : 'https://omniminds.ai';
 
 /**
  * Checks for application updates

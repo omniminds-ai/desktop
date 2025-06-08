@@ -1,4 +1,4 @@
-# ViralMind Desktop
+# Omniminds Desktop
 
 > 🚧 Work in progress - coming soon!
 

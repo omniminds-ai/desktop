@@ -112,7 +112,7 @@
       <div class="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
         <h2 class="text-xl font-semibold mb-4">New Update!</h2>
         <p class="text-gray-700 mb-6">
-          A new version of Viralmind Desktop is available. Please update for new features, bug
+          A new version of Omniminds Desktop is available. Please update for new features, bug
           fixes, and other goodness.
         </p>
         <div class="flex justify-end gap-3">

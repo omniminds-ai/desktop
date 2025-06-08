@@ -20,7 +20,7 @@
     <div class="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
       <h2 class="text-xl font-semibold mb-4">Tool Installation Failed</h2>
       <p class="text-gray-700 mb-2">
-        An error occured when downloading and installing tools required to run Viralmind Desktop.
+        An error occured when downloading and installing tools required to run Omniminds Desktop.
       </p>
       <p class="text-gray-700 mb-6">Please retry.</p>
       <div class="bg-gray-100 rounded-lg shadow-md p-4 my-2">

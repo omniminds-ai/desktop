@@ -72,7 +72,7 @@
     <p class="text-center">Loading...</p>
   {:else}
     <p class="text-xl mb-8 text-center">
-      To use all features of Viralmind Desktop, we need the following permissions:
+      To use all features of Omniminds Desktop, we need the following permissions:
     </p>
 
     <div class="flex flex-col gap-6 mb-8">

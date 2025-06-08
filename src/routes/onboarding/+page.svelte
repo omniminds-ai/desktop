@@ -36,7 +36,7 @@
   <div class="flex-col flex items-center justify-center border-b border-gray-200 pb-6 mb-6">
     <img src={Logo} alt="Viralmind Logo" class="w-28 h-28 object-contain mb-4" />
     <h1 class="text-4xl mb-3 text-secondary-300 text-center font-title font-bold">
-      Welcome to Viralmind Desktop
+      Welcome to Omniminds Desktop
     </h1>
     <p class="text-lg text-gray-600">Train AI, Complete Tasks, Earn Rewards</p>
   </div>
