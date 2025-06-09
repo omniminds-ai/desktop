@@ -1,25 +1,25 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Omniminds Desktop",
-  "version": "0.1.4",
-  "identifier": "ai.viralmind.desktop",
+  "version": "0.1.1",
+  "identifier": "ai.omniminds.desktop",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "npm run build",
     "frontendDist": "../build"
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFCNTRFQzczQUY2QTcxRDYKUldUV2NXcXZjK3hVRzZ6U3Yzb2JyaTVZb0Q0ZG8xbmxMWkpXZ28va1NTa1hxWEg4ZUFYWWoxc1oK",
       "endpoints": [
-        "https://github.com/viralmind-ai/desktop/releases/latest/download/latest.json"
+        "https://github.com/omniminds-ai/desktop/releases/latest/download/latest.json"
       ]
     },
     "deep-link": {
       "desktop": {
         "schemes": [
-          "viralmind"
+          "omniminds"
         ]
       }
     }
@@ -64,7 +64,7 @@
           "-a",
           "desktop-trusted-signer",
           "-c",
-          "viralmind-desktop-cert",
+          "omniminds-desktop-cert",
           "-d",
           "Omniminds Desktop",
           "%1"
@@ -87,7 +87,7 @@
         }
       }
     },
-    "homepage": "https://viralmind.ai",
+    "homepage": "https://omniminds.ai",
     "active": true,
     "targets": "all",
     "icon": [

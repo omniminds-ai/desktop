@@ -1,9 +1,9 @@
 [package]
-name = "viralmind-desktop"
-version = "0.1.4"
-description = "The Viralmind desktop app."
-authors = ["Dillon DuPont", "Morgan Dean"]
-edition = "2021"
+name = "omniminds-desktop"
+version = "0.1.0"
+description = "The Omniminds desktop app."
+authors = ["Farag"]
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
