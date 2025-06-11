@@ -27,14 +27,14 @@
   let refreshingPools: Set<string> = new Set();
 
   // Pricing data
-  let viralPrice = 0;
+  let omnisPrice = 0;
   let solPrice = 0;
-  let viralPerSol = 0;
+  let omnisPerSol = 0;
   let loadingPrices = true;
 
   // Token contract addresses
   const TOKEN_DATA = {
-    contractAddress: 'HW7D5MyYG4Dz2C98axfjVBeLWpsEnofrqy6ZUwqwpump', // VIRAL token
+    contractAddress: 'G6iRK8kN67HJFrPA1CDA5KZaPJMiBu3bqdd9vdKBpump', // VIRAL token
     solAddress: 'So11111111111111111111111111111111111111112' // SOL token
   };
 
@@ -50,9 +50,9 @@
       );
       const json = await response.json();
 
-      viralPrice = parseFloat(json.data[TOKEN_DATA.contractAddress].price);
+      omnisPrice = parseFloat(json.data[TOKEN_DATA.contractAddress].price);
       solPrice = parseFloat(json.data[TOKEN_DATA.solAddress].price);
-      viralPerSol = solPrice / viralPrice;
+      omnisPerSol = solPrice / omnisPrice;
     } catch (error) {
       console.error('Error fetching prices:', error);
     } finally {

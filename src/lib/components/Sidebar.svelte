@@ -19,12 +19,12 @@
 
   const earnButtons = [
     { path: '/app/gym', icon: CrownIcon, label: 'The Arena' },
-    { path: '/app/leaderboards', icon: PencilRuler, label: 'Creator Hub' },
+    // { path: '/app/leaderboards', icon: PencilRuler, label: 'Creator Hub' },
     { path: '/app/launch-bay', icon: Rocket, label: 'LaunchBay' },
-    { path: '/app/exchange', icon: ArrowLeftRight, label: 'The Exchange' },
-    { path: '/app/my-agents', icon: Users, label: 'My Agents ' },
-    { path: '/app/omni-docs', icon: FileText, label: 'OmniDocs ' },
-    { path: '/app/settings', icon: BrainCog, label: 'Settings ' }
+    // { path: '/app/exchange', icon: ArrowLeftRight, label: 'The Exchange' },
+    // { path: '/app/my-agents', icon: Users, label: 'My Agents ' },
+    // { path: '/app/omni-docs', icon: FileText, label: 'OmniDocs ' },
+    // { path: '/app/settings', icon: BrainCog, label: 'Settings ' }
   ];
 
   const buttons = [...earnButtons];

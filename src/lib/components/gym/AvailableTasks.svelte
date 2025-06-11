@@ -124,10 +124,6 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
   <div class="flex items-center justify-between mb-2 mt-6 pl-0.5">
     <div class="flex items-center gap-2">
       <h2 class="text-xl font-bold text-gray-800">Available Tasks</h2>
-      <div class="bg-secondary-200 text-white px-2 py-0.5 rounded-full text-xs font-medium">
-        {tasks.length}
-        Available
-      </div>
     </div>
 
     <div class="flex items-center gap-2">
@@ -165,12 +161,16 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
         </svg>
         Filters
       </button>
+      <div class="bg-secondary-200 text-white px-2 py-0.5 rounded-full text-xs font-medium h-6">
+        {tasks.length}
+        Available
+      </div>
     </div>
   </div>
 
   <div class="mb-2 pl-0.5 flex gap-2 w-full">
     <div class="flex gap-2 self-start">
-      <Input variant="light" class="w-full!" bind:value={search} placeholder="Search tasks">
+      <Input variant="light" style="width: 630px" bind:value={search} placeholder="Search tasks">
         {#snippet icon()}
           <Search />
         {/snippet}
@@ -203,7 +203,7 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
                   min={priceRangeMin - 1}
                   max={priceRangeMax}
                   type="number" />
-                <span class="text-gray-500">$VIRAL</span>
+                <span class="text-gray-500">$OMNIS</span>
               </div>
             </div>
             <div>
@@ -281,7 +281,7 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
   {:else}
     <div in:fade={{ duration: 100 }}>
       <div
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr w-full">
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr w-full mt-4 border-gray-200" >
         {#each tasks as task}
           <!-- Skip tasks that have reached their upload limit when in the gym (not in gym builder) -->
           {#if isGymBuilder || !task.uploadLimitReached}
@@ -297,17 +297,17 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
               class="block">
               <Card
                 padding="none"
-                className="relative h-full hover:border-secondary-300 border border-gray-200 hover:shadow-md transition-all overflow-hidden">
+                className="relative h-full hover:border-secondary-300 border border-gray-600 hover:shadow-md transition-all overflow-hidden">
                 <!-- Task Header with Tag -->
-                <div
-                  class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+                <div style="background-color: #684897"
+                  class="px-4 py-2 border-b border-gray-200 flex justify-between items-center">
                   <div class="flex items-center gap-2 grow-0">
                     <img
                       src={getFaviconUrl(task.app.domain)}
                       alt={`${task.app.name} icon`}
                       class="w-5 h-5" />
                     <span
-                      class="text-sm max-w-72 sm:max-w-48 md:max-w-64 lg:max-w-40 font-medium text-gray-700 truncate">
+                      class="text-sm max-w-72 sm:max-w-48 md:max-w-64 lg:max-w-40 font-medium text-gray-200 truncate">
                       {task.app.name}
                     </span>
                   </div>
@@ -343,7 +343,7 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
                       </div>
                     {/if}
                     <div
-                      class="bg-secondary-300 grow-0 w-fit text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
+                      class="bg-purple-400 grow-0 w-fit text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 h-full">
                       <Loader size={12} />
                       <span>Task</span>
                     </div>
@@ -351,18 +351,18 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
                 </div>
 
                 <!-- Task Content -->
-                <div class="p-4 flex flex-col">
+                <div style="background-color: #283033; height:130px;" class="p-4 flex flex-col">
                   <div
-                    class="text-md text-neutral-800 font-medium break-words overflow-y-auto flex-grow">
+                    class="text-md text-gray-200 font-medium break-words overflow-y-auto flex-grow">
                     {task.prompt}
                   </div>
                 </div>
 
                 <!-- Task Footer -->
-                <div
-                  class="bg-gray-50 px-4 py-2 border-t border-gray-200 flex justify-between items-center mt-auto">
+                <div style="background-color: #684897"
+                  class="px-4 py-2 border-t border-gray-800 flex justify-between items-center mt-auto">
                   <div class="flex items-center gap-2">
-                    <div class="text-xs text-black font-black">Click to begin</div>
+                    <div class="text-xs text-gray-200">Click to begin</div>
                     {#if isGymBuilder && task.currentSubmissions !== undefined && task.app.gymLimitType === 'per-task' && task.app.gymLimitValue !== undefined}
                       <div
                         class="text-xs px-1.5 py-0.5 rounded-full {task.currentSubmissions >=
@@ -373,7 +373,7 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
                       </div>
                     {/if}
                   </div>
-                  <div class="text-sm font-semibold text-secondary-600 flex items-center gap-1">
+                  <div class="text-sm font-semibold text-gray-200 flex items-center gap-1">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       class="w-3.5 h-3.5"
@@ -386,7 +386,7 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
                       <line x1="12" y1="1" x2="12" y2="23"></line>
                       <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                     </svg>
-                    {task.rewardLimit || task.app.pool_id.pricePerDemo || 0} VIRAL
+                    {task.rewardLimit || task.app.pool_id.pricePerDemo || 0} OMNIS
                   </div>
                 </div>
               </Card>

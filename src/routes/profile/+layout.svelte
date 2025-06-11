@@ -92,13 +92,13 @@
 
   // Detect platform (windows or darwin for Mac)
   const currentPlatform = platform();
-  const bgClass = currentPlatform === 'macos' ? 'bg-primary-600/50' : 'bg-primary-500';
+  const bgClass = currentPlatform === 'macos' ? 'bg-gray-800/50' : 'bg-gray-800';
 </script>
 
 <div class="h-screen flex {bgClass} overflow-hidden">
   <Sidebar />
   <div class="flex-1 p-2">
-    <div class="h-full overflow-hidden bg-gray-50 border border-gray-500 rounded-md">
+    <div class="h-full overflow-hidden bg-gray-800 rounded-md">
       <div class="h-full w-full overflow-auto">
         {@render children()}
       </div>
