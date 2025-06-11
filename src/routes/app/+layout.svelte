@@ -4,6 +4,7 @@
   import ToastContainer from '$lib/components/toast/ToastContainer.svelte';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import Sidebar from '$lib/components/Sidebar.svelte';
+  import Header from '$lib/components/Header.svelte';
   import '../../app.css';
   import { checkForUpdate, toolsInitState, updateApp } from '$lib/utils';
   import Button from '$lib/components/form/Button.svelte';
@@ -98,15 +99,16 @@
 <div class="h-screen flex {bgClass} overflow-hidden">
   <Sidebar />
   <div class="flex-1 p-2">
-    <div class="h-full overflow-hidden bg-gray-50 border border-gray-500 rounded-md">
-      <div class="h-full w-full overflow-auto">
+    <div class="h-full overflow-hidden bg-background-100 rounded-md">
+      <div class="h-full w-full overflow-auto px-[80px] py-[20px]">
+        <Header />
         {@render children()}
       </div>
     </div>
   </div>
 </div>
 
-{#await checkForUpdate() then update}
+<!-- {#await checkForUpdate() then update}
   {#if update && !canceled}
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div class="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
@@ -122,7 +124,7 @@
       </div>
     </div>
   {/if}
-{/await}
+{/await} -->
 
 <InitToolsFailedModal
   errors={initErrors}

@@ -46,6 +46,8 @@
   --color-accent-400: #cdcdcd;
   --color-accent-500: #bdbdbd;
   --color-accent-600: #9f9f9f;
+
+  --color-background-100: #1a2025;
 }
 
 button {

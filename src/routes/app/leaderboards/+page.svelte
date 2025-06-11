@@ -73,7 +73,7 @@
 </script>
 
 <div class="p-2 sm:p-4">
-  <div class="max-w-7xl mx-auto mb-6">
+  <div class="mx-auto mb-6">
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-title text-blac">Leaderboards</h2>
     </div>

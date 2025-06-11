@@ -98,7 +98,7 @@
 
   <div>
     <div class="p-4 bg-white border-t border-gray-200 blur-xs">
-      <div class="flex gap-3 items-center max-w-4xl mx-auto">
+      <div class="flex gap-3 items-center mx-auto">
         <form class="flex-1 flex gap-3 items-center" onsubmit={greet}>
           <Input
             type="text"

@@ -96,7 +96,7 @@
     recentSubmissions.length > 0 ? earnedThisMonth / recentSubmissions.length : 0;
 </script>
 
-<div class="h-full max-w-7xl mx-auto overflow-x-hidden">
+<div class="h-full mx-auto overflow-x-hidden">
   {#if poolName}
     <div class="mx-auto mb-8">
       <div class="text-xl font-semibold mb-2">Viewing Forge: {poolName}</div>

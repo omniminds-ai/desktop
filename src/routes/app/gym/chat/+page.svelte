@@ -871,7 +871,7 @@
   {#if $toolsInitState.initializing}
     <div
       transition:slide
-      class="p-3 max-w-7xl mx-auto mb-5 border-yellow-500 border-1 rounded-lg shadow-md bg-yellow-500/30">
+      class="p-3 mx-auto mb-5 border-yellow-500 border-1 rounded-lg shadow-md bg-yellow-500/30">
       <p class="text-lg font-bold text-yellow-900 border-b border-yellow-800 w-fit">WARNING</p>
       <p class="text-black mt-1">
         If the required tools are not installed correctly when recording a demonstration, your
@@ -881,7 +881,7 @@
   {/if}
   <div
     bind:this={chatContent}
-    class="flex-1 max-w-7xl w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
+    class="flex-1 w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
     {#if true}
       {@const demoStartIndex = chatMessages.findIndex(
         (m) => m.content.startsWith('<start>') && m.content.endsWith('</start>')
@@ -1476,7 +1476,7 @@
   </div>
 </div>
 <!-- <div class="p-4 absolute bottom-0 w-full left-0 bg-white border-t border-gray-200">
-  <div class="flex gap-3 items-center max-w-4xl mx-auto">
+  <div class="flex gap-3 items-center   mx-auto">
     {#if recordingState === 'recording' || recordingLoading}
       <Button
         onclick={toggleRecording}

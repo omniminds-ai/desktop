@@ -663,7 +663,7 @@
   }
 </script>
 
-<div class="h-full max-w-7xl mx-auto">
+<div class="h-full mx-auto">
   <div>
     {#if recording}
       <div class="flex gap-3 xl:flex-row flex-col h-[calc(100vh-8rem)]">
