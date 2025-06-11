@@ -238,7 +238,7 @@
   }
 </script>
 
-<div class="h-full max-w-7xl mx-auto">
+<div class="h-full mx-auto">
   <div class="">
     {#if dataExported !== ''}
       <div

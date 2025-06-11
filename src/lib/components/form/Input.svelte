@@ -21,7 +21,7 @@
     switch (variant) {
       case 'dark':
         classes +=
-          'bg-gray-800 text-white border-gray-700 focus:ring-secondary-300 focus:border-secondary-300';
+          'bg-[#2D3539] text-white border-gray-700 focus:ring-secondary-300 focus:border-secondary-300';
         break;
       case 'light':
         classes +=
