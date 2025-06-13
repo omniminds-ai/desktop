@@ -7,6 +7,10 @@
   import { getGymCategories, getTasksForGym } from '$lib/api/endpoints/forge';
   import Input from '$lib/components/form/Input.svelte';
   import Button from '$lib/components/form/Button.svelte';
+  import CardBg1 from '$lib/assets/card-bg-1.png';
+  import CardBg2 from '$lib/assets/card-bg-2.png';
+  import CardBg3 from '$lib/assets/card-bg-3.png';
+  import CardBg4 from '$lib/assets/card-bg-4.png';
 
   // Props
   let tasks: ForgeTask[] = [];
@@ -14,22 +18,22 @@
   export let viewMode: 'preview' = 'preview'; // Changed from 'edit' | 'preview' to only allow 'preview'
   export let isGymBuilder: boolean = false; // Whether this is used in GymBuilder or not
   export let poolId: string | undefined = undefined;
-  // these are unused
-  // export let onRefresh: (() => Promise<void>) | null = null;
-  // export let onGenerateTasks: (() => void) | null = null;
 
   // Filtering state
   let allCategories: string[] = [];
   let selectedCategories: Set<string> = new Set();
-let sort: 'lth' | 'htl' = 'htl';
-let search: string = '';
-let showFilters = false;
-let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
+  let sort: 'lth' | 'htl' = 'htl';
+  let search: string = '';
+  let showFilters = false;
+  let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
   // Initialize with localStorage values or defaults
   let minPrice: number | null = parseInt(localStorage.getItem('gymMinPrice') || '0', 10);
   let maxPrice: number | null = parseInt(localStorage.getItem('gymMaxPrice') || '500', 10);
   let priceRangeMin = 0;
   let priceRangeMax = 500;
+
+  // Background images array - you can replace these with your actual images
+  const backgroundImages = [CardBg1, CardBg2, CardBg3, CardBg4];
 
   onMount(async () => {
     getTasks();
@@ -38,6 +42,10 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
 
   function getReward(task: ForgeTask) {
     return task.rewardLimit || task.app.pool_id.pricePerDemo || 0;
+  }
+
+  function getRandomBackground() {
+    return backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
   }
 
   async function getTasks() {
@@ -109,291 +117,277 @@ let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
       localStorage.setItem('gymShowAdult', (!hideAdultTasks).toString());
     }
   }
-
-  // $: filteredApps = apps.filter((app) => {
-  //   const matchesCategories =
-  //     selectedCategories.size === 0 || app.categories.some((cat) => selectedCategories.has(cat));
-  //   const matchesPrice =
-  //     app.pool_id.pricePerDemo >= minPrice && app.pool_id.pricePerDemo <= maxPrice;
-  //   return matchesCategories && matchesPrice;
-  // });
 </script>
 
-<!-- Available Tasks Heading -->
-{#if !isGymBuilder || viewMode === 'preview'}
-  <div class="flex items-center justify-between mb-2 mt-6 pl-0.5">
-    <div class="flex items-center gap-2">
-      <h2 class="text-xl font-bold text-gray-800">Available Tasks</h2>
-    </div>
-
-    <div class="flex items-center gap-2">
-      {#if selectedCategories.size > 0 || (minPrice || 0) > priceRangeMin || (maxPrice || 500) < priceRangeMax}
-        <div class="flex items-center gap-1 text-xs text-gray-500">
-          <button
-            class="text-secondary-500 hover:text-secondary-600 transition-colors hover:underline"
-            onclick={() => {
-              selectedCategories = new Set();
-              minPrice = priceRangeMin;
-              maxPrice = priceRangeMax;
-              hideAdultTasks = true;
-              localStorage.removeItem('gymMinPrice');
-              localStorage.removeItem('gymMaxPrice');
-              localStorage.removeItem('gymShowAdult');
-              getTasks();
-            }}>
-            Reset Filters
-          </button>
+<!-- Available Tasks Section with Dark Theme -->
+<div class="min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-4xl font-bold text-white mb-2">The Arena</h1>
+          <p class="text-gray-400">Where agents train</p>
         </div>
-      {/if}
-      <button
-        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-        onclick={() => (showFilters = !showFilters)}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="w-4 h-4 transition-transform"
-          class:rotate-180={showFilters}
-          viewBox="0 0 20 20"
-          fill="currentColor">
-          <path
-            fill-rule="evenodd"
-            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-            clip-rule="evenodd" />
-        </svg>
-        Filters
-      </button>
-      <div class="bg-secondary-200 text-white px-2 py-0.5 rounded-full text-xs font-medium h-6">
-        {tasks.length}
-        Available
+
+        <!-- Filter Controls -->
+        <div class="flex items-center gap-4">
+          <!-- Category Filter Buttons -->
+          <div class="flex items-center gap-2">
+            <button
+              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">
+              Category
+              <svg
+                class="inline-block ml-2 w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7">
+                </path>
+              </svg>
+            </button>
+
+            <button
+              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">
+              Rewards
+              <svg
+                class="inline-block ml-2 w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7">
+                </path>
+              </svg>
+            </button>
+
+            <button
+              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">
+              Task Type
+              <svg
+                class="inline-block ml-2 w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7">
+                </path>
+              </svg>
+            </button>
+
+            <button
+              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">
+              Rating
+              <svg
+                class="inline-block ml-2 w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7">
+                </path>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="mb-2 pl-0.5 flex gap-2 w-full">
-    <div class="flex gap-2 self-start">
-      <Input variant="light" style="width: 630px" bind:value={search} placeholder="Search tasks">
-        {#snippet icon()}
-          <Search />
-        {/snippet}
-      </Input>
-      <Button variant="secondary" class="px-3!" onclick={getTasks} behavior="none">Search</Button>
-    </div>
-  </div>
-
-  {#if showFilters}
-    <div transition:slide>
-      <Card padding="lg" className="mb-6">
-        <div class="flex flex-col gap-6">
-          <!-- Price filter -->
-          <div class="flex flex-row gap-8 items-center">
-            <div>
-              <p class="font-medium text-gray-700 mb-2">Price</p>
-              <div class="flex flex-row items-center gap-3">
-                <Input
-                  variant="light"
-                  bind:value={minPrice}
-                  max={priceRangeMax + 1}
-                  min={priceRangeMin}
-                  class="w-20!"
-                  type="number" />
-                <span class="text-gray-500">to</span>
-                <Input
-                  variant="light"
-                  bind:value={maxPrice}
-                  class="w-20!"
-                  min={priceRangeMin - 1}
-                  max={priceRangeMax}
-                  type="number" />
-                <span class="text-gray-500">$OMNIS</span>
+    {#if showFilters}
+      <div transition:slide class="mb-6">
+        <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
+          <div class="flex flex-col gap-6">
+            <!-- Price filter -->
+            <div class="flex flex-row gap-8 items-center">
+              <div>
+                <p class="font-medium text-white mb-2">Price</p>
+                <div class="flex flex-row items-center gap-3">
+                  <input
+                    bind:value={minPrice}
+                    max={priceRangeMax + 1}
+                    min={priceRangeMin}
+                    class="w-20 px-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    type="number" />
+                  <span class="text-gray-400">to</span>
+                  <input
+                    bind:value={maxPrice}
+                    class="w-20 px-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    min={priceRangeMin - 1}
+                    max={priceRangeMax}
+                    type="number" />
+                  <span class="text-gray-400">$OMNIS</span>
+                </div>
+              </div>
+              <div>
+                <p class="font-medium text-white mb-2">Sort</p>
+                <div class="flex flex-row items-center gap-3">
+                  <select
+                    bind:value={sort}
+                    class="bg-gray-700/50 border border-gray-600/50 text-white rounded-lg focus:ring-purple-500/50 focus:border-purple-500/50 block w-full p-2.5">
+                    <option selected value="htl">High to Low</option>
+                    <option value="lth">Low to High</option>
+                  </select>
+                </div>
               </div>
             </div>
-            <div>
-              <p class="font-medium text-gray-700 mb-2">Sort</p>
-              <div class="flex flex-row items-center gap-3">
-                <select
-                  bind:value={sort}
-                  class="rounded-lg focus:ring-secondary-300 focus:border-secondary-300 block w-full p-2.5">
-                  <option selected value="htl">High to Low</option>
-                  <option value="lth">Low to High</option>
-                </select>
-              </div>
-            </div>
-          </div>
 
-          <!-- Categories -->
-          <div>
-            <p class="font-medium text-gray-700 mb-2">Category</p>
-            <div class="flex flex-wrap gap-1.5">
-              <button
-                class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.size ===
-                0
-                  ? 'bg-secondary-300 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
-                onclick={() => (selectedCategories = new Set())}>
-                All
-              </button>
-              {#each allCategories as category}
+            <!-- Categories -->
+            <div>
+              <p class="font-medium text-white mb-2">Category</p>
+              <div class="flex flex-wrap gap-1.5">
                 <button
-                  class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.has(
-                    category
-                  )
-                    ? 'bg-secondary-300 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
-                  onclick={() => toggleCategory(category)}>
-                  {category}
+                  class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.size ===
+                  0
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'}"
+                  onclick={() => (selectedCategories = new Set())}>
+                  All
                 </button>
-              {/each}
+                {#each allCategories as category}
+                  <button
+                    class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.has(
+                      category
+                    )
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'}"
+                    onclick={() => toggleCategory(category)}>
+                    {category}
+                  </button>
+                {/each}
+              </div>
             </div>
-          </div>
-          <!-- Content Filter -->
-          <div>
-            <p class="font-medium text-gray-700 mb-2">Content Filter</p>
-            <div class="flex items-center mb-4">
-              <input 
-                type="checkbox" 
-                id="hideAdult" 
-                bind:checked={hideAdultTasks}
-                class="rounded border-gray-300 text-secondary-600 focus:ring-secondary-500" />
-              <label for="hideAdult" class="ml-2 text-sm text-gray-700">Hide adult content</label>
-            </div>
-          </div>
-          
-          <div class="flex w-full">
-            <Button class="ml-auto" variant="primary" behavior="none" onclick={getTasks}>
-              Apply
-            </Button>
-          </div>
-          
-        </div>
-      </Card>
-    </div>
-  {/if}
 
-  {#if loadingApps}
-    <div in:fade={{ duration: 100 }} class="flex items-center justify-center h-40">
-      <div
-        class="animate-spin h-8 w-8 border-4 border-secondary-300 rounded-full border-t-transparent">
+            <!-- Content Filter -->
+            <div>
+              <p class="font-medium text-white mb-2">Content Filter</p>
+              <div class="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  id="hideAdult"
+                  bind:checked={hideAdultTasks}
+                  class="rounded border-gray-600 bg-gray-700/50 text-purple-600 focus:ring-purple-500/50" />
+                <label for="hideAdult" class="ml-2 text-sm text-gray-300">Hide adult content</label>
+              </div>
+            </div>
+
+            <div class="flex w-full">
+              <button
+                class="ml-auto px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                onclick={getTasks}>
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  {:else if tasks.length === 0}
-    <div in:fade={{ duration: 100 }} class="text-center py-12 text-gray-500">
-      <p>No tasks found.</p>
-    </div>
-  {:else}
-    <div in:fade={{ duration: 100 }}>
-      <div
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr w-full mt-4 border-gray-200" >
-        {#each tasks as task}
-          <!-- Skip tasks that have reached their upload limit when in the gym (not in gym builder) -->
-          {#if isGymBuilder || !task.uploadLimitReached}
-            <a
-              href="/app/gym/chat?prompt={encodeURIComponent(task.prompt)}&app={encodeURIComponent(
-                JSON.stringify({
-                  type: 'website',
-                  name: task.app.name,
-                  url: `https://${task.app.domain}`,
-                  task_id: task._id
-                })
-              )}&poolId={task.app.pool_id._id}"
-              class="block">
-              <Card
-                padding="none"
-                className="relative h-full hover:border-secondary-300 border border-gray-600 hover:shadow-md transition-all overflow-hidden">
-                <!-- Task Header with Tag -->
-                <div style="background-color: #684897"
-                  class="px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-                  <div class="flex items-center gap-2 grow-0">
-                    <img
-                      src={getFaviconUrl(task.app.domain)}
-                      alt={`${task.app.name} icon`}
-                      class="w-5 h-5" />
-                    <span
-                      class="text-sm max-w-72 sm:max-w-48 md:max-w-64 lg:max-w-40 font-medium text-gray-200 truncate">
-                      {task.app.name}
-                    </span>
-                  </div>
-                  <div class="grow flex justify-end gap-1">
-                    {#if isGymBuilder && task.uploadLimitReached}
-                      <div
-                        class="bg-red-500 grow-0 w-fit text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 relative group">
-                        <span>Limit Reached</span>
-                        <!-- Tooltip with reason -->
+    {/if}
+
+    <!-- Loading State -->
+    {#if loadingApps}
+      <div in:fade={{ duration: 100 }} class="flex items-center justify-center h-40">
+        <div
+          class="animate-spin h-8 w-8 border-4 border-purple-500/30 rounded-full border-t-purple-500">
+        </div>
+      </div>
+    {:else if tasks.length === 0}
+      <div in:fade={{ duration: 100 }} class="text-center py-12 text-gray-400">
+        <p>No tasks found.</p>
+      </div>
+    {:else}
+      <!-- Tasks Grid -->
+      <div in:fade={{ duration: 100 }}>
+        <div
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
+          {#each tasks as task}
+            {#if isGymBuilder || !task.uploadLimitReached}
+              <a
+                href="/app/gym/chat?prompt={encodeURIComponent(
+                  task.prompt
+                )}&app={encodeURIComponent(
+                  JSON.stringify({
+                    type: 'website',
+                    name: task.app.name,
+                    url: `https://${task.app.domain}`,
+                    task_id: task._id
+                  })
+                )}&poolId={task.app.pool_id._id}"
+                class="block group">
+                <!-- Task Card -->
+                <div
+                  class="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-2xl overflow-hidden hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 h-full flex flex-col">
+                  <!-- Card Header with Background -->
+                  <div
+                    class="relative h-40 flex items-center justify-center overflow-hidden bg-cover bg-center m-2 rounded-2xl"
+                    style="background-image: url({getRandomBackground()})">
+                    <!-- Logo -->
+                    <div class="relative z-10 w-20 h-20 flex items-center justify-center">
+                      <img
+                        src={getFaviconUrl(task.app.domain)}
+                        alt={`${task.app.name} icon`}
+                        class="w-16 h-16" />
+                    </div>
+
+                    <!-- Top badges -->
+                    <div class="absolute top-3 left-3 flex gap-2">
+                      {#if isGymBuilder && task.uploadLimitReached}
                         <div
-                          class="absolute bottom-full right-0 mb-2 w-48 bg-gray-900 text-white text-xs rounded p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                          {#if task.limitReason}
-                            {task.limitReason}
-                          {:else if task.uploadLimitReached}
-                            {#if task.app.pool_id.uploadLimit.limitType === 'per-day'}
-                              Daily gym limit reached ({task.app.gymSubmissions}/{task.app.pool_id
-                                .uploadLimit.type})
-                            {:else if task.app.pool_id.uploadLimit.limitType === 'total'}
-                              Total gym limit reached ({task.app.gymSubmissions}/{task.app.pool_id
-                                .uploadLimit.type})
-                            {:else}
-                              Gym limit reached
-                            {/if}
-                          {:else}
-                            Upload limit reached
-                          {/if}
-                          {#if task.currentSubmissions !== undefined}
-                            <div class="mt-1 pt-1 border-t border-gray-700">
-                              Current uploads: {task.currentSubmissions}/{task.uploadLimit}
-                            </div>
-                          {/if}
+                          class="bg-red-500/90 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs font-medium">
+                          Limit Reached
                         </div>
-                      </div>
-                    {/if}
-                    <div
-                      class="bg-purple-400 grow-0 w-fit text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 h-full">
-                      <Loader size={12} />
-                      <span>Task</span>
+                      {/if}
+                    </div>
+                  </div>
+
+                  <!-- Card Content -->
+                  <div class="p-4 flex-1 flex flex-col">
+                    <!-- App Name and SOMNIS count -->
+                    <div class="flex items-center justify-between mb-3">
+                      <h3 class="text-white text-sm">
+                        <span class="text-2xl">{getReward(task)}</span>
+                        $OMNIS
+                      </h3>
+                    </div>
+
+                    <!-- Task Description -->
+                    <h4 class="text-white font-medium mb-2 line-clamp-2">
+                      {task.prompt.split(' ').slice(0, 6).join(' ')}{task.prompt.split(' ').length >
+                      6
+                        ? '...'
+                        : ''}
+                    </h4>
+
+                    <!-- Task Details -->
+                    <p class="text-gray-400 text-sm flex-1 line-clamp-3 mb-4">
+                      {task.prompt}
+                    </p>
+
+                    <!-- Bottom Action -->
+                    <div class="mt-auto">
+                      <button
+                        class="w-full bg-purple-600/80 hover:bg-purple-600 text-white py-2.5 rounded-lg font-medium transition-colors group-hover:bg-purple-500">
+                        Start Arena
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                <!-- Task Content -->
-                <div style="background-color: #283033; height:130px;" class="p-4 flex flex-col">
-                  <div
-                    class="text-md text-gray-200 font-medium break-words overflow-y-auto flex-grow">
-                    {task.prompt}
-                  </div>
-                </div>
-
-                <!-- Task Footer -->
-                <div style="background-color: #684897"
-                  class="px-4 py-2 border-t border-gray-800 flex justify-between items-center mt-auto">
-                  <div class="flex items-center gap-2">
-                    <div class="text-xs text-gray-200">Click to begin</div>
-                    {#if isGymBuilder && task.currentSubmissions !== undefined && task.app.gymLimitType === 'per-task' && task.app.gymLimitValue !== undefined}
-                      <div
-                        class="text-xs px-1.5 py-0.5 rounded-full {task.currentSubmissions >=
-                        task.app.gymLimitValue
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-gray-100 text-gray-700'}">
-                        {task.currentSubmissions}/{task.app.gymLimitValue}
-                      </div>
-                    {/if}
-                  </div>
-                  <div class="text-sm font-semibold text-gray-200 flex items-center gap-1">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="w-3.5 h-3.5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round">
-                      <line x1="12" y1="1" x2="12" y2="23"></line>
-                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                    </svg>
-                    {task.rewardLimit || task.app.pool_id.pricePerDemo || 0} OMNIS
-                  </div>
-                </div>
-              </Card>
-            </a>
-          {/if}
-        {/each}
+              </a>
+            {/if}
+          {/each}
+        </div>
       </div>
-    </div>
-  {/if}
-{/if}
+    {/if}
+  </div>
+</div>

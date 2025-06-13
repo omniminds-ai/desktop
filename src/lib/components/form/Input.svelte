@@ -42,7 +42,7 @@
       {@render icon?.()}
     </div>
     <input
-      class="{variantClasses} w-full ps-12 py-2 px-3 rounded-lg border focus:outline-none focus:ring transition-all {className}"
+      class="{variantClasses} w-full ps-12 py-2 px-3 border focus:outline-none focus:ring transition-all {className}"
       bind:value
       {...rest} />
   </div>
@@ -50,7 +50,7 @@
   <input
     class="{variantClasses} w-full {icon
       ? 'ps-12'
-      : ''} py-2 px-3 rounded-lg border focus:outline-none focus:ring transition-all {className}"
+      : ''} py-2 px-3 border focus:outline-none focus:ring transition-all {className}"
     bind:value
     {...rest} />
 {/if}
