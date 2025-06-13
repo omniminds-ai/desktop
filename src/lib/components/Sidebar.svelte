@@ -104,7 +104,5 @@
       </button>
     {/if}
     <UploadManager />
-    <br />
-    <WalletButton />
   </div>
 </div>

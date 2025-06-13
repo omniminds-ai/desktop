@@ -38,7 +38,7 @@
   }
 </script>
 
-<div class="flex w-full items-center justify-between px-6 py-4">
+<div class="flex w-full items-center justify-between px-2 py-4">
   <!-- Left side - Search -->
   <div class="flex items-center">
     <div class="relative">
