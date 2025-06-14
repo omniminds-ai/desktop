@@ -100,7 +100,7 @@
   <Sidebar />
   <div class="flex-1 p-2">
     <div class="h-full overflow-hidden bg-background-100 rounded-md">
-      <div class="h-full w-full overflow-auto px-[80px] py-[20px]">
+      <div class="h-full w-full overflow-auto px-[60px] py-[12px]">
         <Header />
         {@render children()}
       </div>
@@ -108,7 +108,7 @@
   </div>
 </div>
 
-<!-- {#await checkForUpdate() then update}
+{#await checkForUpdate() then update}
   {#if update && !canceled}
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div class="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
@@ -124,7 +124,7 @@
       </div>
     </div>
   {/if}
-{/await} -->
+{/await}
 
 <InitToolsFailedModal
   errors={initErrors}

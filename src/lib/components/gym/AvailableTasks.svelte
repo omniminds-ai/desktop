@@ -120,8 +120,8 @@
 </script>
 
 <!-- Available Tasks Section with Dark Theme -->
-<div class="min-h-screen p-6">
-  <div class="max-w-7xl mx-auto">
+<div class="min-h-screen px-0">
+  <div class="max-w-7xl mx-3">
     <!-- Header Section -->
     <div class="mb-8">
       <div class="flex items-center justify-between mb-6">

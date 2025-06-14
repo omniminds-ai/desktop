@@ -11,7 +11,7 @@
   };
 
   const variantClasses = {
-    default: 'bg-white/50 border border-gray-300/75',
+    default: 'bg-primary-200 border border-gray-300/75 text-white',
     primary: 'bg-secondary-300 text-white',
     secondary: 'bg-gray-50 border border-gray-300/75'
   };

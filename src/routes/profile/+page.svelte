@@ -252,8 +252,7 @@
 <div class={`grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 pt-4 `}>
   <!-- Wallet Balance Card -->
   <Card padding="none" className="relative overflow-hidden border-0 shadow-md h-full">
-    <div
-            class="bg-gradient-to-br from-secondary-500 to-secondary-200 text-white h-full flex flex-col">
+    <div class="bg-gradient-to-br from-secondary-400 to-secondary-800 text-white h-full flex flex-col">
       <div class="p-4 flex-grow">
         <div class="flex items-center gap-2 mb-2">
           <Wallet size={14} />
@@ -305,22 +304,6 @@
           <span class="text-xs font-medium opacity-75">$OMNIS</span>
         </div>
       </div>
-
-      <div class="flex border-t border-white/20 text-xs mt-auto">
-        <a
-                href="/app/gym/skills"
-                class="flex-1 py-3 flex items-center justify-center gap-1.5 font-medium hover:bg-white/10 transition-colors">
-          <Zap size={12} />
-          <span>Skill Tree</span>
-        </a>
-        <div class="w-px bg-white/20"></div>
-        <a
-                href="/app/gym/history"
-                class="flex-1 py-3 flex items-center justify-center gap-1.5 font-medium hover:bg-white/10 transition-colors">
-          <History size={12} />
-          <span>History</span>
-        </a>
-      </div>
     </div>
   </Card>
 
@@ -363,7 +346,7 @@
             </svg>
             <h3 class="text-xl font-bold">No Pending Rewards</h3>
             <p class="text-indigo-200 max-w-xs mx-auto">
-              Why not start some tasks and earn some sweet $OMNIS tokens?
+              Head to the Arena and train some agents in the Dojo to earn rewards
             </p>
           </div>
       </div>
@@ -430,7 +413,7 @@
     {#each filteredRecordings as recording}
       <Card
         padding="sm"
-        className={`hover:border-secondary-300 transition-colors ${!!recording.submission ? 'opacity-50 hover:opacity-75 bg-gray-100 border border-gray-300' : 'font-semibold bg-white shadow-md border-l-4 border-secondary-300'}`}>
+        className={`hover:border-secondary-300 transition-colors ${!!recording.submission ? 'opacity-100 hover:opacity-75 bg-primary-100 border border-primary-300' : 'font-semibold bg-primary-100 shadow-md border-l-4 border-secondary-300'}`}>
         <div class="flex items-center gap-3">
           <!-- Icon -->
           {#if recording.meta?.quest?.icon_url || recording?.submission?.meta?.quest?.icon_url}
@@ -441,7 +424,7 @@
               onerror={handleImageError} />
           {:else}
             <div
-              class="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center text-gray-500">
+              class="w-8 h-8 bg-primary-200 rounded-md flex items-center justify-center text-gray-800">
               <span class="text-xs">App</span>
             </div>
           {/if}
@@ -538,12 +521,12 @@
             {#if recording.submission?.reward}
               <div class="text-right min-w-[120px]">
                 <div class="text-sm font-semibold text-secondary-300">
-                  {formatNumber(recording.submission.reward)} VIRAL
+                  {formatNumber(recording.submission.reward)} $OMNIS
                 </div>
               </div>
             {:else if recording.submission}
               <div class="text-right min-w-[120px]">
-                <div class="text-sm font-semibold text-secondary-300">0 VIRAL</div>
+                <div class="text-sm font-semibold text-secondary-300">0 $OMNIS</div>
               </div>
             {/if}
           {/if}

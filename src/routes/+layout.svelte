@@ -28,3 +28,7 @@
 <svelte:head>Omniminds Desktop</svelte:head>
 
 {@render children()}
+
+<style>
+
+</style>
