@@ -101,21 +101,6 @@
     <div class="mx-auto mb-8">
       <div class="text-xl font-semibold mb-2">Viewing Forge: {poolName}</div>
     </div>
-  {:else}
-    <div class="mx-auto mb-8">
-      <p class="text-gray-600">
-        Choose a task, record a demonstration on your desktop, earn rewards. Your data helps us
-        build the largest open-source dataset for training sophisticated AI assistants.
-      </p>
-    </div>
-  {/if}
-  {#if !$walletAddress}
-    <div class="bg-primary-400 rounded-md p-5 flex flex-row text-white mb-6 -mt-2">
-      <h1 class="grow justify-start align-middle">Please connect your wallet to use the gym.</h1>
-      <div class="justify-end gorw-0">
-        <WalletButton variant="large" />
-      </div>
-    </div>
   {/if}
 
   <div class={`${!$walletAddress ? 'blur-sm pointer-events-none' : ''}`}>

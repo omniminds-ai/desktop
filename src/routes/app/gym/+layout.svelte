@@ -61,7 +61,7 @@
 </script>
 
 <div class="relative">
-  <div class="p-2 sm:p-4">
+  <div>
     {#if $toolsInitState.initializing}
       <div class="px-4 rounded my-2 mx-auto py-2 flex flex-col">
         <div class="flex justify-between items-center mb-1">
@@ -76,7 +76,6 @@
         </div>
       </div>
     {/if}
-    <GymHeader {hasPendingRewards} />
     {@render children()}
   </div>
 </div>

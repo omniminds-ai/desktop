@@ -38,7 +38,7 @@
   }
 </script>
 
-<div class="flex w-full items-center justify-between px-2 py-4">
+<div class="flex w-full items-center justify-between py-4 max-w-7xl">
   <!-- Left side - Search -->
   <div class="flex items-center">
     <div class="relative">
@@ -59,7 +59,7 @@
       <MessageSquare class="h-5 w-5 text-gray-400 hover:text-white" />
     </button>
 
-    <div class="flex items-center gap-2 px-3 py-1.5">
+    <div class="flex items-center gap-2">
       <div class="flex items-center gap-1">
         <WalletButton />
       </div>
