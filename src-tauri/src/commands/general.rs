@@ -22,9 +22,10 @@ pub async fn take_screenshot() -> Result<String, String> {
     // Get primary monitor
     let monitors = Monitor::all().map_err(|e| e.to_string())?;
     let primary = monitors
-        .into_iter()
-        .next()
-        .ok_or_else(|| "No monitor found".to_string())?;
+        .iter()
+        .find(|d| d.is_primary())
+        .or_else(|| monitors.first())
+        .ok_or_else(|| "No display found".to_string())?;
 
     // Capture image
     let xcap_image = primary.capture_image().map_err(|e| e.to_string())?;
@@ -38,6 +39,38 @@ pub async fn take_screenshot() -> Result<String, String> {
 
     // Convert to base64
     Ok(format!("data:image/png;base64,{}", BASE64.encode(&buffer)))
+}
+
+#[tauri::command]
+pub async fn capture_all_monitors() -> Result<Vec<serde_json::Value>, String> {
+        // Get primary monitor
+       let monitors = Monitor::all().map_err(|e| e.to_string())?;
+       let mut ret = Vec::new();
+    
+       for monitor in monitors {
+           let xcap_image = monitor.capture_image().map_err(|e| e.to_string())?;
+       
+           // Convert to PNG bytes
+          let mut buffer = Vec::new();
+          let mut cursor = Cursor::new(&mut buffer);
+          xcap_image
+              .write_to(&mut cursor, ImageFormat::Png)
+              .map_err(|e| e.to_string())?;
+
+           let json = serde_json::json!({
+                            "id": monitor.id(),
+                            "name": monitor.name(),
+                            "x": monitor.x(),
+                            "y": monitor.y(),
+                            "width" : monitor.width(),
+                            "height" : monitor.height(),
+                            "isPrimary" : monitor.is_primary(),
+                            "capture" : format!("data:image/png;base64,{}", BASE64.encode(&buffer))
+                        });
+          ret.push(json);
+       
+       }
+       Ok(ret)
 }
 
 #[tauri::command]

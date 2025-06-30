@@ -4,13 +4,15 @@
   import { Loader, Search } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import type { ForgeTask } from '$lib/types/gym';
-  import { getGymCategories, getTasksForGym } from '$lib/api/endpoints/forge';
+  import { getGymCategories, getTasksForGym, createPoolWithApps } from '$lib/api/endpoints/forge';
   import Input from '$lib/components/form/Input.svelte';
   import Button from '$lib/components/form/Button.svelte';
   import CardBg1 from '$lib/assets/card-bg-1.png';
   import CardBg2 from '$lib/assets/card-bg-2.png';
   import CardBg3 from '$lib/assets/card-bg-3.png';
   import CardBg4 from '$lib/assets/card-bg-4.png';
+  import GenerateGymModal from "$lib/components/modals/GenerateGymModal.svelte";
+  import { walletAddress } from '$lib/stores/wallet';
 
   // Props
   let tasks: ForgeTask[] = [];
@@ -18,6 +20,8 @@
   export let viewMode: 'preview' = 'preview'; // Changed from 'edit' | 'preview' to only allow 'preview'
   export let isGymBuilder: boolean = false; // Whether this is used in GymBuilder or not
   export let poolId: string | undefined = undefined;
+  let showGenerateGymModal = false;
+  let currentSkills = '';
 
   // Filtering state
   let allCategories: string[] = [];
@@ -41,7 +45,7 @@
   });
 
   function getReward(task: ForgeTask) {
-    return task.rewardLimit || task.app.pool_id.pricePerDemo || 0;
+    return task.rewardLimit || task.app.pool.pricePerDemo || 0;
   }
 
   function getRandomBackground() {
@@ -131,78 +135,78 @@
         </div>
 
         <!-- Filter Controls -->
-        <div class="flex items-center gap-4">
-          <!-- Category Filter Buttons -->
-          <div class="flex items-center gap-2">
-            <button
-              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">
-              Category
-              <svg
-                class="inline-block ml-2 w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7">
-                </path>
-              </svg>
-            </button>
+<!--        <div class="flex items-center gap-4">-->
+<!--          &lt;!&ndash; Category Filter Buttons &ndash;&gt;-->
+<!--          <div class="flex items-center gap-2">-->
+<!--            <button-->
+<!--              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">-->
+<!--              Category-->
+<!--              <svg-->
+<!--                class="inline-block ml-2 w-4 h-4"-->
+<!--                fill="none"-->
+<!--                stroke="currentColor"-->
+<!--                viewBox="0 0 24 24">-->
+<!--                <path-->
+<!--                  stroke-linecap="round"-->
+<!--                  stroke-linejoin="round"-->
+<!--                  stroke-width="2"-->
+<!--                  d="M19 9l-7 7-7-7">-->
+<!--                </path>-->
+<!--              </svg>-->
+<!--            </button>-->
 
-            <button
-              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">
-              Rewards
-              <svg
-                class="inline-block ml-2 w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7">
-                </path>
-              </svg>
-            </button>
+<!--            <button-->
+<!--              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">-->
+<!--              Rewards-->
+<!--              <svg-->
+<!--                class="inline-block ml-2 w-4 h-4"-->
+<!--                fill="none"-->
+<!--                stroke="currentColor"-->
+<!--                viewBox="0 0 24 24">-->
+<!--                <path-->
+<!--                  stroke-linecap="round"-->
+<!--                  stroke-linejoin="round"-->
+<!--                  stroke-width="2"-->
+<!--                  d="M19 9l-7 7-7-7">-->
+<!--                </path>-->
+<!--              </svg>-->
+<!--            </button>-->
 
-            <button
-              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">
-              Task Type
-              <svg
-                class="inline-block ml-2 w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7">
-                </path>
-              </svg>
-            </button>
+<!--            <button-->
+<!--              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">-->
+<!--              Task Type-->
+<!--              <svg-->
+<!--                class="inline-block ml-2 w-4 h-4"-->
+<!--                fill="none"-->
+<!--                stroke="currentColor"-->
+<!--                viewBox="0 0 24 24">-->
+<!--                <path-->
+<!--                  stroke-linecap="round"-->
+<!--                  stroke-linejoin="round"-->
+<!--                  stroke-width="2"-->
+<!--                  d="M19 9l-7 7-7-7">-->
+<!--                </path>-->
+<!--              </svg>-->
+<!--            </button>-->
 
-            <button
-              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">
-              Rating
-              <svg
-                class="inline-block ml-2 w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7">
-                </path>
-              </svg>
-            </button>
-          </div>
-        </div>
+<!--            <button-->
+<!--              class="px-4 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">-->
+<!--              Rating-->
+<!--              <svg-->
+<!--                class="inline-block ml-2 w-4 h-4"-->
+<!--                fill="none"-->
+<!--                stroke="currentColor"-->
+<!--                viewBox="0 0 24 24">-->
+<!--                <path-->
+<!--                  stroke-linecap="round"-->
+<!--                  stroke-linejoin="round"-->
+<!--                  stroke-width="2"-->
+<!--                  d="M19 9l-7 7-7-7">-->
+<!--                </path>-->
+<!--              </svg>-->
+<!--            </button>-->
+<!--          </div>-->
+<!--        </div>-->
       </div>
     </div>
 
@@ -228,7 +232,7 @@
                     min={priceRangeMin - 1}
                     max={priceRangeMax}
                     type="number" />
-                  <span class="text-gray-400">$OMNIS</span>
+                  <span class="text-gray-400">SOL</span>
                 </div>
               </div>
               <div>
@@ -295,6 +299,7 @@
       </div>
     {/if}
 
+
     <!-- Loading State -->
     {#if loadingApps}
       <div in:fade={{ duration: 100 }} class="flex items-center justify-center h-40">
@@ -311,6 +316,31 @@
       <div in:fade={{ duration: 100 }}>
         <div
           class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
+          <Card
+              variant="secondary"
+              padding="md"
+              className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-2xl overflow-hidden hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 h-full flex flex-col">
+            <div
+                class="flex flex-col h-full items-center justify-center cursor-pointer"
+                role="button"
+                tabindex="0"
+                onkeydown={() => (showGenerateGymModal = true)}
+                onclick={() => (showGenerateGymModal = true)}>
+
+              <div
+                      class="rounded-full bg-gray-200 w-24 h-24 flex items-center justify-center mb-4 duration-300 transform transition-all">
+                <span class="text-5xl text-gray-500 font-light transition-colors duration-300">+</span>
+              </div>
+              <div
+                      class="text-lg font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-300">
+                Create New Dojo
+              </div>
+              <p
+                      class="text-sm text-gray-500 text-center mt-2 group-hover:text-gray-600 transition-colors duration-300">
+                Start collecting demonstrations for your AI agent training
+              </p>
+            </div>
+          </Card>
           {#each tasks as task}
             {#if isGymBuilder || !task.uploadLimitReached}
               <a
@@ -323,7 +353,7 @@
                     url: `https://${task.app.domain}`,
                     task_id: task._id
                   })
-                )}&poolId={task.app.pool_id._id}"
+                )}&poolId={task.app.pool._id}"
                 class="block group">
                 <!-- Task Card -->
                 <div
@@ -357,7 +387,7 @@
                     <div class="flex items-center justify-between mb-3">
                       <h3 class="text-white text-sm">
                         <span class="text-2xl">{getReward(task)}</span>
-                        $OMNIS
+                        {task.app.pool.token ? task.app.pool.token.symbol : ''}
                       </h3>
                     </div>
 
@@ -378,7 +408,7 @@
                     <div class="mt-auto">
                       <button
                         class="w-full bg-purple-600/80 hover:bg-purple-600 text-white py-2.5 rounded-lg font-medium transition-colors group-hover:bg-purple-500">
-                        Start Arena
+                        Start Dojo
                       </button>
                     </div>
                   </div>
@@ -391,3 +421,42 @@
     {/if}
   </div>
 </div>
+
+<GenerateGymModal
+        show={showGenerateGymModal}
+        skills={currentSkills}
+        on:change={(e) => (currentSkills = e.detail.skills)}
+        on:close={() => (showGenerateGymModal = false)}
+        on:save={async (event) => {
+    try {
+      if (!$walletAddress) return;
+     const TOKEN_DATA = {
+        OMNIS: 'G6iRK8kN67HJFrPA1CDA5KZaPJMiBu3bqdd9vdKBpump', // VIRAL token
+        SOL: 'So11111111111111111111111111111111111111112' // SOL token
+      };
+
+      const generatedResponse = event.detail.generatedResponse;
+      if (generatedResponse?.content) {
+        const { name, apps } = generatedResponse.content;
+
+        // Create pool with the generated apps and name
+        await createPoolWithApps({
+          name,
+          skills: currentSkills,
+          token: {
+            type: 'SOL',
+            symbol: 'SOL',
+            address: TOKEN_DATA.SOL
+          },
+          apps,
+          ownerAddress: $walletAddress
+        });
+
+        currentSkills = '';
+        showGenerateGymModal = false;
+        // loadPools();
+      }
+    } catch (err) {
+      err = err instanceof Error ? err.message : 'Failed to create AI agent gym';
+    }
+  }} />

@@ -164,21 +164,21 @@
 
 {#if show}
   <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-2xl">
+    <div class="bg-background-100 rounded-lg w-full max-w-2xl">
       <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-        <h3 class="text-lg font-bold">Generate a gym</h3>
+        <h3 class="text-lg font-bold text-white">Create a Dojo</h3>
         <button class="text-gray-500 hover:text-gray-700" onclick={handleCancel}>&times;</button>
       </div>
 
       {#if currentStep === 1}
         <!-- Step 1: Input skills -->
         <div class="p-4">
-          <p class="text-sm text-gray-600 mb-3">
-            You can generate a gym by describing your dream agent, or by sharing the skills you want
+          <p class="text-sm text-gray-200 mb-3">
+            You can generate a dojo by describing your dream agent, or by sharing the skills you want
             a training dataset for.
           </p>
           <TextArea
-            class="h-48"
+            class="h-48 text-gray-700"
             variant="light"
             placeholder="List the skills to train (one per line)..."
             value={skills}
@@ -187,11 +187,11 @@
 
           <!-- Example prompt buttons -->
           <div class="mt-3">
-            <p class="text-sm text-gray-600 mb-2">Example prompts:</p>
+            <p class="text-sm text-gray-200 mb-2">Example prompts:</p>
             <div class="flex flex-wrap gap-2">
               {#each examplePrompts as prompt}
                 <button
-                  class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 py-1 px-2 rounded-full transition-colors"
+                  class="text-xs bg-secondary-400 hover:bg-secondary-200 text-gray-200 py-1 px-2 rounded-full transition-colors"
                   onclick={() => applyExamplePrompt(prompt.text)}>
                   {prompt.label}
                 </button>
@@ -200,7 +200,7 @@
           </div>
 
           {#if error}
-            <div class="mt-3 p-3 bg-red-50 text-red-500 rounded-lg text-sm">
+            <div class="mt-3 p-3 bg-red-50 text-red-800 rounded-lg text-sm">
               {error}
             </div>
           {/if}
@@ -211,7 +211,7 @@
           <div class="mb-6">
             <RefreshCw size={48} class="text-secondary-300 animate-spin" />
           </div>
-          <p class="text-lg font-medium text-gray-800">Generating your gym</p>
+          <p class="text-lg font-medium text-gray-200">Generating your dojo</p>
           <p class="text-sm text-gray-500 mt-2">Creating tasks based on your requirements...</p>
         </div>
       {:else if currentStep === 3}
@@ -219,7 +219,7 @@
         <div class="p-4">
           <div class="flex justify-between mb-2">
             <div>
-              <h4 class="text-xl font-bold">Your gym</h4>
+              <h4 class="text-xl font-bold text-gray-200">Your dojo</h4>
               <h5 class="text-sm text-gray-600">You'll be able to make further changes later</h5>
             </div>
           </div>
@@ -240,56 +240,47 @@
           {:else}
             <!-- UI Preview -->
             {#if generatedResponse && generatedResponse.content}
-              <div class="bg-gray-50 p-4 rounded-lg mt-4">
-                <div
-                  class="text-lg font-bold text-gray-800 mb-3 border border-transparent rounded px-2 py-1 hover:border-gray-200 cursor-text"
-                  contenteditable="true"
-                  onblur={updateGymName}>
-                  {generatedResponse.content.name || 'Desktop Agent Gym'}
-                </div>
-
-                {#if generatedResponse.content.apps && generatedResponse.content.apps.length > 0}
-                  <div class="mt-4 space-y-4 max-h-[350px] overflow-y-auto pr-2">
-                    {#each generatedResponse.content.apps as app}
-                      <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-                        <div class="flex items-center gap-2 mb-2">
-                          <div class="w-6 h-6 flex items-center justify-center">
-                            <img
-                              src={`https://www.google.com/s2/favicons?domain=${app.domain || app.name.toLowerCase().replace(/\s+/g, '') + '.com'}&sz=32`}
-                              alt={app.name}
-                              class="w-5 h-5"
-                              onerror={(e) => {
-                                (e.currentTarget as HTMLImageElement).src =
-                                  'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect width=%2218%22 height=%2218%22 x=%223%22 y=%223%22 rx=%222%22 ry=%222%22></rect><path d=%22M9 17V9l7 4-7 4Z%22></path></svg>';
-                              }} />
-                          </div>
-                          <div
-                            class="font-medium border border-transparent rounded px-2 py-0.5 hover:border-gray-200 cursor-text"
-                            contenteditable="true"
-                            onblur={(e) => updateAppName(app, e)}>
-                            {app.name}
-                          </div>
+              {#if generatedResponse.content.apps && generatedResponse.content.apps.length > 0}
+                <div class="mt-4 space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                  {#each generatedResponse.content.apps as app}
+                    <div class="bg-background-100 rounded-lg p-3 shadow-sm border border-primary-200">
+                      <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 flex items-center justify-center">
+                          <img
+                            src={`https://www.google.com/s2/favicons?domain=${app.domain || app.name.toLowerCase().replace(/\s+/g, '') + '.com'}&sz=32`}
+                            alt={app.name}
+                            class="w-5 h-5"
+                            onerror={(e) => {
+                              (e.currentTarget as HTMLImageElement).src =
+                                'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect width=%2218%22 height=%2218%22 x=%223%22 y=%223%22 rx=%222%22 ry=%222%22></rect><path d=%22M9 17V9l7 4-7 4Z%22></path></svg>';
+                            }} />
                         </div>
-
-                        {#if app.tasks && app.tasks.length > 0}
-                          <div class="ml-8 space-y-2">
-                            {#each app.tasks as task}
-                              <div
-                                class="text-sm text-gray-700 bg-gray-50 p-2 rounded-md border border-transparent hover:border-gray-300 cursor-text"
-                                contenteditable="true"
-                                onblur={(e) => updateTaskPrompt(task, e)}>
-                                {task.prompt}
-                              </div>
-                            {/each}
-                          </div>
-                        {/if}
+                        <div
+                          class="font-medium text-gray-200 border border-transparent rounded px-2 py-0.5 cursor-text"
+                          contenteditable="true"
+                          onblur={(e) => updateAppName(app, e)}>
+                          {app.name}
+                        </div>
                       </div>
-                    {/each}
-                  </div>
-                {:else}
-                  <div class="text-center py-4 text-gray-500">No apps or tasks generated</div>
-                {/if}
-              </div>
+
+                      {#if app.tasks && app.tasks.length > 0}
+                        <div class="ml-8 space-y-2">
+                          {#each app.tasks as task}
+                            <div
+                              class="text-sm text-gray-200 bg-primary-200 p-2 rounded-md border border-transparent hover:border-gray-200 cursor-text"
+                              contenteditable="true"
+                              onblur={(e) => updateTaskPrompt(task, e)}>
+                              {task.prompt}
+                            </div>
+                          {/each}
+                        </div>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {:else}
+                <div class="text-center py-4 text-gray-500">No apps or tasks generated</div>
+              {/if}
             {/if}
           {/if}
         </div>

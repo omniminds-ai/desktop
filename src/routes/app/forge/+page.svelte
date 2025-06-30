@@ -34,7 +34,7 @@
 
   // Token contract addresses
   const TOKEN_DATA = {
-    contractAddress: 'G6iRK8kN67HJFrPA1CDA5KZaPJMiBu3bqdd9vdKBpump', // VIRAL token
+    contractAddress: 'G6iRK8kN67HJFrPA1CDA5KZaPJMiBu3bqdd9vdKBpump', // OMNIS token
     solAddress: 'So11111111111111111111111111111111111111112' // SOL token
   };
 

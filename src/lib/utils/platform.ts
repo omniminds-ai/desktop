@@ -18,6 +18,7 @@ export async function getPlatform(): Promise<ReturnType<typeof platform>> {
  * API URL based on environment
  */
 export const API_URL = dev ? 'http://localhost:8001' : 'https://api.omniminds.ai';
+export const WEBSITE_URL = 'https://omniminds.ai';
 
 /**
  * Checks for application updates

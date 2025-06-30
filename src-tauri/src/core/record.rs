@@ -30,7 +30,7 @@ pub struct RecordingMeta {
     arch: String,
     version: String,
     locale: String,
-    primary_monitor: MonitorInfo,
+    monitor: MonitorInfo,
     quest: Option<Quest>,
 }
 
@@ -55,10 +55,12 @@ pub struct QuestReward {
     max_reward: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MonitorInfo {
     width: u32,
     height: u32,
+    x: i32,
+    y: i32
 }
 
 enum Recorder {
@@ -87,7 +89,7 @@ impl Recorder {
         }
     }
 
-    fn new(video_path: &PathBuf, primary: &DisplayInfo) -> Result<Self, String> {
+    fn new(video_path: &PathBuf, display: &DisplayInfo) -> Result<Self, String> {
         log::info!("[record] Starting new recorder");
         // #[cfg(target_os = "macos")]
         // {
@@ -183,8 +185,10 @@ impl Recorder {
             };
 
             Ok(Recorder::FFmpeg(FFmpegRecorder::new_with_input(
-                primary.width,
-                primary.height,
+                display.x,
+                display.y,
+                display.width,
+                display.height,
                 30,
                 video_path.to_path_buf(),
                 input_format.to_string(),
@@ -298,6 +302,7 @@ pub async fn start_recording(
     app: tauri::AppHandle,
     quest_state: State<'_, QuestState>,
     quest: Option<Quest>,
+    display: Option<MonitorInfo>,
 ) -> Result<(), String> {
     // Start screen recording
     let mut recorder_state = RECORDER_STATE.lock().map_err(|e| e.to_string())?;
@@ -308,10 +313,30 @@ pub async fn start_recording(
 
     set_rec_state(&app, "starting".to_string(), None)?;
 
+    //processing screen recording
+    let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
+    let recorded_display = match display
+    {
+        Some(m) => {
+            displays
+                .iter()
+                .find(|d| d.x == m.x && d.y == m.y)
+                .or_else(|| displays.first())
+                .ok_or_else(|| "No displays found".to_string())?
+        },
+        None => {
+            displays
+                .iter()
+                .find(|d| d.is_primary)
+                .or_else(|| displays.first())
+                .ok_or_else(|| "No displays found".to_string())?
+        }
+    };
+
     // Initialize FFmpeg
     init_ffmpeg()?;
 
-    create_overlay_window(&app)?;
+    create_overlay_window(&app, recorded_display)?;
 
     // Store quest data in state if available
     if let Some(quest_data) = &quest {
@@ -335,13 +360,6 @@ pub async fn start_recording(
 
     let video_path = session_dir.join("recording.mp4");
 
-    let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
-    let primary = displays
-        .iter()
-        .find(|d| d.is_primary)
-        .or_else(|| displays.first())
-        .ok_or_else(|| "No display found".to_string())?;
-
     // Create and save initial meta file
     let meta = RecordingMeta {
         id: timestamp.clone(),
@@ -358,9 +376,11 @@ pub async fn start_recording(
         arch: tauri_plugin_os::arch().to_string(),
         version: tauri_plugin_os::version().to_string(),
         locale: tauri_plugin_os::locale().unwrap_or_default(),
-        primary_monitor: MonitorInfo {
-            width: primary.width,
-            height: primary.height,
+        monitor: MonitorInfo {
+            width: recorded_display.width,
+            height: recorded_display.height,
+            x: recorded_display.x,
+            y: recorded_display.y
         },
         reason: None,
         quest,
@@ -377,7 +397,7 @@ pub async fn start_recording(
 
     set_rec_state(&app, "recording".to_string(), None)?;
 
-    let mut recorder = Recorder::new(&video_path, &primary)?;
+    let mut recorder = Recorder::new(&video_path, &recorded_display)?;
     recorder.start()?;
     *recorder_state = Some(recorder);
 
@@ -1221,30 +1241,23 @@ pub async fn get_current_quest(
     Ok(current_quest.clone())
 }
 
-fn create_overlay_window(app: &tauri::AppHandle) -> Result<(), String> {
+fn create_overlay_window(app: &tauri::AppHandle, recorded_monitor :&DisplayInfo) -> Result<(), String> {
     log::info!("Starting to create overlay window");
 
-    // Get primary display info
-    let displays = DisplayInfo::all().map_err(|e| format!("Failed to get display info: {}", e))?;
-    let primary = displays
-        .iter()
-        .find(|d| d.is_primary)
-        .or_else(|| displays.first())
-        .ok_or_else(|| "No display found".to_string())?;
-
+    // display info
     log::info!(
-        "Using primary display: {}x{} at position ({},{})",
-        primary.width,
-        primary.height,
-        primary.x,
-        primary.y
+        "Using display: {}x{} at position ({},{})",
+        recorded_monitor.width,
+        recorded_monitor.height,
+        recorded_monitor.x,
+        recorded_monitor.y
     );
 
     // set overlay locations for specific platforms
     let overlay_w = 280.0;
     let overlay_h = 280.0;
-    let overlay_x = primary.width as f64 - overlay_w;
-    let overlay_y = primary.y as f64;
+    let overlay_x = recorded_monitor.x as f64 + recorded_monitor.width as f64 - overlay_w;
+    let overlay_y = recorded_monitor.y as f64;
 
     log::info!(
         "Overlay window dimensions: {}x{} at position ({},{})",

@@ -10,7 +10,7 @@ use core::record::{set_rec_state, QuestState};
 #[cfg(target_os = "macos")]
 use utils::permissions::{has_ax_perms, has_record_perms, request_ax_perms, request_record_perms};
 
-use crate::commands::general::{greet, list_apps, take_screenshot};
+use crate::commands::general::{greet, list_apps, take_screenshot, capture_all_monitors};
 use crate::commands::record::{
     create_recording_zip, delete_recording, export_recording_zip, get_app_data_dir,
     get_current_quest, get_recording_file, get_recording_state, list_recordings,
@@ -56,6 +56,7 @@ pub fn run() {
             stop_recording,
             take_screenshot,
             list_apps,
+            capture_all_monitors,
             #[cfg(target_os = "macos")]
             has_record_perms,
             #[cfg(target_os = "macos")]

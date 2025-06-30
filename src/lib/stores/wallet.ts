@@ -1,5 +1,5 @@
 import { checkConnection } from '$lib/api/endpoints/wallet';
-import { API_URL } from '$lib/utils';
+import {WEBSITE_URL} from '$lib/utils';
 import { writable, get } from 'svelte/store';
 
 // Initialize from localStorage if available
@@ -43,7 +43,9 @@ export function getConnectionUrl() {
     token = generateToken();
     connectionToken.set(token);
   }
-  return `${API_URL}/connect?token=${token}`;
+  return `http://localhost:5173/connect?token=${token}`;
+  // return `${WEBSITE_URL}/connect?token=${token}`;
+  // return `https://omniminds.ai/connect?token=${token}`;
 }
 
 let currentInterval: number | null = null;

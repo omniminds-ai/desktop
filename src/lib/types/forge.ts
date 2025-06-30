@@ -1,6 +1,6 @@
 import type { ForgeApp, Quest } from '$lib/types/gym';
 
-export type TokenType = 'SOL' | 'VIRAL' | 'CUSTOM';
+export type TokenType = 'SOL' | 'OMNIS' | 'CUSTOM';
 
 export interface Token {
   type: TokenType;

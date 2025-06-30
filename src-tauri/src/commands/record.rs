@@ -1,4 +1,4 @@
-use crate::core::record::{self, Quest, QuestState, RecordingMeta};
+use crate::core::record::{self, Quest, QuestState, RecordingMeta, MonitorInfo};
 use tauri::{AppHandle, State};
 
 #[tauri::command]
@@ -6,8 +6,9 @@ pub async fn start_recording(
     app: AppHandle,
     quest_state: State<'_, QuestState>,
     quest: Option<Quest>,
+    display: Option<MonitorInfo>
 ) -> Result<(), String> {
-    record::start_recording(app, quest_state, quest).await
+    record::start_recording(app, quest_state, quest, display).await
 }
 
 #[tauri::command]
