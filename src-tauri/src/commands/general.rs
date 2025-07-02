@@ -23,7 +23,7 @@ pub async fn take_screenshot() -> Result<String, String> {
     let monitors = Monitor::all().map_err(|e| e.to_string())?;
     let primary = monitors
         .iter()
-        .find(|d| d.is_primary())
+        .find(|d| d.is_primary().unwrap())
         .or_else(|| monitors.first())
         .ok_or_else(|| "No display found".to_string())?;
 
@@ -58,13 +58,13 @@ pub async fn capture_all_monitors() -> Result<Vec<serde_json::Value>, String> {
               .map_err(|e| e.to_string())?;
 
            let json = serde_json::json!({
-                            "id": monitor.id(),
-                            "name": monitor.name(),
-                            "x": monitor.x(),
-                            "y": monitor.y(),
-                            "width" : monitor.width(),
-                            "height" : monitor.height(),
-                            "isPrimary" : monitor.is_primary(),
+                            "id": monitor.id().unwrap(),
+                            "name": monitor.name().unwrap(),
+                            "x": monitor.x().unwrap(),
+                            "y": monitor.y().unwrap(),
+                            "width" : monitor.width().unwrap(),
+                            "height" : monitor.height().unwrap(),
+                            "isPrimary" : monitor.is_primary().unwrap(),
                             "capture" : format!("data:image/png;base64,{}", BASE64.encode(&buffer))
                         });
           ret.push(json);
