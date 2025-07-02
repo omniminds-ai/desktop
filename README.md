@@ -30,7 +30,8 @@ Our recording system is designed specifically for training powerful computer-use
 
 ### Recording Format
 
-Recordings are two files and stored in `%LOCALAPPDATA%\ai.viralmind.desktop\recordings\` on Windows and `${HOME}/Library/Application Support/ai.viralmind.desktop/recordings/` on MacOS:
+Recordings are two files and stored in `%LOCALAPPDATA%\ai.omniminds.desktop\recordings\` on Windows and
+`${HOME}/Library/Application Support/ai.omniminds.desktop/recordings/` on MacOS:
 
 - .mp4 video capture
 

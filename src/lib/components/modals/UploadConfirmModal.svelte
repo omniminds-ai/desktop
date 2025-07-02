@@ -20,14 +20,14 @@
       <h2 class="text-xl font-semibold mb-4">Confirm Upload</h2>
       <p class="text-gray-700 mb-6">
         Before uploading your recording, make sure you've read the <a
-          href="https://github.com/viralmind-ai/desktop/blob/main/PRIVACY.md"
+              href="https://github.com/omniminds-ai/desktop/blob/main/PRIVACY.md"
           target="_blank"
           class="hover:underline text-secondary-300">
           Privacy Policy.
         </a>
       </p>
       <p class="text-gray-500 text-sm mb-6">
-        By uploading your recording data, you give Viralmind permission to process and train AI
+        By uploading your recording data, you give Omniminds permission to process and train AI
         agents with it.
       </p>
       <div class="flex justify-end gap-3">

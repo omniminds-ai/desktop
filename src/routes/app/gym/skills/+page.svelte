@@ -334,7 +334,7 @@
       const apps = await getAppsForSkills();
       treeData = {
         name: 'Desktop',
-        icon_url: 'https://viralmind.ai/favicon.png',
+        icon_url: 'https://omniminds.ai/favicon.png',
         children: apps.map((app) => ({
           name: app.name,
           domain: app.domain,

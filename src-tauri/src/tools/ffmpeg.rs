@@ -23,7 +23,7 @@ const FFPROBE_MACOS: &str = "https://www.osxexperts.net/ffprobe71intel.zip";
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
-    temp.push("viralmind-desktop");
+    temp.push("omniminds-desktop");
     temp
 }
 

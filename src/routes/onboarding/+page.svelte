@@ -10,7 +10,7 @@
   import PrivacyPolicy from '$lib/components/PrivacyPolicy.svelte';
 
   // Reactive variable to check if both conditions are met
-  const canContinue = $derived($privacyAccepted && $walletAddress !== null);
+  const canContinue = $derived($privacyAccepted);
 
   const goNext = async () => {
     const platform = await getPlatform();
@@ -34,7 +34,7 @@
 
 <div class="max-w-3xl w-full bg-white rounded-2xl px-8 py-4 shadow-lg text-black">
   <div class="flex-col flex items-center justify-center border-b border-gray-200 pb-6 mb-6">
-    <img src={Logo} alt="Viralmind Logo" class="w-28 h-28 object-contain mb-4" />
+    <img src={Logo} alt="Omniminds Logo" class="w-28 h-28 object-contain mb-4"/>
     <h1 class="text-4xl mb-3 text-secondary-300 text-center font-title font-bold">
       Welcome to Omniminds Desktop
     </h1>
@@ -76,7 +76,7 @@
             class="bg-secondary-300 text-white rounded-full w-7 h-7 inline-flex items-center justify-center mr-3">
             2
           </span>
-          Connect Your Wallet
+          Connect Your Wallet (optional, you can connect after you start)
         </h3>
         <div class="w-fit mx-auto mb-2">
           <WalletButton variant="large" theme="light" />

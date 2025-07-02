@@ -25,7 +25,7 @@ const GITHUB_API_URL: &str =
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
-    temp.push("viralmind-desktop");
+    temp.push("omniminds-desktop");
     temp
 }
 

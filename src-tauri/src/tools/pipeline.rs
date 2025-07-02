@@ -22,7 +22,7 @@ const PIPELINE_URL: &str =
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
-    temp.push("viralmind-desktop");
+    temp.push("omniminds-desktop");
     temp
 }
 
@@ -38,8 +38,8 @@ pub fn init_pipeline() -> Result<(), String> {
     let url_parser = Url::parse(PIPELINE_URL).map_err(|e| format!("Failed to parse URL: {}", e))?;
     let path_segments: Vec<&str> = url_parser.path_segments().unwrap().collect();
 
-    // For URLs like "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-win-x64.exe"
-    // path_segments will be ["viralmind-ai", "vm-pipeline", "releases", "latest", "download", "pipeline-win-x64.exe"]
+    // For URLs like "https://github.com/omniminds-ai/vm-pipeline/releases/latest/download/pipeline-win-x64.exe"
+    // path_segments will be ["omniminds-ai", "vm-pipeline", "releases", "latest", "download", "pipeline-win-x64.exe"]
     let repo_owner = path_segments[0];
     let repo_name = path_segments[1];
 

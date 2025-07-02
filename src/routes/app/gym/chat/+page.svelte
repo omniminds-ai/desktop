@@ -1042,7 +1042,7 @@
                     {/if}
                   </Button>
                   <p class="text-sm w-full text-center text-gray-500">
-                    Get scored and earn $OMNIS tokens
+                    Get scored and earn SOL tokens
                   </p>
                   <button
                     onclick={handleDeleteRecording}

@@ -75,7 +75,7 @@ pub async fn init_tools(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn check_tools() -> Result<serde_json::Value, String> {
-    let temp_dir = std::env::temp_dir().join("viralmind-desktop");
+    let temp_dir = std::env::temp_dir().join("omniminds-desktop");
 
     // Check for ffmpeg
     let ffmpeg_path = temp_dir.join(if cfg!(windows) {

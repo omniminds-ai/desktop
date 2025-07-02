@@ -43,9 +43,7 @@ export function getConnectionUrl() {
     token = generateToken();
     connectionToken.set(token);
   }
-  return `http://localhost:5173/connect?token=${token}`;
-  // return `${WEBSITE_URL}/connect?token=${token}`;
-  // return `https://omniminds.ai/connect?token=${token}`;
+  return `${WEBSITE_URL}/connect?token=${token}`;
 }
 
 let currentInterval: number | null = null;

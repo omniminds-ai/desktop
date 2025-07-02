@@ -7,7 +7,7 @@
 
 {#if privacyAccepted()}
   <a
-    href="https://github.com/viralmind-ai/desktop/blob/main/PRIVACY.md"
+          href="https://github.com/omniminds-ai/desktop/blob/main/PRIVACY.md"
     class="text-secondary-300 hover:underline"
     target="_blank">
     View Privacy Policy

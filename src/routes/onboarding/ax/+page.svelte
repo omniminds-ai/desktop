@@ -90,7 +90,7 @@
           {/if}
         </div>
         <p class="mb-4 leading-relaxed">
-          This allows Viralmind to understand what's on your screen and provide relevant assistance.
+          This allows Omniminds to understand what's on your screen and provide relevant assistance.
         </p>
         {#if !accessibilityGranted}
           <Button variant="primary" onclick={requestAccessibilityPermission}>
@@ -112,7 +112,7 @@
           {/if}
         </div>
         <p class="mb-4 leading-relaxed">
-          This allows Viralmind to record your screen for training and assistance purposes.
+          This allows Omniminds to record your screen for training and assistance purposes.
         </p>
         {#if !screenRecordingGranted}
           <Button variant="primary" onclick={requestScreenRecordingPermission}>

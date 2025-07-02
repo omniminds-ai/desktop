@@ -49,13 +49,13 @@
 <div class="relative h-full flex flex-col">
   <div class="absolute h-full w-full z-50 flex items-center align-middle">
     <div class="mx-auto text-center w-full">
-      <p class="font-semibold text-lg">Viralmind chat is coming soon!</p>
+      <p class="font-semibold text-lg">Omniminds chat is coming soon!</p>
       <p class="text-slate-600">Stay tuned by following us on X.</p>
       <a
         target="_blank"
-        href="https://x.com/ViralMindAI"
+        href="https://x.com/omnimindsai"
         class="text-center text-secondary-300 w-full hover:underline rounded-lg mt-2">
-        <span>@viralmindai</span>
+        <span>@omnimindsai</span>
       </a>
     </div>
   </div>
@@ -68,7 +68,7 @@
           <Bot size={18} />
         </div>
         <Card variant="secondary" className="max-w-2xl shadow-sm">
-          Hello! I'm V, your ViralMind assistant. What desktop task would you like me to perform?
+          Hello! I'm OM, your Omniminds assistant. What desktop task would you like me to perform?
         </Card>
       </div>
     </div>

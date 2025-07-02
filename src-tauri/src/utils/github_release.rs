@@ -85,7 +85,7 @@ fn fetch_latest_release_metadata(
     );
 
     let client = reqwest::blocking::Client::builder()
-        .user_agent("viralmind-desktop")
+        .user_agent("omniminds-desktop")
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
