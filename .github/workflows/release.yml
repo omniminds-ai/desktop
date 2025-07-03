@@ -2,6 +2,7 @@ name: 'release'
 
 # Trigger on a push to the main or staging branch
 on:
+  workflow_dispatch:
   push:
     branches:
       - main

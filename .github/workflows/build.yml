@@ -3,6 +3,7 @@ name: 'build'
 # Trigger on pull requests to the main branch
 on:
   pull_request:
+    workflow_dispatch:
     branches:
       - main
       - staging
