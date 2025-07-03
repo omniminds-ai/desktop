@@ -1,9 +1,9 @@
 [package]
-name = "viralmind-desktop"
-version = "0.1.4"
-description = "The Viralmind desktop app."
-authors = ["Dillon DuPont", "Morgan Dean"]
-edition = "2021"
+name = "omniminds-desktop"
+version = "0.1.0"
+description = "The Omniminds desktop app."
+authors = ["Farag"]
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -53,7 +53,7 @@ tar = "0.4"
 xz2 = { version = "0.1", features = ["static"] }
 lazy_static = "1.4.0"
 display-info = "0.4.3"
-xcap = "0.2.2"
+xcap = "0.6.1"
 base64 = "0.21.7"
 image = "0.24.7"
 tauri-plugin-shell = "2"

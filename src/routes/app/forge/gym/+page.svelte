@@ -19,7 +19,7 @@
   let savingChanges = false;
   let error: string | null = null;
   let refreshingPool = false;
-  let viralPrice = 0;
+  let omnisPrice = 0;
   let refreshInterval: number | null = null;
 
   // Get gymId from the data passed from +page.ts
@@ -77,16 +77,16 @@
   async function fetchPrices() {
     try {
       const TOKEN_DATA = {
-        contractAddress: 'HW7D5MyYG4Dz2C98axfjVBeLWpsEnofrqy6ZUwqwpump', // VIRAL token
+        contractAddress: 'G6iRK8kN67HJFrPA1CDA5KZaPJMiBu3bqdd9vdKBpump', // VIRAL token
         solAddress: 'So11111111111111111111111111111111111111112' // SOL token
       };
 
       const response = await fetch(
-        `https://api.jup.ag/price/v2?ids=${TOKEN_DATA.contractAddress},${TOKEN_DATA.solAddress}`
+              `https://lite-api.jup.ag/price/v3?ids=${TOKEN_DATA.contractAddress},${TOKEN_DATA.solAddress}`
       );
       const json = await response.json();
 
-      viralPrice = parseFloat(json.data[TOKEN_DATA.contractAddress].price);
+      omnisPrice = parseFloat(json[TOKEN_DATA.contractAddress].usdPrice);
     } catch (error) {
       console.error('Error fetching prices:', error);
     }

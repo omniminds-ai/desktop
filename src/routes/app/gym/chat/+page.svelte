@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
-  import { RecordingState, type Quest } from '$lib/types/gym';
+  import { RecordingState, type Quest, type Screen } from '$lib/types/gym';
   import { getReward, getSubmissionStatus } from '$lib/api/endpoints/forge';
   import { User, Upload, MousePointer, Trash2, RotateCcw } from 'lucide-svelte';
   import { emit, listen, type UnlistenFn } from '@tauri-apps/api/event';
@@ -10,7 +10,7 @@
   import Button from '$lib/components/form/Button.svelte';
   import tone from '$lib/assets/tone.wav';
   import blip from '$lib/assets/blip.wav';
-  import pfp from '$lib/assets/V_pfp_v1.png';
+  import icon from '$lib/assets/icon.png';
   import QuestPanel from '$lib/components/gym/QuestPanel.svelte';
   import RecordingPanel from '$lib/components/gym/RecordingPanel.svelte';
   import UploadConfirmModal from '$lib/components/modals/UploadConfirmModal.svelte';
@@ -179,7 +179,7 @@
 
     isWaitingForResponse = true;
     try {
-      const response = await fetch(`${API_URL}/api/forge/chat`, {
+      const response = await fetch(`${API_URL}/v1/forge/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -197,7 +197,8 @@
       }
 
       const assistantResponse = await response.json();
-      await handleAssistantResponse(assistantResponse);
+      console.log({assistantResponse})
+      await handleAssistantResponse(assistantResponse.data);
     } catch (error) {
       isWaitingForResponse = false;
       console.error('Failed to send message:', error);
@@ -286,6 +287,7 @@
 
   async function handleToolCall(toolCall: Record<string, any>) {
     try {
+      console.log({toolCall})
       switch (toolCall?.function?.name) {
         case 'generate_quest':
         case 'validate_task_request': {
@@ -309,12 +311,12 @@
     }
   }
 
-  async function startRecordingHandler() {
+  async function startRecordingHandler(selectedScreen : Screen) {
     try {
       recordingLoading = true;
       if ($recordingState === RecordingState.off) {
-        await startRecording(activeQuest!).catch(console.error);
-        await emit('quest-overlay', { quest: activeQuest! });
+        await startRecording(activeQuest!, selectedScreen).catch(console.error);
+        await emit('quest-overlay', { quest: activeQuest!, screen });
         $recordingState = RecordingState.recording;
       }
       recordingLoading = false;
@@ -758,7 +760,7 @@
     try {
       const toolCall = response?.tool_calls?.[0];
       if (toolCall) {
-        await handleToolCall(toolCall);
+         await handleToolCall(toolCall);
       } else if (response?.role === 'assistant' && typeof response?.content === 'string') {
         await addMessage({
           role: response.role,
@@ -778,7 +780,7 @@
   async function getInitialMessage() {
     isWaitingForResponse = true;
     try {
-      const response = await fetch(`${API_URL}/api/forge/chat`, {
+      const response = await fetch(`${API_URL}/v1/forge/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -796,7 +798,8 @@
       }
 
       const assistantResponse = await response.json();
-      await handleAssistantResponse(assistantResponse);
+      console.log({assistantResponse})
+      await handleAssistantResponse(assistantResponse.data);
     } catch (error) {
       isWaitingForResponse = false;
       console.error('Failed to get initial message:', error);
@@ -871,7 +874,7 @@
   {#if $toolsInitState.initializing}
     <div
       transition:slide
-      class="p-3 max-w-7xl mx-auto mb-5 border-yellow-500 border-1 rounded-lg shadow-md bg-yellow-500/30">
+      class="p-3 mx-auto mb-5 border-yellow-500 border-1 rounded-lg shadow-md bg-yellow-500/30">
       <p class="text-lg font-bold text-yellow-900 border-b border-yellow-800 w-fit">WARNING</p>
       <p class="text-black mt-1">
         If the required tools are not installed correctly when recording a demonstration, your
@@ -881,7 +884,7 @@
   {/if}
   <div
     bind:this={chatContent}
-    class="flex-1 max-w-7xl w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
+    class="flex-1 w-full mx-auto px-6 pb-6 space-y-3 overflow-y-auto chat-content">
     {#if true}
       {@const demoStartIndex = chatMessages.findIndex(
         (m) => m.content.startsWith('<start>') && m.content.endsWith('</start>')
@@ -1012,8 +1015,8 @@
               <User size={18} />
             </div>
           {:else}
-            <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
-              <img src={pfp} alt="V" class="w-full h-full object-cover" />
+            <div class="shrink-0 w-12 h-12 rounded bg-secondary-300 overflow-hidden shadow-md">
+              <img src={icon} alt="OM" class="w-full h-full object-cover" />
             </div>
             {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
               <RecordingPanel recordingId={msg.content.slice(11, -12)} />
@@ -1039,7 +1042,7 @@
                     {/if}
                   </Button>
                   <p class="text-sm w-full text-center text-gray-500">
-                    Get scored and earn $VIRAL tokens
+                    Get scored and earn SOL tokens
                   </p>
                   <button
                     onclick={handleDeleteRecording}
@@ -1192,8 +1195,8 @@
                     <User size={18} />
                   </div>
                 {:else}
-                  <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
-                    <img src={pfp} alt="V" class="w-full h-full object-cover" />
+                  <div class="shrink-0 w-12 h-12 rounded bg-secondary-300 overflow-hidden shadow-md">
+                    <img src={icon} alt="OM" class="w-full h-full object-cover" />
                   </div>
                   {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
                     <RecordingPanel recordingId={msg.content.slice(11, -12)} />
@@ -1221,7 +1224,7 @@
                           {/if}
                         </Button>
                         <p class="text-sm w-full text-center text-gray-500">
-                          Get scored and earn $VIRAL tokens
+                          Get scored and earn $OMNIS tokens
                         </p>
                         <button
                           onclick={handleDeleteRecording}
@@ -1374,7 +1377,7 @@
               </div>
             {:else}
               <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
-                <img src={pfp} alt="V" class="w-full h-full object-cover" />
+                <img src={icon} alt="V" class="w-full h-full object-cover" />
               </div>
               {#if msg.content.startsWith('<recording>') && msg.content.endsWith('</recording>')}
                 <RecordingPanel recordingId={msg.content.slice(11, -12)} />
@@ -1400,7 +1403,7 @@
                       {/if}
                     </Button>
                     <p class="text-sm w-full text-center text-gray-500">
-                      Get scored and earn $VIRAL tokens
+                      Get scored and earn $SOL
                     </p>
                     <button
                       onclick={handleDeleteRecording}
@@ -1453,7 +1456,7 @@
     {#if isWaitingForResponse || loadingSftData}
       <div class="flex gap-2">
         <div class="shrink-0 w-8 h-8 rounded bg-secondary-300 overflow-hidden shadow-md">
-          <img src={pfp} alt="V" class="w-full h-full object-cover" />
+          <img src={icon} alt="V" class="w-full h-full object-cover" />
         </div>
         <Card
           variant="secondary"
@@ -1476,7 +1479,7 @@
   </div>
 </div>
 <!-- <div class="p-4 absolute bottom-0 w-full left-0 bg-white border-t border-gray-200">
-  <div class="flex gap-3 items-center max-w-4xl mx-auto">
+  <div class="flex gap-3 items-center   mx-auto">
     {#if recordingState === 'recording' || recordingLoading}
       <Button
         onclick={toggleRecording}

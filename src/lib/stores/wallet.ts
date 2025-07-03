@@ -1,6 +1,5 @@
 import { checkConnection } from '$lib/api/endpoints/wallet';
-import { API_URL } from '$lib/utils';
-import posthog from 'posthog-js';
+import {WEBSITE_URL} from '$lib/utils';
 import { writable, get } from 'svelte/store';
 
 // Initialize from localStorage if available
@@ -20,7 +19,6 @@ if (typeof localStorage !== 'undefined') {
     if (value) {
       localStorage.setItem('walletAddress', value);
       // identify users by wallet address
-      posthog.identify(value);
     } else {
       localStorage.removeItem('walletAddress');
     }
@@ -45,7 +43,7 @@ export function getConnectionUrl() {
     token = generateToken();
     connectionToken.set(token);
   }
-  return `${API_URL}/connect?token=${token}`;
+  return `${WEBSITE_URL}/connect?token=${token}`;
 }
 
 let currentInterval: number | null = null;

@@ -86,7 +86,7 @@ export async function getReward(
 export async function createPoolWithApps(
   input: CreatePoolInput & { apps?: ForgeApp[] }
 ): Promise<TrainingPool> {
-  return apiClient.post<TrainingPool>('/forge/pools', input, { requiresAuth: true });
+  return apiClient.post<TrainingPool>('/forge/pools', input, {requiresAuth: true}); // TODO-OM: pool renamed to Dojos
 }
 
 /**

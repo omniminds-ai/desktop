@@ -1,5 +1,5 @@
 import type { Component, ComponentProps } from 'svelte';
-import type { SubmissionStatus } from './forge';
+import type {SubmissionStatus, Token} from './forge';
 import type { TrainingPoolStatus } from './forge';
 
 export interface ForgeTask {
@@ -16,7 +16,7 @@ export interface ForgeTask {
     domain: string;
     description: string;
     categories: string[];
-    pool_id: {
+    pool: {
       uploadLimit: {
         type: number;
         limitType: string;
@@ -25,6 +25,7 @@ export interface ForgeTask {
       name: string;
       status: TrainingPoolStatus;
       pricePerDemo: number;
+      token: Token;
     };
     gymLimitType: string;
     gymSubmissions: number;
@@ -173,4 +174,14 @@ export enum RecordingState {
   recording = 'recording',
   saving = 'saving',
   saved = 'saved'
+}
+
+export interface Screen {
+  id: string,
+  capture: string,
+  name: string,
+  x: number,
+  y: number,
+  height: number,
+  width: number
 }

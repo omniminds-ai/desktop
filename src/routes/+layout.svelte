@@ -5,16 +5,9 @@
   import { recordingState } from '$lib/stores/recording';
   import { RecordingState } from '$lib/types/gym';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-  import posthog from 'posthog-js';
-  import { browser } from '$app/environment';
-  import { afterNavigate } from '$app/navigation';
 
   let { children } = $props();
   let unlistenState: UnlistenFn | null = null;
-
-  if (browser) {
-    afterNavigate(() => posthog.capture('$pageview'));
-  }
 
   onMount(async () => {
     // update recording state store
@@ -32,6 +25,10 @@
   });
 </script>
 
-<svelte:head>viralmind desktop</svelte:head>
+<svelte:head>Omniminds Desktop</svelte:head>
 
 {@render children()}
+
+<style>
+
+</style>

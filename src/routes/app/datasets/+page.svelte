@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { Search, Database } from 'lucide-svelte';
   import Card from '$lib/components/Card.svelte';
-  
+
   // Mock dataset data
   let allDatasets = [
     {
@@ -73,7 +73,7 @@
 
   let searchQuery = '';
   let filteredDatasets = [...allDatasets];
-  let allCategories = [...new Set(allDatasets.map(dataset => dataset.category))].sort();
+  let allCategories = [...new Set(allDatasets.map((dataset) => dataset.category))].sort();
   let selectedCategories = new Set();
   let showFilters = false;
 
@@ -89,13 +89,13 @@
 
   function filterDatasets() {
     // Filter by search query and categories
-    filteredDatasets = allDatasets.filter(dataset => {
-      const matchesQuery = searchQuery === '' || 
-        dataset.name.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesCategories = selectedCategories.size === 0 || 
-        selectedCategories.has(dataset.category);
-      
+    filteredDatasets = allDatasets.filter((dataset) => {
+      const matchesQuery =
+        searchQuery === '' || dataset.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesCategories =
+        selectedCategories.size === 0 || selectedCategories.has(dataset.category);
+
       return matchesQuery && matchesCategories;
     });
   }
@@ -118,12 +118,13 @@
   });
 </script>
 
-<div class="h-full max-w-7xl mx-auto overflow-x-hidden">
+<div class="h-full mx-auto overflow-x-hidden">
   <div class="mx-auto mb-8">
     <div class="text-xl font-semibold mb-4">Datasets</div>
     <p class="text-gray-400">
-      Browse and search our collection of desktop interaction datasets. These datasets contain recordings 
-      that can be used for training AI models to understand desktop navigation and application usage.
+      Browse and search our collection of desktop interaction datasets. These datasets contain
+      recordings that can be used for training AI models to understand desktop navigation and
+      application usage.
     </p>
   </div>
 
@@ -138,10 +139,9 @@
           type="text"
           bind:value={searchQuery}
           placeholder="Search datasets..."
-          class="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-transparent"
-        />
+          class="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-300 focus:border-transparent" />
       </div>
-      
+
       <button
         class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50"
         onclick={() => (showFilters = !showFilters)}>
@@ -166,7 +166,8 @@
           <div class="text-sm font-medium text-gray-700 mb-2">Filter by category</div>
           <div class="flex flex-wrap gap-1.5">
             <button
-              class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.size === 0
+              class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.size ===
+              0
                 ? 'bg-secondary-300 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
               onclick={() => (selectedCategories = new Set())}>
@@ -174,7 +175,9 @@
             </button>
             {#each allCategories as category}
               <button
-                class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.has(category)
+                class="px-3 cursor-pointer py-1 rounded-full text-xs font-medium transition-colors {selectedCategories.has(
+                  category
+                )
                   ? 'bg-secondary-300 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
                 onclick={() => toggleCategory(category)}>
@@ -198,9 +201,12 @@
   <!-- Dataset Cards -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
     {#each filteredDatasets as dataset}
-      <Card padding="none" className="relative h-full hover:border-secondary-300 border border-gray-200 hover:shadow-md transition-all overflow-hidden">
+      <Card
+        padding="none"
+        className="relative h-full hover:border-secondary-300 border border-gray-200 hover:shadow-md transition-all overflow-hidden">
         <!-- Dataset Header -->
-        <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+        <div
+          class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
           <div class="flex items-center gap-2">
             <Database size={16} class="text-secondary-500" />
             <span class="text-sm font-medium text-gray-700 truncate">{dataset.category}</span>
@@ -209,7 +215,7 @@
             {dataset.numRecordings} Recordings
           </div>
         </div>
-        
+
         <!-- Dataset Content -->
         <div class="p-4 flex flex-col h-28">
           <div class="text-md text-neutral-800 font-medium mb-2">{dataset.name}</div>
@@ -217,12 +223,11 @@
             Created on {new Date(dataset.dateCreated).toLocaleDateString()}
           </div>
         </div>
-        
+
         <!-- Dataset Footer -->
-        <div class="bg-gray-50 px-4 py-2 border-t border-gray-200 flex justify-between items-center">
-          <div class="text-xs text-gray-500 font-medium">
-            Click to view details
-          </div>
+        <div
+          class="bg-gray-50 px-4 py-2 border-t border-gray-200 flex justify-between items-center">
+          <div class="text-xs text-gray-500 font-medium">Click to view details</div>
           <div class="text-sm font-semibold text-secondary-600">
             {dataset.size}
           </div>
@@ -230,7 +235,7 @@
       </Card>
     {/each}
   </div>
-  
+
   <!-- Empty State -->
   {#if filteredDatasets.length === 0}
     <div class="flex flex-col items-center justify-center p-12 text-center">

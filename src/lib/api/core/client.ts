@@ -45,7 +45,7 @@ export enum ErrorCode {
 export class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl = `${API_URL}/api/v1`) {
+  constructor(baseUrl = `${API_URL}/v1`) {
     this.baseUrl = baseUrl;
   }
 

@@ -38,7 +38,7 @@
   }
 </script>
 
-<div class="h-full max-w-7xl mx-auto">
+<div class="h-full mx-auto">
   <div class="">
     <Card padding="lg" className="mb-6">
       <h3 class="text-xl font-title mb-4">App Blacklist</h3>

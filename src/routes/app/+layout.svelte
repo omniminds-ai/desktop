@@ -4,6 +4,7 @@
   import ToastContainer from '$lib/components/toast/ToastContainer.svelte';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import Sidebar from '$lib/components/Sidebar.svelte';
+  import Header from '$lib/components/Header.svelte';
   import '../../app.css';
   import { checkForUpdate, toolsInitState, updateApp } from '$lib/utils';
   import Button from '$lib/components/form/Button.svelte';
@@ -98,8 +99,9 @@
 <div class="h-screen flex {bgClass} overflow-hidden">
   <Sidebar />
   <div class="flex-1 p-2">
-    <div class="h-full overflow-hidden bg-gray-50 border border-gray-500 rounded-md">
-      <div class="h-full w-full overflow-auto">
+    <div class="h-full overflow-hidden bg-background-100 rounded-md">
+      <div class="h-full w-full overflow-auto px-[60px] py-[12px]">
+        <Header />
         {@render children()}
       </div>
     </div>
@@ -112,8 +114,8 @@
       <div class="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
         <h2 class="text-xl font-semibold mb-4">New Update!</h2>
         <p class="text-gray-700 mb-6">
-          A new version of Viralmind Desktop is available. Please update for new features, bug
-          fixes, and other goodness.
+          A new version of Omniminds Desktop is available. Please update to get the latest updates, bugs fixes and new features
+
         </p>
         <div class="flex justify-end gap-3">
           <Button variant="secondary" onclick={() => (canceled = true)}>Ignore</Button>

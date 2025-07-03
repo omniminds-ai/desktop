@@ -334,7 +334,7 @@
       const apps = await getAppsForSkills();
       treeData = {
         name: 'Desktop',
-        icon_url: 'https://viralmind.ai/favicon.png',
+        icon_url: 'https://omniminds.ai/favicon.png',
         children: apps.map((app) => ({
           name: app.name,
           domain: app.domain,
@@ -403,7 +403,7 @@
 </div>
 
 <div
-  class="w-full max-w-7xl mx-auto h-full rounded-lg shadow-md border-gray-300/75 border bg-white text-neutral-800 p-4 overflow-hidden"
+  class="w-full mx-auto h-full rounded-lg shadow-md border-gray-300/75 border bg-white text-neutral-800 p-4 overflow-hidden"
   class:macos={isMacOS}>
   <div class="relative w-full h-[calc(100vh-10rem)] border border-neutral-200 rounded-lg">
     {#if isMacOS}

@@ -6,7 +6,7 @@ mod macos_permissions {
 
     // External ApplicationServices declarations
     #[link(name = "ApplicationServices", kind = "framework")]
-    extern "C" {
+    unsafe extern "C" {
         fn AXIsProcessTrusted() -> Boolean;
     }
 

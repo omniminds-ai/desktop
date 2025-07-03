@@ -23,7 +23,7 @@ const FFPROBE_MACOS: &str = "https://www.osxexperts.net/ffprobe71intel.zip";
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
-    temp.push("viralmind-desktop");
+    temp.push("omniminds-desktop");
     temp
 }
 
@@ -440,6 +440,8 @@ pub fn init_ffprobe() -> Result<(), String> {
 
 // #[cfg(not(target_os = "macos"))]
 pub struct FFmpegRecorder {
+    x: i32,
+    y: i32,
     width: u32,
     height: u32,
     fps: u32,
@@ -452,6 +454,8 @@ pub struct FFmpegRecorder {
 // #[cfg(not(target_os = "macos"))]
 impl FFmpegRecorder {
     pub fn new_with_input(
+        x: i32,
+        y: i32,
         width: u32,
         height: u32,
         fps: u32,
@@ -469,6 +473,8 @@ impl FFmpegRecorder {
         );
 
         Self {
+            x,
+            y,
             width,
             height,
             fps,
@@ -481,7 +487,9 @@ impl FFmpegRecorder {
 
     pub fn start(&mut self) -> Result<(), String> {
         log::info!(
-            "[FFmpeg] Starting recording: {}x{} @ {} fps",
+            "[FFmpeg] Starting recording: starting ({},{}) for {}x{} @ {} fps",
+            self.x,
+            self.y,
             self.width,
             self.height,
             self.fps
@@ -510,9 +518,9 @@ impl FFmpegRecorder {
                     "-draw_mouse".to_string(),
                     "1".to_string(),
                     "-offset_x".to_string(),
-                    "0".to_string(),
+                    self.x.to_string(),
                     "-offset_y".to_string(),
-                    "0".to_string(),
+                    self.y.to_string(),
                     "-probesize".to_string(),
                     "10M".to_string(),
                     "-thread_queue_size".to_string(),

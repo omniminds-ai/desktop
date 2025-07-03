@@ -6,23 +6,27 @@
   import { tweened } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
   import AppText from './AppText.svelte';
-  import { RecordingState, type Quest } from '$lib/types/gym';
+  import { RecordingState, type Quest, type Screen } from '$lib/types/gym';
   import { recordingState } from '$lib/stores/recording';
+  import ScreenSelectModal from './ScreenSelectModal.svelte';
 
   export let title: string;
   export let objectives: string[];
   export let reward: Quest['reward'];
-  export let onStartRecording: () => void;
+  export let onStartRecording: (selectedScreen: Screen) => void;
   export let onComplete: () => void;
   export let onGiveUp: () => void;
 
   let recordingLoading = false;
-
+  let ready = false;
   let screenshot = '';
   const scale = tweened(1, {
     duration: 60000,
     easing: cubicOut
   });
+
+  let showScreenModal = false;
+  let availableScreens: Screen[] = [];
 
   recordingState.subscribe((state) => {
     if (state === RecordingState.starting || state == RecordingState.saving) {
@@ -33,12 +37,35 @@
   });
 
   async function handleStartRecording() {
-    onStartRecording();
+    if(availableScreens.length > 1) {
+      showScreenModal = true;
+      // setTimeout(async () => {
+      //   await getAllScreens()
+      // }, 500)
+    } else {
+      await handleScreenSelect(availableScreens[0].id)
+    }
   }
 
+  async function handleScreenSelect(id: string) {
+    const selectedScreen = availableScreens.find(s => s.id === id);
+    showScreenModal = false;
+    if(selectedScreen) {
+      onStartRecording(selectedScreen);
+    }
+  }
+
+  async function getAllScreens() {
+    const all = await invoke('capture_all_monitors');
+    availableScreens = Array.isArray(all) ? all : [];
+  }
   async function init() {
     try {
-      screenshot = await invoke('take_screenshot');
+      setTimeout(async () => {
+        screenshot = await invoke('take_screenshot');
+        await getAllScreens()
+        ready = true;
+      }, 0)
       scale.set(1.5); // Start scale animation after screenshot is loaded
     } catch (error) {
       console.error('Failed to take screenshot:', error);
@@ -66,7 +93,7 @@
           </div>
           <div
             class="flex flex-row items-center gap-1 px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg">
-            <span class="text-sm font-bold">{reward.max_reward} VIRAL</span>
+            <span class="text-sm font-bold">{reward.max_reward} SOL</span>
           </div>
         </div>
       {/if}
@@ -99,6 +126,7 @@
       </div>
     {:else}
       <Button
+        disabled="{!ready}"
         onclick={handleStartRecording}
         class="w-full flex! group items-center justify-center gap-2">
         {#if recordingLoading}
@@ -114,3 +142,11 @@
     {/if}
   </div>
 </div>
+
+{#if showScreenModal}
+  <ScreenSelectModal
+    screens={availableScreens}
+    onSelect={handleScreenSelect}
+    onClose={() => (showScreenModal = false)}
+  />
+{/if}

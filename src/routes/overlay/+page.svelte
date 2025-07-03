@@ -3,13 +3,14 @@
   import { listen } from '@tauri-apps/api/event';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { ChevronDown, ChevronUp, LoaderCircle, Lock, Square, Unlock } from 'lucide-svelte';
-  import { RecordingState, type Quest } from '$lib/types/gym';
+  import {RecordingState, type Quest, type Screen} from '$lib/types/gym';
   import { stopRecording } from '$lib/api/endpoints/gym';
   import { slide } from 'svelte/transition';
   import { invoke } from '@tauri-apps/api/core';
 
   interface QuestOverlayEvent {
     quest: Quest | null;
+    screen: Screen | null;
   }
   // Window
   const appWindow = getCurrentWindow();

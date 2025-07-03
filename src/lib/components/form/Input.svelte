@@ -21,7 +21,7 @@
     switch (variant) {
       case 'dark':
         classes +=
-          'bg-gray-800 text-white border-gray-700 focus:ring-secondary-300 focus:border-secondary-300';
+          'bg-[#2D3539] text-white border-gray-700 focus:ring-secondary-300 focus:border-secondary-300';
         break;
       case 'light':
         classes +=
@@ -42,7 +42,7 @@
       {@render icon?.()}
     </div>
     <input
-      class="{variantClasses} w-full ps-12 py-2 px-3 rounded-lg border focus:outline-none focus:ring transition-all {className}"
+      class="{variantClasses} w-full ps-12 py-2 px-3 border focus:outline-none focus:ring transition-all {className}"
       bind:value
       {...rest} />
   </div>
@@ -50,7 +50,7 @@
   <input
     class="{variantClasses} w-full {icon
       ? 'ps-12'
-      : ''} py-2 px-3 rounded-lg border focus:outline-none focus:ring transition-all {className}"
+      : ''} py-2 px-3 border focus:outline-none focus:ring transition-all {className}"
     bind:value
     {...rest} />
 {/if}

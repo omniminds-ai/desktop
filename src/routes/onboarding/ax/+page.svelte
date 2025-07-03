@@ -72,7 +72,7 @@
     <p class="text-center">Loading...</p>
   {:else}
     <p class="text-xl mb-8 text-center">
-      To use all features of Viralmind Desktop, we need the following permissions:
+      To use all features of Omniminds Desktop, we need the following permissions:
     </p>
 
     <div class="flex flex-col gap-6 mb-8">
@@ -90,7 +90,7 @@
           {/if}
         </div>
         <p class="mb-4 leading-relaxed">
-          This allows Viralmind to understand what's on your screen and provide relevant assistance.
+          This allows Omniminds to understand what's on your screen and provide relevant assistance.
         </p>
         {#if !accessibilityGranted}
           <Button variant="primary" onclick={requestAccessibilityPermission}>
@@ -112,7 +112,7 @@
           {/if}
         </div>
         <p class="mb-4 leading-relaxed">
-          This allows Viralmind to record your screen for training and assistance purposes.
+          This allows Omniminds to record your screen for training and assistance purposes.
         </p>
         {#if !screenRecordingGranted}
           <Button variant="primary" onclick={requestScreenRecordingPermission}>

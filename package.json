@@ -1,6 +1,6 @@
 {
-  "name": "viralmind-desktop",
-  "version": "0.1.4",
+  "name": "omniminds-desktop",
+  "version": "0.1.0",
   "description": "",
   "type": "module",
   "scripts": {
@@ -28,7 +28,6 @@
     "@zerodevx/svelte-json-view": "^1.0.11",
     "d3": "^7.9.0",
     "lucide-svelte": "^0.474.0",
-    "posthog-js": "^1.232.6",
     "tailwindcss": "^4.0.3"
   },
   "devDependencies": {
@@ -39,6 +38,6 @@
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "typescript": "~5.6.2",
-    "vite": "^6.0.3"
+    "vite": "^6.3.5"
   }
 }
