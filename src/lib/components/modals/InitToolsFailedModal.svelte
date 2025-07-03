@@ -30,7 +30,7 @@
       </div>
       <p class="text-gray-700 text-sm mt-1 mb-5">
         If this keeps happening, create a support thread in our <a
-          href="https://discord.gg/C9NyQmkz5W"
+              href="https://discord.gg/YxP6yv9tAV"
           class="hover:underline text-secondary-300">
           Discord.
         </a>

@@ -65,7 +65,7 @@
     {#if $toolsInitState.initializing}
       <div class="px-4 rounded my-2 mx-auto py-2 flex flex-col">
         <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium">Installing necessary demonstration tools...</span>
+          <span class="text-sm text-gray-200 font-medium">Installing necessary demonstration tools...</span>
           <span class="text-xs text-gray-500">{$toolsInitState.progress}%</span>
         </div>
         <div class="w-full bg-gray-200 rounded-full h-1.5">

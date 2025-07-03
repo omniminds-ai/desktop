@@ -241,10 +241,10 @@
     }
   }
 
-  let earnedThisMonth = 1000
-  let averageEarnings  = 250
+  let earnedThisMonth = 0
+  let averageEarnings = 0
   let loadingApps = true;
-  let omniBalance = 123678;
+  let omniBalance = 0;
   let unclaimedRewards = 0;
   let recentSubmissions: any[] = [];
   let pendingRecordings: LocalRecording[] = [];
