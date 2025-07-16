@@ -63,17 +63,18 @@ export async function getBalance(address: string): Promise<number> {
  */
 export async function getReward(
   poolId: string,
-  taskId?: string
+  taskId?: string,
 ): Promise<{
   time: number;
   maxReward: number;
+  symbol: string;
 }> {
   const params: Record<string, any> = { poolId };
   if (taskId) {
     params.taskId = taskId;
   }
 
-  return apiClient.get<{ time: number; maxReward: number }>('/forge/pools/reward', params, {
+  return apiClient.get<{ time: number; maxReward: number, symbol: string }>('/forge/pools/reward', params, {
     requiresAuth: true
   });
 }

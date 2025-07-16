@@ -32,7 +32,7 @@
   let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
   // Initialize with localStorage values or defaults
   let minPrice: number | null = parseInt(localStorage.getItem('gymMinPrice') || '0', 10);
-  let maxPrice: number | null = parseInt(localStorage.getItem('gymMaxPrice') || '500', 10);
+  let maxPrice: number | null = parseInt(localStorage.getItem('gymMaxPrice') || '1000', 10);
   let priceRangeMin = 0;
   let priceRangeMax = 500;
 

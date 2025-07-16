@@ -10,15 +10,15 @@ static PIPELINE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 #[cfg(target_os = "windows")]
 const PIPELINE_URL: &str =
-    "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-win-x64.exe";
+    "https://github.com/omniminds-ai/analyze-training/releases/latest/download/analyze-training-macos-arm64";
 
 #[cfg(target_os = "linux")]
 const PIPELINE_URL: &str =
-    "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-linux-x64";
+    "https://github.com/omniminds-ai/analyze-training/releases/latest/download/analyze-training-macos-arm64";
 
 #[cfg(target_os = "macos")]
 const PIPELINE_URL: &str =
-    "https://github.com/viralmind-ai/vm-pipeline/releases/latest/download/pipeline-macos-arm64";
+    "https://github.com/omniminds-ai/analyze-training/releases/latest/download/analyze-training-macos-arm64";
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();
@@ -38,8 +38,8 @@ pub fn init_pipeline() -> Result<(), String> {
     let url_parser = Url::parse(PIPELINE_URL).map_err(|e| format!("Failed to parse URL: {}", e))?;
     let path_segments: Vec<&str> = url_parser.path_segments().unwrap().collect();
 
-    // For URLs like "https://github.com/omniminds-ai/vm-pipeline/releases/latest/download/pipeline-win-x64.exe"
-    // path_segments will be ["omniminds-ai", "vm-pipeline", "releases", "latest", "download", "pipeline-win-x64.exe"]
+    // For URLs like "https://github.com/omniminds-ai/analyze-training/releases/latest/download/analyze-training-macos-arm64"
+    // path_segments will be ["omniminds-ai", "releases", "latest", "download", "analyze-training-win-x64.exe"]
     let repo_owner = path_segments[0];
     let repo_name = path_segments[1];
 

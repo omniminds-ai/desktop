@@ -521,12 +521,12 @@
             {#if recording.submission?.reward}
               <div class="text-right min-w-[120px]">
                 <div class="text-sm font-semibold text-secondary-300">
-                  {formatNumber(recording.submission.reward)} $OMNIS
+                  {formatNumber(recording.submission.reward)} SOL
                 </div>
               </div>
             {:else if recording.submission}
               <div class="text-right min-w-[120px]">
-                <div class="text-sm font-semibold text-secondary-300">0 $OMNIS</div>
+                <div class="text-sm font-semibold text-secondary-300">0 SOL</div>
               </div>
             {/if}
           {/if}
@@ -560,7 +560,7 @@
                   <Upload class="w-3.5 h-3.5 shrink-0" />
                   <span>
                     {#if getMaxReward(recording) > 0}
-                      Upload for up to {formatNumber(getMaxReward(recording))} VIRAL
+                      Upload for receive task rewards
                     {:else}
                       Upload Recording
                     {/if}
