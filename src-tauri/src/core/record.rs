@@ -52,7 +52,7 @@ pub struct Quest {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct QuestReward {
     time: i64,
-    max_reward: i64,
+    max_reward: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -112,7 +112,7 @@ impl Recorder {
                 }
                 #[cfg(target_os = "macos")]
                 {
-                    // Run ffmpeg to list availabkle devices
+                    // Run ffmpeg to list available devices
                     let ffmpeg = FFMPEG_PATH.get().ok_or_else(|| {
                         log::info!("[FFmpeg] Error: FFmpeg not initialized");
                         PathBuf::from("ffmpeg")

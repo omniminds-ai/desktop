@@ -250,7 +250,8 @@
             currentQuest.pool_id = poolId;
             currentQuest.reward = {
               time: rewardInfo.time,
-              max_reward: rewardInfo.maxReward
+              max_reward: rewardInfo.maxReward,
+              symbol: rewardInfo.symbol,
             };
           } catch (error) {
             await addMessage({
@@ -1042,7 +1043,7 @@
                     {/if}
                   </Button>
                   <p class="text-sm w-full text-center text-gray-500">
-                    Get scored and earn SOL tokens
+                    Get scored and earn
                   </p>
                   <button
                     onclick={handleDeleteRecording}
@@ -1224,7 +1225,7 @@
                           {/if}
                         </Button>
                         <p class="text-sm w-full text-center text-gray-500">
-                          Get scored and earn $OMNIS tokens
+                          Get scored and earn
                         </p>
                         <button
                           onclick={handleDeleteRecording}
@@ -1403,7 +1404,7 @@
                       {/if}
                     </Button>
                     <p class="text-sm w-full text-center text-gray-500">
-                      Get scored and earn $SOL
+                      Get scored and earn
                     </p>
                     <button
                       onclick={handleDeleteRecording}

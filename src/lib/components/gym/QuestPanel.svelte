@@ -93,7 +93,7 @@
           </div>
           <div
             class="flex flex-row items-center gap-1 px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg">
-            <span class="text-sm font-bold">{reward.max_reward} SOL</span>
+            <span class="text-sm font-bold">{reward.max_reward} {reward.symbol}</span>
           </div>
         </div>
       {/if}

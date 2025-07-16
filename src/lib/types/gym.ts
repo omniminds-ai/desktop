@@ -121,6 +121,7 @@ export interface Quest {
   reward?: {
     time: number; // Unix timestamp rounded to last minute
     max_reward: number; // Match Rust struct field name
+    symbol: string;
   };
   task_id?: string; // ID of the specific task
 }

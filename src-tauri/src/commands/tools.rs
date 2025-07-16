@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::tools::{axtree, ffmpeg, pipeline};
 use log::error;
 use serde_json;
@@ -77,21 +78,12 @@ pub async fn init_tools(app: tauri::AppHandle) -> Result<(), String> {
 pub async fn check_tools() -> Result<serde_json::Value, String> {
     let temp_dir = std::env::temp_dir().join("omniminds-desktop");
 
-    // Check for ffmpeg
-    let ffmpeg_path = temp_dir.join(if cfg!(windows) {
-        "ffmpeg.exe"
-    } else {
-        "ffmpeg"
-    });
-    let ffmpeg_exists = ffmpeg_path.exists();
+    let ffmpeg_path = ffmpeg::get_ffmpeg_dir();
+    let ffmpeg_exists = ffmpeg_path != PathBuf::new();
 
     // Check for ffprobe
-    let ffprobe_path = temp_dir.join(if cfg!(windows) {
-        "ffprobe.exe"
-    } else {
-        "ffprobe"
-    });
-    let ffprobe_exists = ffprobe_path.exists();
+    let ffprobe_path = ffmpeg::get_ffmpeg_dir();
+    let ffprobe_exists = ffprobe_path != PathBuf::new();
 
     // Check for dump-tree
     let dump_tree_path = temp_dir.join(if cfg!(windows) {
