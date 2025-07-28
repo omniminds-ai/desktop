@@ -122,6 +122,7 @@ export interface UpdatePoolInput {
 
 export interface TreasuryTransfer {
   tokenAddress: string;
+  tokenSymbol: string;
   treasuryWallet: string;
   amount: number;
   timestamp: number;
@@ -172,5 +173,6 @@ export interface SubmissionStatus {
   grade_result: GradeResult;
   maxReward: number;
   reward: number;
+  rewardSymbol: string
   treasuryTransfer?: TreasuryTransfer;
 }

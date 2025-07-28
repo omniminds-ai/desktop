@@ -241,10 +241,10 @@
     }
   }
 
-  let earnedThisMonth = 0
+  let earnedThisMonth = 300
   let averageEarnings = 0
   let loadingApps = true;
-  let omniBalance = 0;
+  let omniBalance = 300;
   let unclaimedRewards = 0;
   let recentSubmissions: any[] = [];
   let pendingRecordings: LocalRecording[] = [];
@@ -521,7 +521,7 @@
             {#if recording.submission?.reward}
               <div class="text-right min-w-[120px]">
                 <div class="text-sm font-semibold text-secondary-300">
-                  {formatNumber(recording.submission.reward)} SOL
+                  {formatNumber(recording.submission.reward)} {recording.submission.treasuryTransfer?.tokenSymbol}
                 </div>
               </div>
             {:else if recording.submission}
@@ -560,7 +560,7 @@
                   <Upload class="w-3.5 h-3.5 shrink-0" />
                   <span>
                     {#if getMaxReward(recording) > 0}
-                      Upload for receive task rewards
+                      Upload to receive task rewards
                     {:else}
                       Upload Recording
                     {/if}
