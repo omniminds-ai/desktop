@@ -12,16 +12,16 @@ static DUMP_TREE_PATH: OnceLock<PathBuf> = OnceLock::new();
 static POLLING_ACTIVE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 
 #[cfg(target_os = "windows")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-windows-x64.exe";
+const DUMP_TREE_URL: &str = "https://github.com/omniminds-ai/vm-ax-tree-parsers/releases/latest/download/dump-tree-windows-x64.exe";
 
 #[cfg(target_os = "linux")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-linux-x64-arm64.js";
+const DUMP_TREE_URL: &str = "https://github.com/omniminds-ai/vm-ax-tree-parsers/releases/latest/download/dump-tree-linux-x64-arm64";
 
 #[cfg(target_os = "macos")]
-const DUMP_TREE_URL: &str = "https://github.com/viralmind-ai/ax-tree-parsers/releases/latest/download/dump-tree-macos-arm64";
+const DUMP_TREE_URL: &str = "https://github.com/omniminds-ai/vm-ax-tree-parsers/releases/latest/download/dump-tree-macos-arm64";
 
 const GITHUB_API_URL: &str =
-    "https://api.github.com/repos/viralmind-ai/ax-tree-parsers/releases/latest";
+    "https://api.github.com/repos/omniminds-ai/vm-ax-tree-parsers/releases/latest";
 
 fn get_temp_dir() -> PathBuf {
     let mut temp = std::env::temp_dir();

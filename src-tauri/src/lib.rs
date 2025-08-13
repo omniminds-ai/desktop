@@ -41,6 +41,9 @@ pub fn run() {
                         file_name: Some("logs".to_string()),
                     },
                 ))
+                .target(tauri_plugin_log::Target::new (
+                    tauri_plugin_log::TargetKind::Webview
+                ))
                 .build(),
         )
         .plugin(tauri_plugin_process::init())

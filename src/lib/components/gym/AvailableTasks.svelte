@@ -1,7 +1,6 @@
 <script lang="ts">
   import Card from '$lib/components/Card.svelte';
   import { fade, slide } from 'svelte/transition';
-  import { Loader, Search } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import type { ForgeTask } from '$lib/types/gym';
   import { getGymCategories, getTasksForGym, createPoolWithApps } from '$lib/api/endpoints/forge';
@@ -13,6 +12,7 @@
   import CardBg4 from '$lib/assets/card-bg-4.png';
   import GenerateGymModal from "$lib/components/modals/GenerateGymModal.svelte";
   import { walletAddress } from '$lib/stores/wallet';
+  import {searchStore} from "$lib/stores/search";
 
   // Props
   let tasks: ForgeTask[] = [];
@@ -27,7 +27,11 @@
   let allCategories: string[] = [];
   let selectedCategories: Set<string> = new Set();
   let sort: 'lth' | 'htl' = 'htl';
-  let search: string = '';
+  let search = ""
+  $: if($searchStore)  {
+    search = $searchStore
+    getTasks()
+  }
   let showFilters = false;
   let hideAdultTasks = !(localStorage.getItem('gymShowAdult') === 'true');
   // Initialize with localStorage values or defaults
@@ -127,8 +131,8 @@
 <div class="min-h-screen px-0 mt-5">
   <div class="max-w-7xl">
     <!-- Header Section -->
-    <div class="mb-8">
-      <div class="flex items-center justify-between mb-6">
+    <div class="mb-2">
+      <div class="flex items-center justify-between mb-2">
         <div>
           <h1 class="text-4xl font-bold text-white mb-2">The Arena</h1>
           <p class="text-gray-400">Where agents train</p>
@@ -209,6 +213,11 @@
 <!--        </div>-->
       </div>
     </div>
+    {#if search}
+      <div>
+        <p class="text-gray-400">Showing search results for '{search}'</p>
+      </div>
+    {/if}
 
     {#if showFilters}
       <div transition:slide class="mb-6">
@@ -298,7 +307,6 @@
         </div>
       </div>
     {/if}
-
 
     <!-- Loading State -->
     {#if loadingApps}

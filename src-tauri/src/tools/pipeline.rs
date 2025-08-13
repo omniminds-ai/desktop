@@ -10,11 +10,11 @@ static PIPELINE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 #[cfg(target_os = "windows")]
 const PIPELINE_URL: &str =
-    "https://github.com/omniminds-ai/analyze-training/releases/latest/download/analyze-training-macos-arm64";
+    "https://github.com/omniminds-ai/analyze-training/releases/latest/download/analyze-training-win-x64.exe";
 
 #[cfg(target_os = "linux")]
 const PIPELINE_URL: &str =
-    "https://github.com/omniminds-ai/analyze-training/releases/latest/download/analyze-training-macos-arm64";
+    "https://github.com/omniminds-ai/analyze-training/releases/latest/download/analyze-training-linux-x64";
 
 #[cfg(target_os = "macos")]
 const PIPELINE_URL: &str =
