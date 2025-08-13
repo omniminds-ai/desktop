@@ -26,6 +26,7 @@ export interface ForgeTask {
       status: TrainingPoolStatus;
       pricePerDemo: number;
       token: Token;
+      ownerAddress: string;
     };
     gymLimitType: string;
     gymSubmissions: number;

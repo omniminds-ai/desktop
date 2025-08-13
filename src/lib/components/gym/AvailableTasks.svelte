@@ -12,8 +12,9 @@
   import CardBg4 from '$lib/assets/card-bg-4.png';
   import GenerateGymModal from "$lib/components/modals/GenerateGymModal.svelte";
   import { walletAddress } from '$lib/stores/wallet';
-  import {searchStore} from "$lib/stores/search";
-
+  import { searchStore } from "$lib/stores/search";
+  import Pill from "$lib/components/Pill.svelte";
+  import { Cog } from 'lucide-svelte';
   // Props
   let tasks: ForgeTask[] = [];
   export let loadingApps: boolean = false;
@@ -124,6 +125,10 @@
       localStorage.setItem('gymMaxPrice', maxPrice?.toString() || '500');
       localStorage.setItem('gymShowAdult', (!hideAdultTasks).toString());
     }
+  }
+
+  function goToDojoSettings(id: string) {
+    window.location.href = `/app/forge/gym?id=${id}`
   }
 </script>
 
@@ -340,11 +345,11 @@
                 <span class="text-5xl text-gray-500 font-light transition-colors duration-300">+</span>
               </div>
               <div
-                      class="text-lg font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-300">
+                class="text-lg font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-300">
                 Create New Dojo
               </div>
               <p
-                      class="text-sm text-gray-500 text-center mt-2 group-hover:text-gray-600 transition-colors duration-300">
+                class="text-sm text-gray-500 text-center mt-2 group-hover:text-gray-600 transition-colors duration-300">
                 Start collecting demonstrations for your AI agent training
               </p>
             </div>
@@ -387,6 +392,12 @@
                         </div>
                       {/if}
                     </div>
+
+                    <!-- Bottom Pills -->
+                    <div class="absolute bottom-3 left-2 flex gap-2">
+                      <Pill text="{task.app.name}" size="sm"></Pill>
+                    </div>
+
                   </div>
 
                   <!-- Card Content -->
@@ -413,11 +424,22 @@
                     </p>
 
                     <!-- Bottom Action -->
-                    <div class="mt-auto">
+                    <div class="mt-auto flex gap-1">
+                      {#if $walletAddress === task.app.pool.ownerAddress}
                       <button
-                        class="w-full bg-purple-600/80 hover:bg-purple-600 text-white py-2.5 rounded-lg font-medium transition-colors group-hover:bg-purple-500">
+                        class="w-4/5 bg-purple-600/80 hover:bg-purple-600 text-white py-2.5 rounded-lg font-medium transition-colors group-hover:bg-purple-500">
                         Start Dojo
                       </button>
+                      <button onclick="{() => goToDojoSettings(task.app.pool._id)}"
+                        class="w-1/5 bg-primary-200 hover:bg-purple-700/80 text-white flex items-center justify-center py-2.5 px-auto rounded-lg transition-colors">
+                        <Cog></Cog>
+                      </button>
+                      {:else}
+                        <button
+                          class="w-full bg-purple-600/80 hover:bg-purple-600 text-white py-2.5 rounded-lg font-medium transition-colors group-hover:bg-purple-500">
+                          Start Dojo
+                        </button>
+                      {/if}
                     </div>
                   </div>
                 </div>
