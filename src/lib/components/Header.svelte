@@ -38,6 +38,7 @@
     } catch (error) {
       console.error('Failed to stop recording:', error);
     }
+  }
 
   let debounced = false;
   let debouncedSearch = "";
