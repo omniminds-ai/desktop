@@ -153,11 +153,11 @@
 </script>
 
 <!-- Header section similar to TasksTab -->
-<div class="flex justify-between items-center border-gray-200 pb-3">
+<div class="flex justify-between items-center border-primary-400 pb-3">
   <div class="flex items-center">
-    <h2 class="text-xl font-bold text-gray-800">Uploads</h2>
+    <h2 class="text-xl font-bold text-gray-200">Uploads</h2>
     {#if selectedCount > 0}
-      <span class="ml-2 px-2 py-0.5 bg-secondary-100 text-white text-xs rounded-full">
+      <span class="ml-2 px-2 py-0.5 bg-secondary-400 text-gray-200 text-xs rounded-full">
         {selectedCount} selected
       </span>
     {/if}
@@ -219,8 +219,8 @@
     </div>
   {:else}
     <div class="overflow-x-auto overflow-y-visible">
-      <table class="min-w-full divide-y divide-gray-200 relative">
-        <thead class="bg-gray-50">
+      <table class="min-w-full divide-y divide-gray-800 relative">
+        <thead class="bg-background-400">
           <tr>
             <th class="w-10 px-3 py-3 overflow-x-scroll">
               <div class="flex items-center">
@@ -232,38 +232,37 @@
                   disabled={submissions.length === 0} />
               </div>
             </th>
-            <th class="w-16 px-2 py-3"></th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
               Platform
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
               Task
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
               Status
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
               Duration
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
               File Size
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
               Quality
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
               Reward
             </th>
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
+        <tbody class="bg-background-100 divide-y divide-gray-800">
           {#each submissions as submission}
             <tr class={selectedSubmissions.has(submission._id) ? 'bg-secondary-50' : ''}>
               <td class="px-3 py-4 whitespace-nowrap">
@@ -291,7 +290,7 @@
                   </span>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
                 {getTitle(submission)}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -305,32 +304,32 @@
                   {submission.status}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
                 <div class="flex items-center space-x-1">
                   <Clock size={14} class="text-gray-400" />
                   <span>{formatDuration(submission)}</span>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
                 {getTotalFileSize(submission)}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                 {#if submission.grade_result?.score}
                   <span
                     class={submission.grade_result.score >= 50
-                      ? 'text-green-600 font-semibold'
+                      ? 'text-green-700 font-semibold'
                       : submission.grade_result.score >= 25
-                        ? 'text-yellow-600 font-semibold'
-                        : 'text-red-600 font-semibold'}>
+                        ? 'text-yellow-700 font-semibold'
+                        : 'text-red-700 font-semibold'}>
                     {submission.grade_result.score}%
                   </span>
                 {:else}
-                  <span class="text-gray-500">-</span>
+                  <span class="text-gray-200">-</span>
                 {/if}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
                 {#if submission.reward && submission.reward > 0}
-                  {submission.reward} VIRAL
+                  {submission.reward} OMNIS
                 {:else}
                   <div class="flex items-center gap-1">
                     <span class="text-gray-500">FREE</span>

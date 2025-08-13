@@ -97,16 +97,16 @@
 
     <!-- Summary Data -->
     <div class="py-2">
-      <h4 class="text-sm font-bold text-gray-700 mb-2">Deposit Address</h4>
+      <h4 class="text-sm font-bold text-gray-200 mb-2">Deposit Address</h4>
       <div class="flex gap-2 items-center">
         <input
           type="text"
-          class="flex-1 p-2 bg-gray-100 rounded-lg cursor-text text-sm"
+          class="flex-1 p-2 bg-background-100 rounded-lg cursor-text text-sm"
           readonly
           value={pool.depositAddress} />
-        <CopyButton content={pool.depositAddress} />
+        <CopyButton content={pool.depositAddress}/>
       </div>
-      <p class="text-xs text-gray-500 mt-1">
+      <p class="text-xs text-gray-300 mt-1">
         Send {pool.token.symbol} tokens to this address to fund your gym.
       </p>
     </div>
@@ -124,11 +124,11 @@
           <Input
             bind:value={email}
             type="email"
-            variant="light"
+            variant="dark"
             class="flex-1"
             required
             placeholder="example@example.com" />
-          <Button class="bg-secondary-500! hover:bg-secondary-600!" type="submit" behavior="none">
+          <Button class="bg-secondary-300 text-white hover:bg-secondary-100" type="submit" behavior="none">
             {#if !loading}
               Save
             {:else}
@@ -154,14 +154,14 @@
             function on the Solana blockchain.
           </p>
         {:else if pool.status === TrainingPoolStatus.noFunds}
-          <p class="text-sm text-amber-900 font-semibold mb-1">Insufficient VIRAL Tokens</p>
+          <p class="text-sm text-amber-900 font-semibold mb-1">Insufficient OMNIS Tokens</p>
           <p class="text-xs leading-relaxed text-amber-800">
             Your gym needs VIRAL tokens to reward users who provide demonstrations. Without funds,
             users won't receive compensation.
           </p>
         {/if}
         <p class="text-xs text-amber-800 font-medium mt-2">
-          Deposit {pool.status === TrainingPoolStatus.noGas ? 'SOL' : 'VIRAL'} to the address above to
+          Deposit {pool.status === TrainingPoolStatus.noGas ? 'SOL' : 'OMNIS'} to the address above to
           activate your gym and start collecting data.
         </p>
       </div>

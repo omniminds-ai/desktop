@@ -225,7 +225,8 @@
         <Input
           id="pool-name"
           type="text"
-          variant="light"
+          variant="dark"
+          class="bg-background-100"
           value={pool.name}
           oninput={handleNameChange}
           placeholder="Enter gym name" />
@@ -251,13 +252,13 @@
           <input
             id="deposit-address"
             type="text"
-            class="flex-1 p-2 bg-gray-100 rounded-lg cursor-text text-sm"
+            class="flex-1 p-2 bg-background-100 rounded-lg cursor-text text-sm"
             readonly
             value={pool.depositAddress} />
           <CopyButton content={pool.depositAddress} />
         </div>
-        <p class="text-xs text-gray-500 mt-1">
-          Send {pool.token.symbol} tokens to this address to fund your gym.
+        <p class="text-xs text-gray-300 mt-1">
+          Send {pool.token.symbol} tokens to this address to fund your Dojo.
         </p>
       </div>
 
@@ -267,32 +268,32 @@
         </label>
         <div class="flex items-center gap-2">
           <Input
-            variant="light"
+            variant="dark"
             id="demo-price"
             type="number"
             min="1"
             step="0.1"
-            class="flex-1 p-2  w-full! grow!"
+            class="flex-1 p-2  w-full! grow! bg-background-100"
             value={pool.pricePerDemo || 1}
             oninput={handlePriceChange} />
           <span class="text-sm font-medium grow-0">{pool.token.symbol}</span>
         </div>
-        <p class="text-xs text-gray-500 mt-1">
+        <p class="text-xs text-gray-300 mt-1">
           Minimum price: 1 {pool.token.symbol}
         </p>
       </div>
 
       <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
         <div class="flex justify-between mb-1">
-          <span class="text-sm text-blue-800 font-medium">Current Balance:</span>
-          <span class="text-sm font-bold text-blue-800">
+          <span class="text-sm text-background-100 font-medium">Current Balance:</span>
+          <span class="text-sm font-bold text-background-100">
             {formatNumber(pool.funds)}
             {pool.token.symbol}
           </span>
         </div>
         <div class="flex justify-between">
-          <span class="text-sm text-blue-800 font-medium">Possible Demos:</span>
-          <span class="text-sm font-bold text-blue-800">
+          <span class="text-sm text-background-100 font-medium">Possible Demos:</span>
+          <span class="text-sm font-bold text-background-100">
             {Math.floor(pool.funds / (pool.pricePerDemo || 1))}
           </span>
         </div>
@@ -303,7 +304,7 @@
         <div class="space-y-3">
           <Checkbox
             id="enableUploadLimit"
-            variant="light"
+            variant="dark"
             label="Enable gym-wide upload limits"
             checked={enableUploadLimit}
             onchange={handleEnableUploadLimitChange} />
