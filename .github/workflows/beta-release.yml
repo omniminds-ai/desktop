@@ -19,10 +19,10 @@ jobs:
             args: '--target aarch64-apple-darwin'
           - platform: 'macos-latest' # macOS Intel
             args: '--target x86_64-apple-darwin'
-          - platform: 'ubuntu-20.04' # Linux x64
-            args: ''
           - platform: 'windows-latest' # Windows x64
             args: ''
+          - platform: 'windows-latest'
+            args: '--target aarch64-pc-windows-msvc'
 
     runs-on: ${{ matrix.platform }}
 
@@ -48,7 +48,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           # macOS targets
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform == 'windows-latest' && 'aarch64-pc-windows-msvc' || '' }}
 
       # Cache Rust dependencies
       - name: Rust cache
@@ -67,11 +67,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: app-v__VERSION__ # Auto-replaced with app version
-          releaseName: 'App v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
-          prerelease: true
+          tagName: ${{ github.ref == 'refs/heads/staging' && 'ominminds-v__VERSION__-pre' || 'omniminds-v__VERSION__' }} # Add -pre suffix for staging
+          releaseName: ${{ github.ref == 'refs/heads/staging' && 'Omniminds Desktop v__VERSION__ (Pre-release)' || 'Omniminds Desktop v__VERSION__' }}
+          releaseBody: 'Download Omniminds Desktop for your operating system below.'
+          releaseDraft: false
+          prerelease: ${{ github.ref == 'refs/heads/staging'}}
           includeRelease: true
           tauriScript: npm run tauri
           projectPath: '.'
