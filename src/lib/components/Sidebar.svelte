@@ -13,6 +13,7 @@
   import logo from '$lib/assets/Logo_Icon.png';
   import WalletButton from './WalletButton.svelte';
   import UploadManager from './UploadManager.svelte';
+  import Version from './Version.svelte';
   import { stopRecording } from '$lib/api/endpoints/gym';
   import { RecordingState } from '$lib/types/gym';
   import { recordingState } from '$lib/stores/recording';
@@ -49,7 +50,7 @@
   }
 </script>
 
-<div class="w-[300px] flex flex-col bg-transparent pt-2 pb-6 pl-2 space-y-4">
+<div class="w-[300px] flex flex-col pt-2 pb-6 pl-2 space-y-4 bg-primary-400">
   <div class="flex-start grow flex flex-col gap-2">
     <div class="my-4 flex justify-center">
       <img src={logo} alt="Omniminds Logo" class="w-[350px] h-[50px] object-contain" />
@@ -105,4 +106,5 @@
     {/if}
     <UploadManager />
   </div>
+  <Version/>
 </div>

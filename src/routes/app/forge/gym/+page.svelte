@@ -128,7 +128,7 @@
   }
 
   function goBack() {
-    goto('/app/forge');
+    goto('/app/gym');
   }
 </script>
 
@@ -143,10 +143,10 @@
     <div class="flex flex-col h-full">
       <div>
         <button
-          class="flex items-center cursor-pointer hover:underline gap-1 text-blue-500 hover:text-blue-600 focus:outline-none"
+                class="flex items-center cursor-pointer hover:underline gap-1 text-white hover:text-gray-200 focus:outline-none"
           onclick={goBack}>
           <ArrowLeft size={18} />
-          <span>Back to Gyms</span>
+          <span>Back to Arena</span>
         </button>
       </div>
 
@@ -174,15 +174,15 @@
                 function on the Solana blockchain.
               </p>
             {:else if pool.status === TrainingPoolStatus.noFunds}
-              <p class="text-sm text-amber-900 font-semibold mb-1">Insufficient VIRAL Tokens</p>
+              <p class="text-sm text-amber-900 font-semibold mb-1">Insufficient Rewards</p>
               <p class="text-xs leading-relaxed text-amber-800">
-                Your gym needs VIRAL tokens to reward users who provide demonstrations. Without
+                Your gym needs tokens to reward users who provide demonstrations. Without
                 funds, users won't receive compensation.
               </p>
             {/if}
             <p class="text-xs text-amber-800 font-medium mt-2">
-              Deposit {pool.status === TrainingPoolStatus.noGas ? 'SOL' : 'VIRAL'} to the address above
-              to activate your gym and start collecting data.
+              Deposit {pool.status === TrainingPoolStatus.noGas ? 'SOL' : 'OMNIS'} to the address above
+              to activate your dojo and start collecting data.
             </p>
           </div>
         </div>
@@ -198,7 +198,7 @@
     <div class="p-4 bg-yellow-500/10 text-yellow-600 rounded-lg">
       <p>Gym not found</p>
       <div class="mt-4">
-        <Button onclick={goBack}>Return to Forge</Button>
+        <Button onclick={goBack}>Return to Arena</Button>
       </div>
     </div>
   {/if}

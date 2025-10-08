@@ -9,7 +9,8 @@ import { invoke } from '@tauri-apps/api/core';
 export async function startRecording(quest?: Quest, screen?: Screen): Promise<void> {
   try {
     // If quest has reward info, include poolId and generatedTime in meta
-    console.log({screen})
+    console.log({quest, screen})
+
     await invoke('start_recording', {quest, display: screen});
   } catch (error) {
     console.error('Failed to start recording:', error);

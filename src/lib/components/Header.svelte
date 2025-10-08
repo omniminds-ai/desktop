@@ -17,6 +17,8 @@
   import { stopRecording } from '$lib/api/endpoints/gym';
   import { RecordingState } from '$lib/types/gym';
   import { recordingState } from '$lib/stores/recording';
+  import {searchStore} from '$lib/stores/search';
+
   // Recording state
   let recordingLoading = false;
 
@@ -28,12 +30,33 @@
     }
   });
 
+
   // Handle stop recording click
   async function handleStopRecording() {
     try {
       await stopRecording();
     } catch (error) {
       console.error('Failed to stop recording:', error);
+    }
+  }
+
+  let debounced = false;
+  let debouncedSearch = "";
+
+  function handleSearch(event) {
+    if (debouncedSearch.toLowerCase() != event.target.value.toLowerCase()) {
+      debouncedSearch = event.target.value;
+      debounce()
+    }
+  }
+
+  const debounce = () => {
+    if (debounced == false) {
+      debounced = true
+      setTimeout(() => {
+        $searchStore = debouncedSearch;
+        debounced = false;
+      }, 500)
     }
   }
 </script>
@@ -43,8 +66,9 @@
   <div class="flex items-center">
     <div class="relative">
       <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-      <Input
+      <input
         type="text"
+        on:input={handleSearch}
         placeholder="Search..."
         class="w-80 rounded-full bg-gray-800/50 border border-gray-700/50 pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50" />
     </div>
@@ -53,10 +77,6 @@
   <div class="flex items-center gap-4">
     <button class="p-2 rounded-lg hover:bg-gray-800/50 transition-colors">
       <Bell class="h-5 w-5 text-gray-400 hover:text-white" />
-    </button>
-
-    <button class="p-2 rounded-lg hover:bg-gray-800/50 transition-colors">
-      <MessageSquare class="h-5 w-5 text-gray-400 hover:text-white" />
     </button>
 
     <div class="flex items-center gap-2">

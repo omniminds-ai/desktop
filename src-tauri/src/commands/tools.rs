@@ -97,11 +97,11 @@ pub async fn check_tools() -> Result<serde_json::Value, String> {
 
     // Check for pipeline
     let pipeline_path = temp_dir.join(if cfg!(windows) {
-        "pipeline-win-x64.exe"
+        "analyze-training-win-x64.exe"
     } else if cfg!(target_os = "macos") {
-        "pipeline-macos-arm64"
+        "analyze-training-macos-arm64"
     } else {
-        "pipeline-linux-x64"
+        "analyze-training-linux-x64"
     });
     let pipeline_exists = pipeline_path.exists();
 

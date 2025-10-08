@@ -4,7 +4,12 @@ import { browser } from '$app/environment';
 // See: https://v2.tauri.app/start/frontend/sveltekit/ for more info
 export const prerender = true;
 export const ssr = false;
+import {attachConsole} from '@tauri-apps/plugin-log'
+
 
 export const load = async () => {
  //TODO: setup analytics
+    attachConsole().then(detach => {
+        //do nothing
+    })
 };

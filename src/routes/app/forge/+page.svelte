@@ -140,7 +140,7 @@
 <div class="h-full space-y-6 p-4">
   <div>
     <div class="flex justify-between items-center mb-2">
-      <h2 class="text-2xl font-bold">Forge</h2>
+      <h2 class="text-2xl font-bold">Dojo</h2>
     </div>
     <p class="text-gray-400">
       Collect crowd-powered demonstrations, perfect for training AI agents.
@@ -155,7 +155,7 @@
 
   {#if !$walletAddress}
     <div class="bg-primary-400 rounded-xl p-10 mx-auto flex max-w-lg gap-10 flex-col text-white">
-      <h1 class="align-middle text-center">Please connect your wallet to use the Forge.</h1>
+      <h1 class="align-middle text-center">Please connect your wallet to use the Dojo.</h1>
       <div class="align-middle w-fit mx-auto">
         <WalletButton variant="large" />
       </div>
@@ -165,7 +165,7 @@
       <div class="mb-6 mx-auto">
         <RefreshCw size={48} class="text-secondary-300 mx-auto animate-spin" />
       </div>
-      <p class="text-lg font-medium text-gray-800">Loading Forge Gyms</p>
+      <p class="text-lg font-medium text-gray-800">Loading Dojos</p>
     </div>
   {:else if trainingPools.length === 0}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

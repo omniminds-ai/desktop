@@ -249,7 +249,7 @@
   let recentSubmissions: any[] = [];
   let pendingRecordings: LocalRecording[] = [];
 </script>
-<div class={`grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 pt-4 `}>
+<div class={`grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 pt-4`}>
   <!-- Wallet Balance Card -->
   <Card padding="none" className="relative overflow-hidden border-0 shadow-md h-full">
     <div class="bg-gradient-to-br from-secondary-400 to-secondary-800 text-white h-full flex flex-col">
@@ -521,12 +521,12 @@
             {#if recording.submission?.reward}
               <div class="text-right min-w-[120px]">
                 <div class="text-sm font-semibold text-secondary-300">
-                  {formatNumber(recording.submission.reward)} SOL
+                  {formatNumber(recording.submission.reward)} {recording.submission.treasuryTransfer?.tokenSymbol}
                 </div>
               </div>
             {:else if recording.submission}
               <div class="text-right min-w-[120px]">
-                <div class="text-sm font-semibold text-secondary-300">0 SOL</div>
+                <div class="text-sm font-semibold text-secondary-300">0 $OMNIS</div>
               </div>
             {/if}
           {/if}
@@ -560,7 +560,7 @@
                   <Upload class="w-3.5 h-3.5 shrink-0" />
                   <span>
                     {#if getMaxReward(recording) > 0}
-                      Upload for receive task rewards
+                      Upload to receive task rewards
                     {:else}
                       Upload Recording
                     {/if}

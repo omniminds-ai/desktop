@@ -167,11 +167,11 @@
 <!-- No fixed overlay, just the content -->
 <div class="flex flex-col h-full pt-2">
   <!-- Tab Navigation with Pause/Activate Button as Icon -->
-  <div class="relative flex flex-col flex-wrap gap-1 border-b border-gray-200 mb-4">
+  <div class="relative flex flex-col flex-wrap gap-1  mb-4">
     <div class="flex flex-row">
       <div class="flex items-center w-full gap-3">
         <h1
-          class="text-2xl font-bold text-gray-800 mr-3 truncate overflow-hidden text-ellipsis max-w-[calc(100vw-8em)]"
+                class="text-2xl font-bold text-white mr-3 truncate overflow-hidden text-ellipsis max-w-[calc(100vw-8em)]"
           title={pool.name}>
           {pool.name}
         </h1>
@@ -231,7 +231,7 @@
       <button
         class="px-4 py-2 text-sm font-medium cursor-pointer transition-colors flex items-center gap-1
           {activeTab === 'overview'
-          ? 'text-secondary-600 border-b-2 border-secondary-500'
+          ? 'text-gray-200 border-b-2 border-gray-200'
           : 'text-gray-500 hover:text-gray-700'}"
         onclick={() => setTab('overview')}>
         <LayoutDashboard size={16} />
@@ -240,7 +240,7 @@
       <button
         class="px-4 py-2 text-sm font-medium cursor-pointer transition-colors flex items-center gap-1
           {activeTab === 'settings'
-          ? 'text-secondary-600 border-b-2 border-secondary-500'
+          ? 'text-gray-200 border-b-2 border-gray-200'
           : 'text-gray-500 hover:text-gray-700'}"
         onclick={() => setTab('settings')}>
         <Sliders size={16} />
@@ -249,7 +249,7 @@
       <button
         class="px-4 py-2 text-sm cursor-pointer font-medium transition-colors flex items-center gap-1
           {activeTab === 'tasks'
-          ? 'text-secondary-600 border-b-2 border-secondary-500'
+          ? 'text-gray-200 border-b-2 border-primary-300\''
           : 'text-gray-500 hover:text-gray-700'}"
         onclick={() => setTab('tasks')}>
         <ListTodo size={16} />
@@ -258,7 +258,7 @@
       <button
         class="px-4 py-2 text-sm font-medium cursor-pointer transition-colors flex items-center gap-1
           {activeTab === 'uploads'
-          ? 'text-secondary-600 border-b-2 border-secondary-500'
+          ? 'text-gray-200 border-b-2 border-gray-200'
           : 'text-gray-500 hover:text-gray-700'}"
         onclick={() => setTab('uploads')}>
         <Upload size={16} />
@@ -287,7 +287,7 @@
     <div class="flex py-2 flex-col gap-2">
       {#if unsavedChanges}
         <Button
-          class="w-full justify-center border-green-500! hover:border-green-600! bg-green-500! text-white! hover:bg-green-600!"
+                class="w-full justify-center border-green-700! hover:border-green-600! bg-green-800! text-white! hover:bg-green-600!"
           disabled={savingChanges}
           onclick={handleSaveChanges}>
           {#if !savingChanges}

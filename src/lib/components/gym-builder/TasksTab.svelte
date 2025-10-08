@@ -278,7 +278,7 @@
 <!-- Improved second navbar with consistent styling -->
 <div class="flex justify-between items-center border-gray-200 pb-3">
   <div class="flex items-center">
-    <h2 class="text-xl font-bold text-gray-800">Tasks</h2>
+    <h2 class="text-xl font-bold text-gray-200">Tasks</h2>
   </div>
   <div class="flex items-center gap-2">
     <div class="bg-gray-100 rounded-lg p-1 flex items-center">
@@ -354,15 +354,15 @@
                   </div>
                 {:else}
                   <button
-                    class="w-8 h-8 flex items-center justify-center rounded bg-gray-100 cursor-pointer relative group"
+                          class="w-8 h-8 flex items-center justify-center rounded bg-transparent cursor-pointer relative group"
                     onclick={() => startEditing(app.name, '', 'domain', app.domain)}>
                     {#if app.domain}
                       <img src={getIconUrl(app.domain)} alt={app.name} class="w-6 h-6" />
                     {:else}
-                      <div class="w-6 h-6 bg-gray-300 rounded"></div>
+                      <div class="w-6 h-6 bg-transparent rounded"></div>
                     {/if}
                     <div
-                      class="absolute inset-0 bg-black/0 group-hover:bg-black/50 rounded flex items-center justify-center">
+                            class="absolute inset-0 bg-black/0 group-hover:bg-background-100 rounded flex items-center justify-center">
                       <Pencil size={12} class="text-white opacity-0 group-hover:opacity-100" />
                     </div>
                   </button>
@@ -384,7 +384,7 @@
                   </div>
                 {:else}
                   <button
-                    class="text-lg font-medium text-gray-800 group relative cursor-pointer px-1"
+                          class="text-lg font-medium text-gray-200 group relative cursor-pointer px-1"
                     onclick={() => startEditing(app.name, '', 'name', app.name)}>
                     <span>{app.name}</span>
                     <div
@@ -410,7 +410,7 @@
             <!-- App tasks section -->
             <div class="mt-4 pt-3">
               <div class="flex justify-between items-center mb-2">
-                <div class="text-sm font-medium text-gray-700">Tasks</div>
+                <div class="text-sm font-medium text-gray-200">Tasks</div>
                 <button
                   class="text-secondary-600 hover:text-secondary-800 flex items-center gap-1 text-xs"
                   onclick={() => addNewTask(appIndex)}>
@@ -424,8 +424,8 @@
                   {#each app.tasks as task, taskIndex}
                     <div class="flex items-center w-full group">
                       <div
-                        class="w-full text-left flex items-center bg-gray-50 p-2 rounded-md hover:bg-gray-200 hover:shadow-sm transition-all duration-320">
-                        <p class="grow text-gray-800 text-sm">{task.prompt}</p>
+                              class="w-full text-left flex items-center bg-background-100 p-2 rounded-md hover:bg-gray-800 hover:shadow-sm transition-all duration-320">
+                        <p class="grow text-gray-200 text-sm">{task.prompt}</p>
                         <div class="flex items-center gap-2 ml-2">
                           {#if typeof task.uploadLimit === 'number'}
                             <span
@@ -436,7 +436,7 @@
                           {#if typeof task.rewardLimit === 'number'}
                             <span
                               class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                              {task.rewardLimit} VIRAL
+                              {task.rewardLimit} OMNIS
                             </span>
                           {/if}
                           <a
