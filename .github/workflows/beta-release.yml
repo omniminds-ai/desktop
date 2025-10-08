@@ -72,5 +72,5 @@ jobs:
           prerelease: false
           includeRelease: true
           tauriScript: npm run tauri
-          projectPath: '..'
+          projectPath: '.'
           args: ${{ matrix.args }}
