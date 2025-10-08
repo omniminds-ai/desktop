@@ -241,10 +241,10 @@
     }
   }
 
-  let earnedThisMonth = 300
+  let earnedThisMonth = 0
   let averageEarnings = 0
   let loadingApps = true;
-  let omniBalance = 300;
+  let omniBalance = 0;
   let unclaimedRewards = 0;
   let recentSubmissions: any[] = [];
   let pendingRecordings: LocalRecording[] = [];
@@ -526,7 +526,7 @@
               </div>
             {:else if recording.submission}
               <div class="text-right min-w-[120px]">
-                <div class="text-sm font-semibold text-secondary-300">0 SOL</div>
+                <div class="text-sm font-semibold text-secondary-300">0 $OMNIS</div>
               </div>
             {/if}
           {/if}
